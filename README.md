@@ -19,18 +19,18 @@ and registering it in the superapp.
 ## The model
 
 ```
-                ┌──────────── Wasmer Edge app ────────────┐
-                │  GET  /        static client            │
-                │  GET  /healthz {ok, rooms, players}     │
-                │  WS   /ws      signaling: rooms + relay │
-                └──────▲──────────────▲──────────────▲────┘
-                       │ ws           │ ws           │ ws
-                 ┌─────┴─────┐  ┌─────┴─────┐  ┌─────┴─────┐
-                 │  HOST     │  │  guest    │  │  guest    │
-                 │  runs the │◄═►│  renders  │  │  renders  │
-                 │  game     │◄══╪═══════════╪═►│           │
-                 └───────────┘  └───────────┘  └───────────┘
-                    RTCDataChannel, one per guest, star around the host
+     ┌───────────────── Wasmer Edge app ─────────────────┐
+     │  GET /          static client                     │
+     │  GET /healthz   {ok, rooms, players}              │
+     │  WS  /ws        signaling: rooms + SDP/ICE relay  │
+     └────────▲────────────────▲────────────────▲────────┘
+              │ ws             │ ws             │ ws
+       ┌──────┴──────┐  ┌──────┴──────┐  ┌──────┴──────┐
+       │   guest A   │  │    HOST     │  │   guest B   │
+       │   renders   │◄═╡  runs the   ╞═►│   renders   │
+       │  snapshots  │  │ simulation  │  │  snapshots  │
+       └─────────────┘  └─────────────┘  └─────────────┘
+              RTCDataChannel per guest, star around the host
 ```
 
 Three layers, each with one job.
