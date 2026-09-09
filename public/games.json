@@ -6,5 +6,13 @@
     "players": "2 to 8",
     "description": "Steer a growing curve, avoid every trail, last one alive scores. Arena grows with the player count.",
     "source": "achtung/"
+  },
+  {
+    "slug": "ring-rumble",
+    "name": "Ring Rumble",
+    "url": "https://ring-rumble.wasmer.app",
+    "players": "2 to 8",
+    "description": "A 3D arena brawler. Punch your friends off the platform, dash out of trouble, and be the last fighter standing.",
+    "source": "ring-rumble/"
   }
 ]

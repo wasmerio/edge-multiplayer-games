@@ -4,6 +4,8 @@
 #   ./deploy.sh                 # everything: every game dir, then the superapp
 #   ./deploy.sh super           # superapp only (repo root)
 #   ./deploy.sh achtung [...]   # one or more game directories
+#   ./deploy.sh ring-rumble     # the 3D arena fighter
+#   ./deploy.sh ring-rumble super # publish the fighter and its index card
 #
 # Each target is a directory with an app.yaml. Owner comes from app.yaml;
 # override with OWNER=<namespace>. Set NO_WAIT=1 to skip waiting for rollout.
@@ -15,6 +17,7 @@ MIN_FILES=${MIN_FILES:-3}
 die() { echo "error: $*" >&2; exit 1; }
 
 command -v wasmer >/dev/null || die "wasmer CLI not found (curl https://get.wasmer.io -sSfL | sh)"
+command -v node >/dev/null || die "Node.js is required to update the game registry URLs"
 who=$(wasmer whoami 2>&1) || die "not logged in: run 'wasmer login'"
 case "$who" in
   *"registry wasmer.io"*) ;;
@@ -63,6 +66,19 @@ deploy_dir() {
     code=$(curl -s -o /dev/null -w '%{http_code}' "$url$probe" || true)
     echo "$name: $url$probe -> HTTP $code"
     [ "$code" = 200 ] || echo "warning: $name: expected 200 from $probe" >&2
+    if [ "$name" != super ]; then
+      node --input-type=module - "$ROOT/public/games.json" "$name" "$url" <<'NODE'
+import fs from 'node:fs';
+const [file, slug, url] = process.argv.slice(2);
+const games = JSON.parse(fs.readFileSync(file, 'utf8'));
+const game = games.find(game => game.slug === slug);
+if (game && game.url !== url) {
+  game.url = url;
+  fs.writeFileSync(file, JSON.stringify(games, null, 2) + '\n');
+  console.log(`${slug}: updated superapp URL from Wasmer`);
+}
+NODE
+    fi
   fi
 }
 

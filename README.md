@@ -11,6 +11,7 @@ deployable on its own.
 |---|---|---|
 | Superapp (index) | `public/` at the root | https://edge-multiplayer-games.wasmer.app |
 | Achtung, die Kurve! | [`achtung/`](achtung/) | https://achtung-webrtc.wasmer.app |
+| Ring Rumble (3D fighter) | [`ring-rumble/`](ring-rumble/) | First publish pending |
 
 Want to add a game? Read [`AGENTS.md`](AGENTS.md). It is the step by step
 recipe for cloning the model below onto any real-time multiplayer game
@@ -126,6 +127,7 @@ site and served by static-web-server; expect
 ./deploy.sh              # every game, then the superapp
 ./deploy.sh super        # superapp only
 ./deploy.sh achtung      # one game
+./deploy.sh ring-rumble super # 3D fighter and its index card
 ```
 
 The script checks that `wasmer whoami` points at `wasmer.io`, runs
@@ -133,6 +135,11 @@ The script checks that `wasmer whoami` points at `wasmer.io`, runs
 refuses to continue if fewer than 3 files were packaged, and probes the
 deployed URL afterwards. `OWNER=<namespace>` overrides the owner in
 `app.yaml`; `NO_WAIT=1` skips waiting for the rollout.
+
+Ring Rumble uses WASD or arrows to move, J to punch, and K or Shift to dash.
+It supports 2 to 8 browsers, touch controls, and local practice against a bot.
+The publish script discovers its directory automatically.
+After each game publishes, the script updates its registry URL from Wasmer before the superapp publishes.
 
 `CLAUDE.md` is a symlink to `AGENTS.md`, and the packager refuses
 symlinks. The root `.ignore` file (ripgrep syntax, honoured by the

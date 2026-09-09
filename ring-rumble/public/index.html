@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#121515">
+  <meta name="description" content="A little arena. A big punch. A 3D multiplayer brawler for you and your friends.">
+  <title>Ring Rumble — Stay in the ring.</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23b3ff70'/%3E%3Ctext x='12' y='46' font-size='44' font-family='sans-serif' font-weight='900'%3ER%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <a class="wordmark" href="/" aria-label="Ring Rumble home"><span class="brand-icon">r.</span> RING RUMBLE<span class="edition">/ 01</span></a>
+    <a id="all-games" href="https://edge-multiplayer-games.wasmer.app">↗ All games</a>
+  </header>
+  <main>
+    <div class="masthead"><span><i></i> MULTIPLAYER ARENA BRAWLER</span><span>2–8 PLAYERS · NO DOWNLOADS</span></div>
+    <div id="stage">
+      <canvas id="scene" aria-label="3D fighting arena"></canvas>
+      <div id="graphics-error" role="alert" hidden></div>
+      <div id="hero-copy"><div class="eyebrow">SMALL RING. BIG ENERGY.</div><h1>Stay in.<br><span>Knock out.</span></h1><p>A little friendly violence.<br>Punch your friends off the edge.<br>Try to remain friends.</p><div class="hero-tag"><span>3D</span> ZERO COMBOS TO MEMORIZE</div></div>
+      <section id="lobby" aria-label="Room lobby">
+        <div class="panel-heading"><h2>Enter the ring</h2><span class="panel-index">01 / LOBBY</span></div>
+        <label for="name">YOUR FIGHTER NAME</label>
+        <input id="name" maxlength="16" placeholder="Something intimidating" autocomplete="nickname">
+        <button id="create" class="primary">Create a room <span>↗</span></button>
+        <div class="divider"><span>OR JOIN YOUR FRIENDS</span></div>
+        <div class="join-row"><input id="code" maxlength="4" placeholder="CODE" aria-label="Room code" autocomplete="off"><button id="join">Join →</button></div>
+        <div id="room-info" hidden>
+          <div class="room-heading">ROOM <strong id="room-code"></strong></div>
+          <div id="invite" hidden><a id="invite-link" href="#"></a><button id="copy-link">Copy link</button></div>
+          <ul id="peers"></ul>
+          <div id="host-controls" hidden><p id="mapinfo"></p><button id="start" class="primary" disabled>Start fight <span>→</span></button></div>
+          <p id="wait" hidden>Waiting for the host to start…</p>
+        </div>
+        <button id="practice" class="text-button">Just looking? Practice with a bot ↗</button>
+        <div class="connection"><i></i><span id="status" role="status">Connecting…</span></div>
+      </section>
+      <section id="game" hidden aria-label="Match">
+        <div class="match-top"><span id="round-number">ROUND 01</span><span class="match-type">FIRST TO FIVE</span><span id="clock">GET READY</span></div>
+        <ol id="scores"></ol>
+        <div class="round-result"><div id="banner" role="status" hidden></div><p id="round-hint"></p><button id="next" class="primary" hidden>Next round · Space</button></div>
+        <div class="match-bottom"><span id="dash-status">Dash ready</span><a href="/">Leave fight ↗</a></div>
+        <div class="touch-controls" aria-label="Touch controls"><div class="dpad"><button data-input="4" aria-label="Move up">↑</button><button data-input="1" aria-label="Move left">←</button><button data-input="8" aria-label="Move down">↓</button><button data-input="2" aria-label="Move right">→</button></div><div class="actions"><button data-input="16">Punch</button><button data-input="32">Dash</button></div></div>
+      </section>
+      <div class="stage-caption">THE RING <span>FLOATING SOMEWHERE. FALLING FOREVER.</span></div>
+    </div>
+    <section class="how-to" aria-label="How to play"><div class="how-title"><span>THE ENTIRE<br>INSTRUCTION MANUAL.</span><small>Yes, this is really it.</small></div><div><span class="step-number">01</span><h3>Move around.</h3><p><kbd>W A S D</kbd> or <kbd>↑ ← ↓ →</kbd></p></div><div><span class="step-number">02</span><h3>Throw a punch.</h3><p>Hold <kbd>J</kbd> · We handle the aiming.</p></div><div><span class="step-number">03</span><h3>Get out of trouble.</h3><p>Tap <kbd>K</kbd> or <kbd>Shift</kbd> to dash.</p></div></section>
+    <footer><span>BUILT FOR FRIENDLY RIVALRIES.</span><span>POWERED BY WASMER <span class="footer-star">✳</span></span></footer>
+    <details class="network-details"><summary>Connection details</summary><p id="rtc">No peers connected.</p></details>
+  </main>
+  <script type="module" src="/client.js"></script>
+</body>
+</html>
