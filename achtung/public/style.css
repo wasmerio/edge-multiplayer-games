@@ -1,0 +1,77 @@
+:root {
+  color-scheme: dark;
+  --bg: #111318;
+  --fg: #e8e8ec;
+  --muted: #8a8f9c;
+  --panel: #1b1e26;
+  --accent: #ffcc00;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font: 15px/1.4 system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+}
+header {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid #262a35;
+}
+h1 { font-size: 1.25rem; margin: 0; color: var(--accent); }
+.muted { color: var(--muted); font-size: 0.9rem; }
+section { padding: 1.25rem; }
+#lobby { max-width: 32rem; }
+.row { display: flex; gap: 0.5rem; align-items: center; margin: 0.75rem 0; }
+input, button {
+  font: inherit;
+  padding: 0.4rem 0.7rem;
+  border-radius: 6px;
+  border: 1px solid #333846;
+  background: var(--panel);
+  color: var(--fg);
+}
+input#code { width: 5.5rem; text-transform: uppercase; letter-spacing: 0.15em; }
+button { cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button.small { padding: 0.15rem 0.5rem; font-size: 0.8rem; }
+#peers { padding-left: 1.2rem; }
+#all-games { margin-left: auto; text-decoration: none; }
+#all-games:hover { color: var(--accent); }
+.invite { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; background: var(--panel); padding: 0.5rem 0.75rem; border-radius: 8px; margin: 0.5rem 0; }
+.invite a { color: var(--accent); word-break: break-all; }
+#host-controls { display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; align-items: center; }
+#peers li.host::after { content: " (host)"; color: var(--muted); }
+#game { display: flex; gap: 1.25rem; align-items: flex-start; }
+#arena {
+  position: relative;
+  width: min(800px, 100%);
+  aspect-ratio: 4 / 3;
+  background: #000;
+  border: 2px solid #333846;
+}
+#arena canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+#banner {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 2rem;
+  font-weight: 700;
+  text-shadow: 0 0 12px #000;
+  pointer-events: none;
+}
+aside { min-width: 12rem; }
+#scores { padding-left: 1.4rem; }
+#scores li { margin: 0.2rem 0; }
+#scores .dead { opacity: 0.45; }
+#scores .swatch {
+  display: inline-block;
+  width: 0.8em;
+  height: 0.8em;
+  border-radius: 50%;
+  margin-right: 0.4em;
+  vertical-align: middle;
+}

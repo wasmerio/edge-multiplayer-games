@@ -1,0 +1,10 @@
+{
+  "name": "achtung-webrtc",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Achtung die Kurve clone: WebRTC DataChannel gameplay, WebSocket signaling on Wasmer Edge",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": { "start": "node src/server.js" },
+  "dependencies": { "ws": "^8.20.1" }
+}

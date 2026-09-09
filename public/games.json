@@ -1,0 +1,10 @@
+[
+  {
+    "slug": "achtung",
+    "name": "Achtung, die Kurve!",
+    "url": "https://achtung-webrtc-wasmer.wasmer.app",
+    "players": "2 to 8",
+    "description": "Steer a growing curve, avoid every trail, last one alive scores. Arena grows with the player count.",
+    "source": "achtung/"
+  }
+]

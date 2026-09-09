@@ -1,0 +1,24 @@
+kind: wasmer.io/App.v0
+name: achtung-webrtc
+owner: wasmer
+package: .
+locality:
+  regions:
+  - fr-roub1
+app_id: da_RrWI0t5UD633
+annotations:
+  anybuild.run/config:
+    commands:
+      start: node src/server.js
+    edgejs_enable: true
+    edgejs_precompile: true
+    name: out
+    node_install_inputs:
+    - package.json
+    node_package_manager: npm
+    node_package_name: achtung-webrtc
+    node_remove_native_binaries: true
+    node_server: node
+  anybuild.run/provider: node
+  anybuild.run/version: 0.28.2
+  wasmer.io/version: 7.4.0

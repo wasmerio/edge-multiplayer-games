@@ -1,0 +1,12 @@
+kind: wasmer.io/App.v0
+name: edge-multiplayer-games
+owner: wasmer
+package: .
+app_id: da_RLmILtvUOlma
+annotations:
+  anybuild.run/config:
+    name: out
+    static_dir: public
+  anybuild.run/provider: staticfile
+  anybuild.run/version: 0.28.2
+  wasmer.io/version: 7.4.0

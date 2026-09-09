@@ -1,0 +1,7 @@
+# Upload filter for the superapp (ripgrep-style .ignore, honoured by the wasmer packager, ignored by git).
+# The packager refuses symlinks, so CLAUDE.md must stay out; game dirs deploy on their own.
+/CLAUDE.md
+/AGENTS.md
+/README.md
+/achtung/
+/deploy.sh

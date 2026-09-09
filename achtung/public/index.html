@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Achtung, die Kurve! (WebRTC)</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header>
+    <h1>Achtung, die Kurve!</h1>
+    <span id="status" class="muted">connecting…</span>
+    <a id="all-games" class="muted" href="https://edge-multiplayer-games.wasmer.app">← all games</a>
+  </header>
+
+  <section id="lobby">
+    <label>Name <input id="name" maxlength="16" placeholder="your name" /></label>
+    <div class="row">
+      <button id="create">Create room</button>
+      <span class="muted">or</span>
+      <input id="code" maxlength="4" placeholder="CODE" />
+      <button id="join">Join</button>
+    </div>
+    <div id="room-info" hidden>
+      <p>Room <strong id="room-code"></strong></p>
+      <div id="invite" class="invite" hidden>
+        <span class="muted">Send this to your friends:</span>
+        <a id="invite-link" href="#"></a>
+        <button id="copy-link" class="small">copy</button>
+      </div>
+      <ul id="peers"></ul>
+      <div id="host-controls" hidden>
+        <label><input type="checkbox" id="local2" /> add local player 2 (A / D)</label>
+        <label>Map
+          <select id="mapsize">
+            <option value="0.7">small</option>
+            <option value="1" selected>normal</option>
+            <option value="1.4">large</option>
+            <option value="2">huge</option>
+          </select>
+          <span id="mapinfo" class="muted"></span>
+        </label>
+        <button id="start">Start game</button>
+      </div>
+      <p id="wait" class="muted" hidden>waiting for host to start…</p>
+    </div>
+  </section>
+
+  <section id="game" hidden>
+    <div id="arena">
+      <canvas id="trails"></canvas>
+      <canvas id="heads"></canvas>
+      <div id="banner" hidden></div>
+    </div>
+    <aside>
+      <ol id="scores"></ol>
+      <p class="muted">← → to steer. Host: Space starts next round.</p>
+      <p id="rtc" class="muted"></p>
+    </aside>
+  </section>
+
+  <script type="module" src="/client.js"></script>
+</body>
+</html>
