@@ -1,0 +1,26 @@
+{
+  "date": "2026-09-09",
+  "slug": "daily-2026-09-09",
+  "base_sha": "75ab8dd8fba5c0e1676e97d5e74424d6f7c82952",
+  "entry": {
+    "slug": "daily-2026-09-09",
+    "name": "Vault Tempo",
+    "description": "Drill volatile rich veins, manage rising heat, and bank your haul before meltdown in a multiplayer push-your-luck mining race.",
+    "players": "2 to 8",
+    "source": "daily-2026-09-09/"
+  },
+  "checks": {
+    "ok": true,
+    "scenarios": [
+      "Interrupted banking resets; completed banking preserves ore",
+      "Meltdown at heat ninety destroys haul and locks drilling",
+      "Closing, score persistence, ties and departure lifecycle",
+      "Eight-player snapshots stay bounded and deterministic"
+    ],
+    "interface": true
+  },
+  "browser_checks": "pending",
+  "deployment": "pending",
+  "root_catalog": "public/games.json",
+  "upload_filter": ".wasmerignore"
+}
