@@ -79,8 +79,9 @@ def ensure_pr(gh, branch, record):
             f"{entry['description']}\n\n"
             f"Source: `{record['slug']}/`. Base commit: `{record['base_sha']}`.\n\n"
             "Validation: JavaScript syntax, Game interface, and simulation scenarios passed.\n\n"
-            "Browser gameplay, invite flow, production deployment, and live catalog registration "
-            "remain pending. This draft is not automatically merged.\n")
+            "Browser gameplay, invite flow, and production deployment remain pending. "
+            "After merging, run `./deploy.sh " + record['slug'] + " super` to publish the game and its catalog URL. "
+            "This draft is not automatically merged.\n")
     try:
         result = gh.request("/pulls", {"title": f"Add {entry['name']} ({record['date']})",
                                       "head": branch, "base": "main", "body": body, "draft": True})
@@ -203,6 +204,11 @@ def run(args):
             (scaffold / "game-entry.json").write_text(json_text({"name": "Choose a distinct name", "description": "Describe the game"}))
             baseline = {str(p.relative_to(work)): p.read_bytes() for p in scaffold.rglob("*") if p.is_file()}
             prompt = "INPUT\n" + json_text({"date": day, "game_directory": slug,
+                "repository_instructions": refs["AGENTS.md"],
+                "registration_contract": {
+                    "catalog": "public/games.json", "upload_filter": ".ignore",
+                    "metadata": "Write game-entry.json with name and description. The coordinator adds slug, players, source, and url: null to the root catalog and excludes the game directory from the root upload.",
+                    "deployment": f"After merge, ./deploy.sh {slug} super deploys the game, records its actual Wasmer URL, and redeploys the superapp. Document this command in the game README; leave browser and deployment checks pending."},
                 "editable_paths": [slug + "/" + path for path in EDITABLE],
                 "existing_games": context["existing_games"],
                 "client_boundary": "Keep public/client.js byte-for-byte unchanged before function applyMessage(msg) {. Adapt the renderer and input after that boundary to the existing host loop.",
@@ -232,18 +238,27 @@ def run(args):
                 require(not file.is_symlink(), "Linked game file: " + path)
                 file.parent.mkdir(parents=True, exist_ok=True)
                 file.write_text(content)
-        allowed = {slug + "/" + path for path in files} | {".ignore", CATALOG, record_path}
+        # Old saved previews remain recoverable; new runs always register in the superapp.
+        registers_root = not reuse or record.get("root_catalog") == "public/games.json"
+        root_catalog = json.loads(refs["public/games.json"]) + [{**entry, "url": None}]
+        metadata_paths = {".ignore", CATALOG, record_path}
+        if registers_root:
+            metadata_paths.add("public/games.json")
+        allowed = {slug + "/" + path for path in files} | metadata_paths
         if reuse:
             validate_paths(git("diff", "--name-only", base, "HEAD").splitlines() if recovery else
                            git("diff", "--cached", "--name-only", base).splitlines(), allowed)
             require((work / ".ignore").read_text() == git("show", base + ":.ignore", raw=True).rstrip() + "\n/" + slug + "/\n",
                     "Saved upload exclusions differ from the expected game entry")
             require(json.loads((work / CATALOG).read_text()) == generated + [entry], "Saved catalog differs from the expected game entry")
+            if registers_root:
+                require(json.loads(regular_file(work, "public/games.json").read_text()) == root_catalog,
+                        "Saved root catalog differs from the expected game entry")
             if recovery:
                 require(git("status", "--porcelain") == "", "Recovered branch has unexpected working changes")
         expected = {slug + "/" + path: regular_file(work, slug + "/" + path).read_bytes() for path in files}
         if reuse:
-            expected.update({path: regular_file(work, path).read_bytes() for path in (".ignore", CATALOG, record_path)})
+            expected.update({path: regular_file(work, path).read_bytes() for path in metadata_paths})
         before_checks = snapshot(work)
         validation_head = git("rev-parse", "HEAD")
         report = check_game(work, slug, env)
@@ -256,15 +271,18 @@ def run(args):
                 require(git("status", "--porcelain") == "", "Game checks changed the recovered Git index")
         else:
             record = {"date": day, "slug": slug, "base_sha": base, "entry": entry,
-                      "checks": report, "browser_checks": "pending", "deployment": "pending"}
+                      "checks": report, "browser_checks": "pending", "deployment": "pending",
+                      "root_catalog": "public/games.json"}
             ignore = work / ".ignore"
             ignore_text = ignore.read_text().rstrip() + "\n/" + slug + "/\n"
             ignore.write_text(ignore_text)
             (work / CATALOG).parent.mkdir(parents=True, exist_ok=True)
             (work / CATALOG).write_text(json_text(generated + [entry]))
+            regular_file(work, "public/games.json").write_text(json_text(root_catalog))
             (work / record_path).parent.mkdir(parents=True, exist_ok=True)
             (work / record_path).write_text(json_text(record))
             expected.update({".ignore": ignore_text.encode(), CATALOG: json_text(generated + [entry]).encode(),
+                             "public/games.json": json_text(root_catalog).encode(),
                              record_path: json_text(record).encode()})
             changed = git("diff", "--name-only", "HEAD").splitlines()
             changed += git("ls-files", "--others", "--exclude-standard").splitlines()

@@ -13,6 +13,7 @@
     header .spacer { flex: 1; }
     button { font: inherit; padding: 0.5rem 0.9rem; border-radius: 8px; border: 1px solid #333846; background: var(--panel); color: var(--fg); cursor: pointer; }
     button:hover { border-color: var(--accent); }
+    button:disabled { opacity: 0.5; cursor: default; }
     button.primary { background: var(--accent); color: #111; border-color: var(--accent); font-weight: 700; }
     main { padding: 1.5rem; max-width: 64rem; margin: 0 auto; }
     p.lead { color: var(--muted); margin-top: 0; }
@@ -45,6 +46,7 @@
     document.getElementById("src").href = REPO;
     let games = [];
     const status = new Map();
+    const deployed = (g) => typeof g.url === "string" && g.url.startsWith("https://");
 
     const hostUrl = (g) => `${g.url.replace(/\/+$/, "")}/?create=1`;
 
@@ -56,6 +58,7 @@
     }
 
     function render() {
+      document.getElementById("random").disabled = !games.some(deployed);
       const root = document.getElementById("games");
       root.innerHTML = "";
       for (const g of games) {
@@ -66,12 +69,12 @@
           <h2>${esc(g.name)}</h2>
           <div class="desc">${esc(g.description || "")}</div>
           <div class="meta">
-            <span><span class="dot ${s ? (s.ok ? "ok" : "bad") : ""}"></span>${s ? (s.ok ? `online · ${s.rooms} room${s.rooms === 1 ? "" : "s"} · ${s.players} player${s.players === 1 ? "" : "s"}` : "offline") : "checking…"}</span>
+            <span><span class="dot ${s ? (s.ok ? "ok" : "bad") : ""}"></span>${!deployed(g) ? "coming soon" : s ? (s.ok ? `online · ${s.rooms} room${s.rooms === 1 ? "" : "s"} · ${s.players} player${s.players === 1 ? "" : "s"}` : "offline") : "checking…"}</span>
             <span>${esc(g.players || "")}</span>
           </div>
           <div class="actions">
-            <button class="primary" data-host="${esc(g.slug)}">Host a game</button>
-            <button data-open="${esc(g.slug)}">Open</button>
+            <button class="primary" data-host="${esc(g.slug)}" ${deployed(g) ? "" : "disabled"}>Host a game</button>
+            <button data-open="${esc(g.slug)}" ${deployed(g) ? "" : "disabled"}>Open</button>
             <a href="${REPO}/tree/main/${esc(g.source || "")}">source</a>
           </div>`;
         root.appendChild(card);
@@ -81,7 +84,7 @@
     }
 
     async function poll() {
-      await Promise.all(games.map(async (g) => {
+      await Promise.all(games.filter(deployed).map(async (g) => {
         try {
           const ctl = new AbortController();
           const t = setTimeout(() => ctl.abort(), 6000);
@@ -98,7 +101,7 @@
 
     document.getElementById("random").onclick = () => {
       const online = games.filter((g) => status.get(g.slug)?.ok);
-      const pool = online.length ? online : games;
+      const pool = online.length ? online : games.filter(deployed);
       if (!pool.length) return;
       location.href = hostUrl(pool[Math.floor(Math.random() * pool.length)]);
     };

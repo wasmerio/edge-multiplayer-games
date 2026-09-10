@@ -14,7 +14,8 @@ REFERENCE = ("AGENTS.md", "public/games.json", "achtung/package.json",
 SPLIT = "function applyMessage(msg) {"
 PENDING = ("\n\n## Automated check status\n\n"
            "The Wasmer job ran JavaScript syntax, Game interface, and simulation scenario checks.\n"
-           "Two-browser gameplay, invite behavior, production deployment, and catalog registration remain pending.\n"
+           "Two-browser gameplay, invite behavior, and production deployment remain pending.\n"
+           "The PR registers the game in public/games.json with a pending URL. Deploy the game and superapp to publish it.\n"
            "Complete the repository AGENTS.md checklist before calling this game done.\n")
 
 

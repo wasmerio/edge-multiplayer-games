@@ -21,8 +21,10 @@ Signaling server and client prefix before `function applyMessage(msg) {` remain 
 - PASS: `node /tmp/check-prism-client.mjs`: mocked DOM and paired in-memory transport exercise auto-create, invite rendering, auto-join, host/guest snapshot rendering, guest keyboard intent, opposing buttons, change-only sends, touch/cancel, round advance, fresh match reset and disconnect. This is not a real browser or WebRTC check.
 - BLOCKED / pending: local HTTP checks. Attempting to import the unchanged server from `/tmp/check-prism.mjs` failed with `ERR_MODULE_NOT_FOUND: Cannot find package 'ws'`; no HTTP assertions ran. Package installation and dependency-path changes were not made because preparation is supplied and those paths are outside the edit allowlist. Coordinator must make `ws` available and rerun `/healthz` (including CORS), `/`, `/ws` (426), raw `/../etc/passwd` (404), and static asset requests.
 - Pending: real browser two-tab create/join, DataChannel connected/open and guest input, touch controls, resize, round advance, auto-create invite/copy and auto-join.
-- Pending / deployment blocker: supplied protected `app.yaml` still contains Achtung's name, `app_id` and annotations; protected `package.json` still carries Achtung metadata. Coordinator must assign game-specific deployment/package metadata and remove copied deployment IDs/annotations before deploying. These files were deliberately not changed.
-- Pending: production deployment, production two-tab/contract checks, root catalog/ignore registration, superapp redeployment and online card (coordinator-owned). `game-entry.json` now provides Prism Post's display name and description.
+- PASS: the coordinator assigned Prism Post's app and package metadata. Wasmer reports this game's own deployed app ID, `da_2l9IzteUY9dm`.
+- PASS: the deployed `/healthz` returns HTTP 200 with `ok: true` and `Access-Control-Allow-Origin: *`.
+- PASS: the root `public/games.json` contains Prism Post's actual deployment URL, and `.ignore` excludes its source directory.
+- Pending: production two-tab/contract checks, superapp redeployment, and the live index card.
 
 ## Playing and operational notes
 
@@ -30,11 +32,16 @@ Run `node src/server.js` from this directory once the prepared `ws` dependency i
 
 The immutable transport retains Achtung's `window.achtung` debug state and stored-name key. Public STUN only, no TURN, no reconnect/resume, no host migration; rooms and signaling are instance-local. Late arrivals enter on the next fresh match, not mid-shift. A disconnected bay is inactive for the remainder of its match.
 
-Package preparation is supplied; no runtime installs, deployment, credentials, Git configuration, or protected metadata changes are part of this task.
+## Deployment
+
+The game runs at https://daily-2026-09-11.wasmer.app.
+From the repository root, run `./deploy.sh daily-2026-09-11 super` to deploy both the game and its index card.
+For the already deployed game, run `./deploy.sh super` to publish the updated root catalog.
 
 
 ## Automated check status
 
-The Edge cron job ran JavaScript syntax, Game interface, and simulation scenario checks.
-Two-browser gameplay, invite behavior, production deployment, and catalog registration remain pending.
+The Wasmer generation job ran JavaScript syntax, Game interface, and simulation scenario checks.
+The game is deployed and registered in the local root catalog. The production health check passes.
+Two-browser gameplay, invite behavior, and publication of the root index card remain pending.
 Complete the repository AGENTS.md checklist before calling this game done.

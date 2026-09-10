@@ -130,6 +130,7 @@ class DailyGameTests(unittest.TestCase):
 
     def agent(self, work, env, system, prompt, model):
         self.agent_env = env
+        self.agent_input = json.loads(prompt.removeprefix('INPUT\n'))
         c = candidate()
         game = work / ('daily-' + DAY)
         (game / 'README.md').write_text(c['readme'])
@@ -162,6 +163,35 @@ class DailyGameTests(unittest.TestCase):
         self.gh.pull = {'html_url': 'https://github.com/example/repo/pull/1'}
         self.invoke(agent=lambda *args: self.fail('Pi should not run'))
         self.assertFalse(self.commands.calls)
+
+    def test_prompt_injects_guide_and_pr_registers_root_catalog(self):
+        self.invoke()
+        self.assertEqual(self.agent_input['repository_instructions'], (ROOT / 'AGENTS.md').read_text())
+        self.assertEqual(self.agent_input['registration_contract']['catalog'], 'public/games.json')
+        original = json.loads(self.commands.base['public/games.json'])
+        published = json.loads(self.commands.published['public/games.json'])
+        self.assertEqual(published[:-1], original)
+        self.assertEqual(published[-1], {
+            'slug': 'daily-' + DAY, 'name': candidate()['name'],
+            'description': candidate()['description'], 'players': '2 to 8',
+            'source': 'daily-' + DAY + '/', 'url': None,
+        })
+        self.assertIn('/daily-' + DAY + '/\n', self.commands.published['.ignore'])
+
+    def test_saved_preview_rejects_root_catalog_replacement(self):
+        with tempfile.TemporaryDirectory() as output:
+            self.args.publish = False
+            self.args.output = output
+            self.invoke()
+            patchfile = Path(output) / ('daily-' + DAY + '.patch')
+            files = json.loads(patchfile.read_text())
+            files['public/games.json'] = '[]\n'
+            patchfile.write_text(json.dumps(files))
+            self.args.publish = True
+            self.args.from_preview = output
+            with self.assertRaisesRegex(ValueError, 'Saved root catalog differs'):
+                self.invoke(agent=lambda *args: self.fail('Must not regenerate'))
+            self.assertFalse(any(a[0] == 'push' for a, _ in self.commands.calls))
 
     def test_failed_checks_never_push(self):
         with patch.object(job, 'check_game', side_effect=ValueError('bad game')):

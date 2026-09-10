@@ -184,6 +184,29 @@ contract check against production: `/?create=1` must land in a room.
 
 ### 3.8 Register in the superapp
 
+Deployment is complete only when the root catalog contains the game and the
+superapp deployment serves that entry. Deploying the game alone does not publish
+its card.
+
+For daily games, write `game-entry.json` with `slug`, `name`, `players`,
+`description`, and `source`. The generation coordinator adds these fields to
+`public/games.json` with `url: null` and adds `/<game>/` to `.ignore` in the PR.
+The page shows these entries as coming soon until deployment supplies a URL.
+Do not guess a Wasmer URL.
+
+After merging a daily game, deploy both targets from the repository root:
+
+```bash
+./deploy.sh <game> super
+```
+
+The script reads the deployed URL from Wasmer and inserts or updates the root
+catalog entry from `game-entry.json`. It then redeploys the superapp. If the game
+is already deployed, `./deploy.sh super` also repairs missing entries and URLs.
+Commit the resulting catalog and manifest changes.
+
+For a game without `game-entry.json`, register it manually before deployment:
+
 Add an entry to `public/games.json` at the repo root and redeploy the
 root app:
 

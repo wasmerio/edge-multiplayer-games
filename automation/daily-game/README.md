@@ -141,12 +141,13 @@ See [PROBE.md](PROBE.md) for the test without model access.
 
 The coordinator restricts edits to the new game's source files.
 It preserves the signaling server and client transport prefix.
-It constructs the app manifest, package files, test runner, catalog record,
+It injects the cloned repository's full AGENTS.md and registration contract into Pi's input.
+It constructs the app manifest, package files, test runner, both catalog entries,
 and root upload exclusion itself.
 
 Before publication, it checks JavaScript syntax, the Game interface,
 and at least two simulation scenarios. The draft PR lists browser gameplay,
-invite flow, deployment, and live catalog registration as pending.
+invite flow, and deployment as pending.
 Complete the repository AGENTS.md checklist before publishing the game.
 
 The job compares repository contents before and after the generated tests.
@@ -155,8 +156,22 @@ Before a commit, it rebuilds the index and compares staged Git objects with
 the exact source bytes that passed validation.
 The simulation check has a 60-second deadline and a combined output limit of 2 MiB.
 
-The live `public/games.json` catalog is updated only after deployment.
-The generated `game-entry.json` supplies the source metadata for that step.
+Every new PR adds an entry to the root `public/games.json` catalog with `url: null`.
+The superapp shows that entry as coming soon and disables its play buttons.
+The generated `game-entry.json` supplies its name, description, player count, and source path.
+The internal `automation/daily-game/catalog.json` is a generation record; the superapp does not read it.
+
+After merging the PR, run this command from the repository root:
+
+```bash
+./deploy.sh daily-YYYY-MM-DD super
+```
+
+The script deploys the game, reads its actual URL from Wasmer, updates the root catalog,
+and deploys the superapp. It also adds missing entries from older generated games.
+If the game is already deployed, `./deploy.sh super` resolves any missing catalog URLs before the root deployment.
+Commit the catalog URL and CLI manifest changes after deployment.
+Saved previews from older versions remain recoverable; deployment adds their missing root entries.
 
 ## Reruns and failures
 
@@ -188,10 +203,10 @@ The local Git/Pi startup probe passed in Wasmer 7.3.0 and from a built WebC.
 The new daily command starts in Wasmer. Its event renderer was checked there
 with synthetic events.
 
-Thirteen coordinator tests simulate Git and GitHub while running real JavaScript checks.
+Fifteen coordinator tests simulate Git and GitHub while running real JavaScript checks.
 They cover preview export and reuse,
 credential separation, failed validation, protected files, duplicate PRs,
-rejected pushes, and recovery after a successful push.
+rejected pushes, recovery after a successful push, injected instructions, and root catalog integrity.
 
 ```bash
 python3 -m unittest discover -s test -v
@@ -207,7 +222,7 @@ wasmer run . -e node --volume ../..:/repository \
   -- /repository/automation/daily-game/test/wasmer.mjs
 ```
 
-This command runs all 17 Python tests plus the JavaScript runtime checks.
+This command runs all 19 Python tests plus the JavaScript runtime checks.
 Four integration tests use real Git in disposable guest repositories.
 They cover source mutation, staged-only edits, preview mutation, and Git attribute conversion.
 The suite uses no model API, GitHub token, or external Git remote.

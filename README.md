@@ -12,6 +12,7 @@ deployable on its own.
 | Superapp (index) | `public/` at the root | https://edge-multiplayer-games.wasmer.app |
 | Achtung, die Kurve! | [`achtung/`](achtung/) | https://achtung-webrtc.wasmer.app |
 | Ring Rumble (3D fighter) | [`ring-rumble/`](ring-rumble/) | First publish pending |
+| Prism Post | [`daily-2026-09-11/`](daily-2026-09-11/) | https://daily-2026-09-11.wasmer.app |
 
 Want to add a game? Read [`AGENTS.md`](AGENTS.md). It is the step by step
 recipe for cloning the model below onto any real-time multiplayer game
@@ -140,6 +141,17 @@ Ring Rumble uses WASD or arrows to move, J to punch, and K or Shift to dash.
 It supports 2 to 8 browsers, touch controls, and local practice against a bot.
 The publish script discovers its directory automatically.
 After each game publishes, the script updates its registry URL from Wasmer before the superapp publishes.
+For daily games, it inserts missing entries from `game-entry.json` too.
+Run `./deploy.sh <game> super` to publish both the game and its card.
+If the game is already deployed, `./deploy.sh super` repairs missing catalog entries before deploying the root.
+New game PRs include a root catalog entry with `url: null`; the page shows these games as coming soon.
+
+Check catalog updates and pending cards with:
+
+```bash
+node scripts/register-game.test.mjs
+node scripts/superapp.test.mjs
+```
 
 `CLAUDE.md` is a symlink to `AGENTS.md`, and the packager refuses
 symlinks. The root `.ignore` file (ripgrep syntax, honoured by the

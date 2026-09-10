@@ -14,5 +14,13 @@
     "players": "2 to 8",
     "description": "A 3D arena brawler. Punch your friends off the platform, dash out of trouble, and be the last fighter standing.",
     "source": "ring-rumble/"
+  },
+  {
+    "slug": "daily-2026-09-11",
+    "name": "Prism Post",
+    "url": "https://daily-2026-09-11.wasmer.app",
+    "players": "2 to 8",
+    "description": "Slide your cart to catch mint parcels and dodge costly glitches in identical delivery bays, racing friends to 20 points across thirty-second shifts.",
+    "source": "daily-2026-09-11/"
   }
 ]

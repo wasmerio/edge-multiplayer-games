@@ -35,6 +35,25 @@ else
   targets=("$@")
 fi
 
+app_url() {
+  (cd "$1" && wasmer app get -f json) | node --input-type=module -e '
+    import fs from "node:fs";
+    const app = JSON.parse(fs.readFileSync(0, "utf8"));
+    if (typeof app.url !== "string" || !app.url) throw new Error("Wasmer returned no app URL");
+    console.log(app.url);
+  '
+}
+
+sync_catalog() {
+  local pending slug url
+  pending=$(node "$ROOT/scripts/register-game.mjs" "$ROOT" --pending)
+  while IFS= read -r slug; do
+    [ -n "$slug" ] || continue
+    url=$(app_url "$ROOT/$slug") || die "$slug: cannot resolve its URL; deploy the game before the superapp"
+    node "$ROOT/scripts/register-game.mjs" "$ROOT" "$slug" "$url"
+  done <<< "$pending"
+}
+
 deploy_dir() {
   local name=$1 dir=$2
   [ -f "$dir/app.yaml" ] || die "$dir has no app.yaml"
@@ -46,19 +65,20 @@ deploy_dir() {
   local log
   log=$(mktemp)
   # tee keeps the live output; the log is parsed afterwards
-  (cd "$dir" && wasmer deploy "${args[@]}") 2>&1 | tee "$log"
-  local status=${PIPESTATUS[0]}
+  if ! (cd "$dir" && wasmer deploy "${args[@]}") 2>&1 | tee "$log"; then
+    rm -f "$log"
+    die "$name: deploy failed"
+  fi
   local files
   files=$(tr '\r' '\n' < "$log" | sed -n 's/.*Packaging project directory (\([0-9]*\) files.*/\1/p' | head -1)
   rm -f "$log"
-  [ "$status" -eq 0 ] || die "$name: deploy failed"
   if [ -z "$files" ]; then
     echo "warning: $name: no 'Packaging project directory' line found" >&2
   elif [ "$files" -lt "$MIN_FILES" ]; then
     die "$name: only $files file(s) were packaged; the upload is empty (wrong working directory?)"
   fi
   local url
-  url=$(cd "$dir" && wasmer app get -f json 2>/dev/null | sed -n 's/.*"url": *"\([^"]*\)".*/\1/p' | head -1)
+  url=$(app_url "$dir") || die "$name: cannot read the deployed URL from Wasmer"
   if [ -n "$url" ]; then
     local probe=/healthz
     [ "$name" = super ] && probe=/games.json
@@ -67,24 +87,14 @@ deploy_dir() {
     echo "$name: $url$probe -> HTTP $code"
     [ "$code" = 200 ] || echo "warning: $name: expected 200 from $probe" >&2
     if [ "$name" != super ]; then
-      node --input-type=module - "$ROOT/public/games.json" "$name" "$url" <<'NODE'
-import fs from 'node:fs';
-const [file, slug, url] = process.argv.slice(2);
-const games = JSON.parse(fs.readFileSync(file, 'utf8'));
-const game = games.find(game => game.slug === slug);
-if (game && game.url !== url) {
-  game.url = url;
-  fs.writeFileSync(file, JSON.stringify(games, null, 2) + '\n');
-  console.log(`${slug}: updated superapp URL from Wasmer`);
-}
-NODE
+      node "$ROOT/scripts/register-game.mjs" "$ROOT" "$name" "$url"
     fi
   fi
 }
 
 for t in "${targets[@]}"; do
   case "$t" in
-    super|root|.) deploy_dir super "$ROOT" ;;
+    super|root|.) sync_catalog; deploy_dir super "$ROOT" ;;
     *) deploy_dir "$t" "$ROOT/$t" ;;
   esac
 done

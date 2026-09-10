@@ -20,5 +20,5 @@ annotations:
     node_remove_native_binaries: true
     node_server: node
   anybuild.run/provider: node
-  anybuild.run/version: 0.28.2
-  wasmer.io/version: 7.4.0
+  anybuild.run/version: 0.28.4
+  wasmer.io/version: 7.4.1
