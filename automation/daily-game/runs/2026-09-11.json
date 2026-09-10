@@ -1,0 +1,24 @@
+{
+  "date": "2026-09-11",
+  "slug": "daily-2026-09-11",
+  "base_sha": "b6fcde1d752c85236d39a31b1285f91545a10ada",
+  "entry": {
+    "slug": "daily-2026-09-11",
+    "name": "Prism Post",
+    "description": "Slide your cart to catch mint parcels and dodge costly glitches in identical delivery bays, racing friends to 20 points across thirty-second shifts.",
+    "players": "2 to 8",
+    "source": "daily-2026-09-11/"
+  },
+  "checks": {
+    "ok": true,
+    "scenarios": [
+      "Independent bays catch once and glitches floor at zero",
+      "Countdown, continuous steering, clamping and stopping",
+      "Thirty-second shifts freeze, preserve scores and resolve ties",
+      "Eight-player snapshots are complete and bounded"
+    ],
+    "interface": true
+  },
+  "browser_checks": "pending",
+  "deployment": "pending"
+}

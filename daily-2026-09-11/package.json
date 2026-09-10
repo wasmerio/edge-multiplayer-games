@@ -1,0 +1,17 @@
+{
+  "name": "daily-2026-09-11",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Slide your cart to catch mint parcels and dodge costly glitches in identical delivery bays, racing friends to 20 points across thirty-second shifts.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node test/run.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.20.1"
+  }
+}
