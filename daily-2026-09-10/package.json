@@ -1,0 +1,17 @@
+{
+  "name": "daily-2026-09-10",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Slide your basket through identical meteor showers, catch valuable crystals, dodge cargo-jamming mines, and outscore your friends in 35-second shifts.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node test/run.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.20.1"
+  }
+}

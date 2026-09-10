@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0a1523" />
+  <title>Meteor Market · Multiplayer</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header>
+    <a class="brand" href="/">✦ Meteor Market</a>
+    <span id="status" class="muted" role="status">connecting…</span>
+    <a id="all-games" href="https://edge-multiplayer-games.wasmer.app">← all games</a>
+  </header>
+  <main>
+    <section id="lobby">
+      <div class="intro">
+        <p class="eyebrow">2–8 players · peer-to-peer · solo practice</p>
+        <h1>Fortune falls.<br><span>Catch yours.</span></h1>
+        <p>One shower. Your own stall. Slide your basket to catch crystals and dodge mines. The biggest haul after 35 seconds wins the shift.</p>
+        <div class="legend"><span class="cyan">◆ +1 crystal</span><span class="gold">◆ +3 gold</span><span class="red">⊗ −4 & jam</span></div>
+        <p class="muted">Identical showers for everyone. Win a shift for 2 points; ties earn 1 each. First unique leader to 5 wins the match.</p>
+      </div>
+      <div class="lobby-card">
+        <h2>Open your stall</h2>
+        <label>Your name <input id="name" maxlength="16" placeholder="your name" autocomplete="nickname" /></label>
+        <div class="row">
+          <button id="create" class="primary">Create room</button>
+          <span class="muted">or</span>
+          <input id="code" maxlength="4" placeholder="CODE" aria-label="Room code" />
+          <button id="join">Join</button>
+        </div>
+        <div id="room-info" hidden>
+          <p>Market code <strong id="room-code"></strong></p>
+          <div id="invite" class="invite" hidden>
+            <span class="muted">Invite friends to your market:</span>
+            <a id="invite-link" href="#"></a>
+            <button id="copy-link" class="small">copy</button>
+          </div>
+          <ul id="peers"></ul>
+          <div id="host-controls" hidden>
+            <label class="checkbox"><input type="checkbox" id="local2" /> Add local player 2 (A / D; max 8 total)</label>
+            <label>Display size
+              <select id="mapsize">
+                <option value="0.7">Compact</option>
+                <option value="1" selected>Normal</option>
+                <option value="1.4">Large</option>
+                <option value="2">Huge</option>
+              </select>
+            </label>
+            <span id="mapinfo" class="muted"></span>
+            <button id="start" class="primary">Start the market →</button>
+          </div>
+          <p id="wait" class="muted" hidden>Waiting for the host to start. Joining mid-match? Wait for a new match.</p>
+        </div>
+      </div>
+    </section>
+    <section id="game" hidden>
+      <div class="play-area">
+        <div class="game-hud"><span id="round-status">Catch crystals, dodge mines</span><strong id="clock">35s</strong></div>
+        <div class="stage-scroll">
+          <div id="arena">
+            <canvas id="trails" aria-hidden="true"></canvas>
+            <canvas id="heads" aria-label="Market stalls, falling crystals and mines, and player baskets"></canvas>
+            <div id="banner" role="status" hidden></div>
+          </div>
+        </div>
+        <div class="controls">
+          <div class="touch-controls" aria-label="Hold to move your basket">
+            <button data-direction="-1" aria-label="Move left">←</button>
+            <button data-direction="1" aria-label="Move right">→</button>
+          </div>
+          <p class="muted">Hold ← / → to slide<br>Local player 2: A / D</p>
+          <button id="next" class="primary" hidden>Next round · Space</button>
+        </div>
+      </div>
+      <aside>
+        <p class="eyebrow">Market standings</p>
+        <ol id="scores"></ol>
+        <div class="rules">
+          <p><span class="cyan">◆</span> Crystal <strong>+1 cargo</strong></p>
+          <p><span class="gold">◆</span> Gold <strong>+3 cargo</strong></p>
+          <p><span class="red">⊗</span> Mine <strong>−4, brief jam</strong></p>
+          <p class="muted">Highest positive cargo wins: +2 match points. Tied leaders: +1 each. Everyone has their own copy of the shower.</p>
+        </div>
+        <p class="muted">Host: Space advances after a shift. After a match win, Space opens a fresh market.</p>
+        <p id="rtc" class="muted"></p>
+      </aside>
+    </section>
+  </main>
+  <footer>Host-powered simulation · WebRTC multiplayer · No downloads</footer>
+  <script type="module" src="/client.js"></script>
+</body>
+</html>
