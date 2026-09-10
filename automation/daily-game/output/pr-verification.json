@@ -1,0 +1,20 @@
+{
+  "url": "https://github.com/wasmerio/edge-multiplayer-games/pull/1",
+  "draft": true,
+  "base": "main",
+  "head": "daily-game/2026-09-10",
+  "commit": "0d3ffdb3f7dc93c68788519006dff91e3f059186",
+  "files": 16,
+  "matches_saved_pi_patch": true,
+  "game_checks": {
+    "ok": true,
+    "scenarios": [
+      "Shared crystals resolve independently; mines floor cargo and jam movement",
+      "Ready phase, input validation, basket bounds, and exact catch edge",
+      "Timeout awards once, ties play on, and next round resets only shift state",
+      "Disconnected and empty stalls cannot earn round awards",
+      "Eight-player full replay has bounded complete snapshots and no lingering drops"
+    ],
+    "interface": true
+  }
+}

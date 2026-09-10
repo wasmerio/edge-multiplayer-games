@@ -1,0 +1,41 @@
+[package]
+name = "wasmer/multiplayer-game-cron"
+version = "0.1.0"
+description = "Generate multiplayer games with Pi and open draft pull requests"
+entrypoint = "coordinator"
+
+[dependencies]
+"python/python" = "=3.13.18"
+"wasmer/edgejs-quickjs" = "=0.2.0"
+"wasmer/bash" = "=1.0.25"
+"kilyanni/git" = "=2.52.0"
+
+[[command]]
+name = "coordinator"
+module = "python/python:python"
+runner = "wasi"
+
+[command.annotations.wasi]
+env = ["PYTHONEXECUTABLE=/nix/store/j58ck1sbhdkvx61mkm2dbrcidgi3msaj-python3-static-wasm32-unknown-wasi-3.13.15/bin/python3.13.wasm", "SSL_CERT_DIR=/etc/ssl/certs", "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"]
+
+[[command]]
+name = "probe"
+module = "wasmer/edgejs-quickjs:edge"
+runner = "wasi"
+
+[command.annotations.wasi]
+main-args = ["/app/probe.mjs"]
+env = ["PYTHONEXECUTABLE=/nix/store/j58ck1sbhdkvx61mkm2dbrcidgi3msaj-python3-static-wasm32-unknown-wasi-3.13.15/bin/python3.13.wasm", "PATH=/bin:/usr/bin", "GIT_SSL_CAINFO=/etc/ssl/certs/ca-bundle.crt", "SSL_CERT_DIR=/etc/ssl/certs", "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"]
+
+[[command]]
+name = "daily-game"
+module = "wasmer/edgejs-quickjs:edge"
+runner = "wasi"
+
+[command.annotations.wasi]
+main-args = ["/app/daily.mjs"]
+env = ["PYTHONEXECUTABLE=/nix/store/j58ck1sbhdkvx61mkm2dbrcidgi3msaj-python3-static-wasm32-unknown-wasi-3.13.15/bin/python3.13.wasm", "PATH=/bin:/usr/bin", "GIT_SSL_CAINFO=/etc/ssl/certs/ca-bundle.crt", "SSL_CERT_DIR=/etc/ssl/certs", "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"]
+
+[fs]
+"/app" = "./runtime"
+"/pi" = "./pi"

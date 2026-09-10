@@ -1,0 +1,25 @@
+{
+  "date": "2026-09-10",
+  "slug": "daily-2026-09-10",
+  "base_sha": "b6fcde1d752c85236d39a31b1285f91545a10ada",
+  "entry": {
+    "slug": "daily-2026-09-10",
+    "name": "Meteor Market",
+    "description": "Slide your basket through identical meteor showers, catch valuable crystals, dodge cargo-jamming mines, and outscore your friends in 35-second shifts.",
+    "players": "2 to 8",
+    "source": "daily-2026-09-10/"
+  },
+  "checks": {
+    "ok": true,
+    "scenarios": [
+      "Shared crystals resolve independently; mines floor cargo and jam movement",
+      "Ready phase, input validation, basket bounds, and exact catch edge",
+      "Timeout awards once, ties play on, and next round resets only shift state",
+      "Disconnected and empty stalls cannot earn round awards",
+      "Eight-player full replay has bounded complete snapshots and no lingering drops"
+    ],
+    "interface": true
+  },
+  "browser_checks": "pending",
+  "deployment": "pending"
+}

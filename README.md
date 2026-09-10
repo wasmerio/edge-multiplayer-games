@@ -155,6 +155,12 @@ honoured by the packager and `node_modules/` stays out of the upload.
 
 ## Agent skills
 
+The [daily game automation](automation/daily-game/README.md) uses an Edge cron job.
+It clones this repository, streams Pi activity, checks a new game, and uses Git
+to push a dated branch. It opens a draft PR against `main` for review.
+The local runtime probe passed; model generation, remote PR creation, and
+the deployed cron invocation still require end-to-end verification.
+
 Install the Wasmer skills once, then let the agent use them for deploys,
 logs, rollbacks, and local runtime questions:
 
