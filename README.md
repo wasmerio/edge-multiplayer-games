@@ -155,6 +155,12 @@ honoured by the packager and `node_modules/` stays out of the upload.
 
 ## Agent skills
 
+The planned [daily game automation](automation/daily-game/PROBE.md) runs on Edge.
+Its cron job clones this repository, starts Pi, runs checks, and uses Git
+to commit and push a new game to `main`.
+The Git and Pi runtime proof must pass before activation.
+The earlier custom generator remains inactive during this change.
+
 Install the Wasmer skills once, then let the agent use them for deploys,
 logs, rollbacks, and local runtime questions:
 

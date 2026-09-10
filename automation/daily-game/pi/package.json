@@ -1,0 +1,15 @@
+{
+  "name": "multiplayer-game-cron-pi",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "prepare:wasmer": "node prepare.mjs"
+  },
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "0.85.1"
+  },
+  "devDependencies": {
+    "acorn": "8.18.0",
+    "regexpu-core": "6.4.0"
+  }
+}

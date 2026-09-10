@@ -1,0 +1,4 @@
+INPUT
+Work directory: /fixture
+Failing check: node test.mjs
+Editable file: sum.js

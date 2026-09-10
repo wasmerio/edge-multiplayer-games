@@ -1,0 +1,1430 @@
+diff --git a/.ignore b/.ignore
+index 4150a46..cbce037 100644
+--- a/.ignore
++++ b/.ignore
+@@ -6,3 +6,4 @@
+ /achtung/
+ /ring-rumble/
+ /deploy.sh
++/daily-2026-09-10/
+diff --git a/automation/daily-game/catalog.json b/automation/daily-game/catalog.json
+new file mode 100644
+index 0000000..c7ef848
+--- /dev/null
++++ b/automation/daily-game/catalog.json
+@@ -0,0 +1,9 @@
++[
++  {
++    "slug": "daily-2026-09-10",
++    "name": "Meteor Market",
++    "description": "Slide your basket through identical meteor showers, catch valuable crystals, dodge cargo-jamming mines, and outscore your friends in 35-second shifts.",
++    "players": "2 to 8",
++    "source": "daily-2026-09-10/"
++  }
++]
+diff --git a/automation/daily-game/runs/2026-09-10.json b/automation/daily-game/runs/2026-09-10.json
+new file mode 100644
+index 0000000..67b8c77
+--- /dev/null
++++ b/automation/daily-game/runs/2026-09-10.json
+@@ -0,0 +1,25 @@
++{
++  "date": "2026-09-10",
++  "slug": "daily-2026-09-10",
++  "base_sha": "b6fcde1d752c85236d39a31b1285f91545a10ada",
++  "entry": {
++    "slug": "daily-2026-09-10",
++    "name": "Meteor Market",
++    "description": "Slide your basket through identical meteor showers, catch valuable crystals, dodge cargo-jamming mines, and outscore your friends in 35-second shifts.",
++    "players": "2 to 8",
++    "source": "daily-2026-09-10/"
++  },
++  "checks": {
++    "ok": true,
++    "scenarios": [
++      "Shared crystals resolve independently; mines floor cargo and jam movement",
++      "Ready phase, input validation, basket bounds, and exact catch edge",
++      "Timeout awards once, ties play on, and next round resets only shift state",
++      "Disconnected and empty stalls cannot earn round awards",
++      "Eight-player full replay has bounded complete snapshots and no lingering drops"
++    ],
++    "interface": true
++  },
++  "browser_checks": "pending",
++  "deployment": "pending"
++}
+diff --git a/daily-2026-09-10/.gitignore b/daily-2026-09-10/.gitignore
+new file mode 100644
+index 0000000..297a531
+--- /dev/null
++++ b/daily-2026-09-10/.gitignore
+@@ -0,0 +1,3 @@
++node_modules/
++.anybuild/
++.shipit/
+diff --git a/daily-2026-09-10/README.md b/daily-2026-09-10/README.md
+new file mode 100644
+index 0000000..231e79a
+--- /dev/null
++++ b/daily-2026-09-10/README.md
+@@ -0,0 +1,79 @@
++# Meteor Market
++
++A 2–8 player catch-and-dodge contest (with solo practice). Slide your basket beneath an identical meteor shower in your own market stall. Cyan crystals earn 1 cargo, gold crystals earn 3, and red mines remove 4 cargo and jam movement for 0.4 seconds. Most cargo after 35 seconds wins the round. There are no trails, attacks, or elimination collisions.
++
++## Contract — written before implementation
++
++### Input
++
++At 30 fixed ticks/second the host consumes one integer per player: `-1` left, `0` idle, `1` right. Guests send `{t:"i",d}` only when intent changes on the existing ordered, reliable star DataChannel. Host input is read directly from `state.localDirs`. Left/right arrows control player one; A/D control the optional second host player. On-screen hold buttons control player one. Opposite directions cancel; blur releases input. Input changes are ignored by the simulation during the one-second ready phase.
++
++### Snapshot
++
++Every tick sends `{t:"s",k,f,p,o,q,d,r,over}`:
++
++- `k`: elapsed active ticks (35 seconds = 1050 ticks); `f`: ready ticks remaining.
++- `p`: player arrays `[x,cargo,jamTicks,active]`; x uses normalized 0–1000 coordinates.
++- `o`: falling-object arrays `[id,x,y,value]`, where value is `1`, `3`, or `-4`. Everyone receives an independent copy of the same shower; catching does not steal from another stall.
++- `q`: cumulative match points in player order.
++- `d`: tick events `[player,value]` for catches and `[player,0]` for round awards. The preserved host loop uses nonempty `d` to send its `score` message.
++- `r`: indices of round leaders, empty before round end.
++- `over`: boolean. Positions are rounded integers. A complete snapshot, plus the `lobby` player table and map, redraws the entire scene without trails or earlier snapshots.
++
++Objects cross the basket at y=900 and resolve simultaneously for all players within 85 units horizontally. Objects are then removed. At most seven objects are in flight. Simulation cost is O(players + bounded objects); payload target is below 100 bytes/player plus a small shared shower.
++
++### Round lifecycle
++
++`Game` exposes `constructor`, `startRound`, `step`, `winner`, `round`, `roundOver`, and `scores`. `startRound` increments `round`, clears objects/cargo/jams/results, resets baskets to center and the 35-second clock, and sets a one-second ready countdown; match points and disconnected status persist. The host broadcasts `round` and every peer clears the view. Late joins wait for the next match.
++
++At timeout, the active player(s) with the most positive cargo receive 2 match points for an outright win, or 1 each for a tie. No cargo means no awards. A unique match leader at 5+ points wins; tied match leaders play on. `over` carries the match winner index or `-1`, while the final snapshot carries round leaders and cargo. Host Space (or Next round) starts another round, or a new match after a match winner. Solo practice uses the same positive-cargo award. Disconnects deactivate that basket and exclude it from awards. A match restart rebuilds the connected player table (maximum eight).
++
++## Multiplayer and entry contract
++
++The Achtung WebSocket signaling server and `public/client.js` prefix before `function applyMessage(msg) {` are preserved verbatim. Only the host simulates; all peers draw through `applyMessage`. No server-side gameplay, new dependencies, or transport changes.
++
++- `/?create=1`: auto-create on WebSocket open and show the full invite URL/copy panel.
++- `/?room=CODE`: auto-join using the stored/generated name.
++- Header retains the superapp link.
++- `/healthz`: JSON `{ok,rooms,players}` and CORS `*`.
++- The display-size selector changes rendering resolution, not gameplay coordinates or difficulty.
++
++## Local run
++
++Dependencies are already prepared. From this directory:
++
++```sh
++node test/run.mjs
++node --check public/client.js
++PORT=8765 node src/server.js
++```
++
++Open `http://localhost:8765/?create=1`, send the invite to another tab, wait for connected/open, and start. Guests use arrows or hold buttons. The host can add a second local basket using A/D.
++
++## Shared notebook / verification
++
++Implemented: headless catch/jam simulation; complete-snapshot canvas stall renderer; keyboard and pointer controls; responsive market page; round/match controls; catalog display metadata. Small screens can horizontally scroll the stall board while the movement buttons remain outside the scroll area.
++
++Actual checks run on 2026-09-10:
++
++- **PASS** `node test/run.mjs`: interface contract plus five distinct exported scenarios — independent shared catches/mine jam, ready/input/bounds/catch edge, timeout/ties/reset/winner, disconnected/empty stalls, and a full eight-player replay. The replay asserts at most seven objects and snapshots under 1000 bytes.
++- **PASS** `node --check public/client.js` and `node --check public/game.js`.
++- **PASS** byte comparison: client prefix before `applyMessage` and the complete signaling server are identical to the Achtung reference.
++- **PASS** static check: every literal client DOM ID exists in the new page.
++- **PASS** in-memory Node VM smoke with mocked DOM/canvas/DataChannel: three-player roster (host, local second player, guest), remote intent consumption, snapshot rendering, score award, host next-round button, round advance, match restart, and outgoing `over`. This is not a real browser or WebRTC test.
++- **BLOCKED** local server HTTP checks: attempted `PORT=8765 node src/server.js`, but this environment reports `ERR_MODULE_NOT_FOUND` for `ws`; `curl` is also unavailable. No dependencies were installed or files changed outside the allowlist. `/healthz` CORS, `/` 200, `/ws` 426, and traversal 404 remain pending on a prepared server runtime.
++
++Browser checks: **pending** — two tabs, guest movement, DataChannel open, countdown, catches/mines, scores, round advance, match restart, touch controls, narrow viewport, auto-create invite and auto-join.
++
++Production checks: **pending** — deployment, health/WebSocket, production two-tab and entry contract, catalog registration and superapp online card.
++
++Coordinator prerequisite: scaffold `app.yaml` still has the Achtung name, copied `app_id`, and annotations; package metadata is scaffold-owned too. These are outside the editable paths. Coordinator must give the app its own manifest identity and remove copied deployment metadata before deploying. No deployment, credentials, Git configuration, or package preparation is touched here.
++
++Known inherited limits: public STUN only (symmetric NAT may fail); ephemeral, per-instance signaling rooms; host advantage; no reconnect/resume or mid-match join synchronization. Host tab should stay foregrounded.
++
++
++## Automated check status
++
++The Edge cron job ran JavaScript syntax, Game interface, and simulation scenario checks.
++Two-browser gameplay, invite behavior, production deployment, and catalog registration remain pending.
++Complete the repository AGENTS.md checklist before calling this game done.
+diff --git a/daily-2026-09-10/app.yaml b/daily-2026-09-10/app.yaml
+new file mode 100644
+index 0000000..bea805e
+--- /dev/null
++++ b/daily-2026-09-10/app.yaml
+@@ -0,0 +1,11 @@
++{
++  "kind": "wasmer.io/App.v0",
++  "name": "daily-2026-09-10",
++  "owner": "wasmer",
++  "package": ".",
++  "locality": {
++    "regions": [
++      "fr-roub1"
++    ]
++  }
++}
+diff --git a/daily-2026-09-10/game-entry.json b/daily-2026-09-10/game-entry.json
+new file mode 100644
+index 0000000..d98652c
+--- /dev/null
++++ b/daily-2026-09-10/game-entry.json
+@@ -0,0 +1,7 @@
++{
++  "slug": "daily-2026-09-10",
++  "name": "Meteor Market",
++  "description": "Slide your basket through identical meteor showers, catch valuable crystals, dodge cargo-jamming mines, and outscore your friends in 35-second shifts.",
++  "players": "2 to 8",
++  "source": "daily-2026-09-10/"
++}
+diff --git a/daily-2026-09-10/package-lock.json b/daily-2026-09-10/package-lock.json
+new file mode 100644
+index 0000000..e871937
+--- /dev/null
++++ b/daily-2026-09-10/package-lock.json
+@@ -0,0 +1,39 @@
++{
++  "name": "daily-2026-09-10",
++  "version": "0.1.0",
++  "lockfileVersion": 3,
++  "requires": true,
++  "packages": {
++    "": {
++      "name": "daily-2026-09-10",
++      "version": "0.1.0",
++      "dependencies": {
++        "ws": "^8.20.1"
++      },
++      "engines": {
++        "node": ">=22"
++      }
++    },
++    "node_modules/ws": {
++      "version": "8.21.3",
++      "resolved": "https://registry.npmjs.org/ws/-/ws-8.21.3.tgz",
++      "integrity": "sha512-201TZ/kPWxoPr/OKWjquZR1SWKXcvxdH+e1xrx89b3YbmzLMFCLfnaG1HFIgWzJOEWZ7MvpK++odZufgYR50Rw==",
++      "license": "MIT",
++      "engines": {
++        "node": ">=10.0.0"
++      },
++      "peerDependencies": {
++        "bufferutil": "^4.0.1",
++        "utf-8-validate": ">=5.0.2"
++      },
++      "peerDependenciesMeta": {
++        "bufferutil": {
++          "optional": true
++        },
++        "utf-8-validate": {
++          "optional": true
++        }
++      }
++    }
++  }
++}
+diff --git a/daily-2026-09-10/package.json b/daily-2026-09-10/package.json
+new file mode 100644
+index 0000000..0115d50
+--- /dev/null
++++ b/daily-2026-09-10/package.json
+@@ -0,0 +1,17 @@
++{
++  "name": "daily-2026-09-10",
++  "version": "0.1.0",
++  "private": true,
++  "description": "Slide your basket through identical meteor showers, catch valuable crystals, dodge cargo-jamming mines, and outscore your friends in 35-second shifts.",
++  "type": "module",
++  "engines": {
++    "node": ">=22"
++  },
++  "scripts": {
++    "start": "node src/server.js",
++    "test": "node test/run.mjs"
++  },
++  "dependencies": {
++    "ws": "^8.20.1"
++  }
++}
+diff --git a/daily-2026-09-10/public/client.js b/daily-2026-09-10/public/client.js
+new file mode 100644
+index 0000000..d09fb69
+--- /dev/null
++++ b/daily-2026-09-10/public/client.js
+@@ -0,0 +1,542 @@
++// Lobby (WebSocket signaling) + WebRTC star topology + renderer.
++// The host tab additionally runs the simulation from game.js.
++import { Game, COLORS, TICK_HZ, MAP, mapSize } from "/game.js";
++
++const $ = (id) => document.getElementById(id);
++const ICE = { iceServers: [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }] };
++
++const state = {
++  ws: null,
++  myId: null,
++  hostId: null,
++  room: null,
++  peers: new Map(), // peerId -> { name, pc, dc }
++  players: [], // [{ pid, owner, slot, name, color, score }]
++  game: null,
++  inputs: [],
++  prev: [],
++  localDirs: [0, 0],
++  tickTimer: null,
++  target: 10,
++  map: { w: MAP.baseW, h: MAP.baseH },
++};
++const isHost = () => state.myId && state.myId === state.hostId;
++window.achtung = state;
++
++// ---------- signaling ----------
++function connectWs() {
++  const proto = location.protocol === "https:" ? "wss:" : "ws:";
++  const ws = new WebSocket(`${proto}//${location.host}/ws`);
++  state.ws = ws;
++  ws.onopen = () => {
++    setStatus("connected");
++    const params = new URLSearchParams(location.search);
++    const code = params.get("room");
++    if (code) {
++      $("code").value = code.toUpperCase();
++      sig({ t: "join", room: code, name: myName() });
++    } else if (params.has("create")) {
++      sig({ t: "create", name: myName() });
++    }
++    setInterval(() => ws.readyState === 1 && ws.send(JSON.stringify({ t: "ping" })), 20000);
++  };
++  ws.onclose = () => setStatus("signaling closed (reload to rejoin)");
++  ws.onerror = () => setStatus("signaling error");
++  ws.onmessage = (ev) => onSignal(JSON.parse(ev.data));
++}
++const sig = (msg) => state.ws.send(JSON.stringify(msg));
++function myName() {
++  let n = $("name").value.trim();
++  if (!n) {
++    n = localStorage.getItem("achtung-name") || `player-${Math.random().toString(36).slice(2, 5)}`;
++    $("name").value = n;
++    try { localStorage.setItem("achtung-name", n); } catch {}
++  }
++  return n;
++}
++
++function onSignal(msg) {
++  switch (msg.t) {
++    case "created":
++      state.myId = msg.id;
++      state.hostId = msg.id;
++      state.room = msg.room;
++      state.peers.set(msg.id, { name: myName() });
++      showRoom();
++      return;
++    case "joined":
++      state.myId = msg.id;
++      state.hostId = msg.host;
++      state.room = msg.room;
++      for (const p of msg.peers) state.peers.set(p.id, { name: p.name });
++      showRoom();
++      return;
++    case "peer":
++      state.peers.set(msg.id, { name: msg.name });
++      renderPeers();
++      if (isHost()) createPeer(msg.id, true);
++      return;
++    case "leave":
++      dropPeer(msg.id);
++      return;
++    case "host-left":
++      setStatus("host left the room");
++      stopGame();
++      $("game").hidden = true;
++      $("lobby").hidden = false;
++      $("room-info").hidden = true;
++      return;
++    case "signal":
++      handleRtcSignal(msg.from, msg.data);
++      return;
++    case "error":
++      setStatus(`error: ${msg.code}`);
++      return;
++  }
++}
++
++// ---------- WebRTC ----------
++function createPeer(id, initiator) {
++  const peer = state.peers.get(id) || { name: "?" };
++  state.peers.set(id, peer);
++  const pc = new RTCPeerConnection(ICE);
++  peer.pc = pc;
++  pc.onicecandidate = (e) => e.candidate && sig({ t: "signal", to: id, data: { candidate: e.candidate } });
++  pc.onconnectionstatechange = () => renderRtc();
++  pc.ondatachannel = (e) => attachChannel(id, e.channel);
++  if (initiator) {
++    attachChannel(id, pc.createDataChannel("game", { ordered: true }));
++    pc.createOffer()
++      .then((offer) => pc.setLocalDescription(offer))
++      .then(() => sig({ t: "signal", to: id, data: { sdp: pc.localDescription } }));
++  }
++  return peer;
++}
++
++async function handleRtcSignal(from, data) {
++  let peer = state.peers.get(from);
++  if (!peer || !peer.pc) peer = createPeer(from, false);
++  const pc = peer.pc;
++  if (data.sdp) {
++    await pc.setRemoteDescription(data.sdp);
++    if (data.sdp.type === "offer") {
++      await pc.setLocalDescription(await pc.createAnswer());
++      sig({ t: "signal", to: from, data: { sdp: pc.localDescription } });
++    }
++  } else if (data.candidate) {
++    try {
++      await pc.addIceCandidate(data.candidate);
++    } catch (err) {
++      console.warn("ice", err);
++    }
++  }
++}
++
++function attachChannel(id, dc) {
++  const peer = state.peers.get(id);
++  peer.dc = dc;
++  dc.onopen = () => {
++    renderRtc();
++    if (!isHost()) dcSend(dc, { t: "hello", name: myName() });
++  };
++  dc.onclose = () => renderRtc();
++  dc.onmessage = (ev) => onGameMessage(id, JSON.parse(ev.data));
++}
++const dcSend = (dc, msg) => dc && dc.readyState === "open" && dc.send(JSON.stringify(msg));
++function broadcastGame(msg) {
++  for (const p of state.peers.values()) dcSend(p.dc, msg);
++}
++
++function dropPeer(id) {
++  const peer = state.peers.get(id);
++  if (peer && peer.pc) peer.pc.close();
++  state.peers.delete(id);
++  renderPeers();
++  if (isHost() && state.game) {
++    for (const pl of state.players) if (pl.owner === id) killPlayer(pl.pid);
++  }
++}
++
++// ---------- game messages ----------
++function onGameMessage(from, msg) {
++  if (isHost()) {
++    if (msg.t === "hello") {
++      state.peers.get(from).name = msg.name;
++      renderPeers();
++    } else if (msg.t === "i" && state.game) {
++      const pl = state.players.find((p) => p.owner === from);
++      if (pl) state.inputs[pl.pid] = Math.sign(msg.d | 0);
++    }
++    return;
++  }
++  applyMessage(msg);
++}
++
++// Both host and clients render through this path.
++function applyMessage(msg) {
++  switch (msg.t) {
++    case "lobby":
++      state.players = msg.players;
++      state.target = msg.target;
++      setArena(msg.map);
++      enterGame();
++      return;
++    case "round":
++      startRoundView(msg.n);
++      return;
++    case "s":
++      drawSnapshot(msg);
++      renderScores();
++      return;
++    case "score":
++      for (let i = 0; i < msg.scores.length; i++) state.players[i].score = msg.scores[i];
++      renderScores();
++      return;
++    case "over": {
++      const leaders = state.lastSnapshot?.r || [];
++      const result = leaders.length ? `${leaders.map(i => state.players[i].name).join(" & ")} led the market` : "No cargo banked";
++      showBanner(msg.winner < 0 ? result : `${state.players[msg.winner].name} wins the match!`);
++      $("next").hidden = !isHost();
++      $("next").textContent = msg.winner < 0 ? "Next round · Space" : "New match · Space";
++      $("round-status").textContent = isHost() ? "Ready? Start the next shift." : "Waiting for the host to continue…";
++      return;
++    }
++  }
++}
++
++// ---------- host loop ----------
++function hostStart() {
++  stopGame();
++  const players = [];
++  const add = (owner, slot, name) => {
++    if (players.length < 8) players.push({ pid: players.length, owner, slot, name, color: COLORS[players.length], score: 0 });
++  };
++  const hostPeer = state.peers.get(state.myId);
++  add(state.myId, 0, hostPeer.name);
++  if ($("local2").checked) add(state.myId, 1, `${hostPeer.name} 2`);
++  for (const [id, p] of state.peers) {
++    if (id === state.myId || !p.dc || p.dc.readyState !== "open") continue;
++    add(id, 0, p.name);
++  }
++  state.players = players;
++  state.target = 5;
++  state.map = mapSize(players.length, Number($("mapsize").value));
++  state.game = new Game(players.length, state.map);
++  state.inputs = new Array(players.length).fill(0);
++  const lobby = { t: "lobby", players, target: state.target, map: state.map };
++  broadcastGame(lobby);
++  applyMessage(lobby);
++  hostNextRound();
++  let last = performance.now();
++  let acc = 0;
++  const dt = 1000 / TICK_HZ;
++  state.tickTimer = setInterval(() => {
++    const now = performance.now();
++    acc += Math.min(now - last, 250);
++    last = now;
++    while (acc >= dt) {
++      acc -= dt;
++      hostTick();
++    }
++  }, dt / 2);
++}
++
++function hostNextRound() {
++  const g = state.game;
++  const winner = g.winner(state.target);
++  if (winner >= 0) {
++    hostStart();
++    return;
++  }
++  g.startRound();
++  const msg = { t: "round", n: g.round };
++  broadcastGame(msg);
++  applyMessage(msg);
++}
++
++function hostTick() {
++  const g = state.game;
++  if (g.roundOver) return;
++  for (const pl of state.players) {
++    if (pl.owner === state.myId) state.inputs[pl.pid] = state.localDirs[pl.slot];
++  }
++  const snap = g.step(state.inputs);
++  broadcastGame(snap);
++  applyMessage(snap);
++  if (snap.d.length) {
++    const sc = { t: "score", scores: g.scores };
++    broadcastGame(sc);
++    applyMessage(sc);
++  }
++  if (snap.over) {
++    const winner = g.winner(state.target);
++    const over = { t: "over", winner };
++    broadcastGame(over);
++    applyMessage(over);
++  }
++}
++
++function killPlayer(pid) {
++  state.game.disconnect(pid);
++  state.inputs[pid] = 0;
++}
++
++function stopGame() {
++  clearInterval(state.tickTimer);
++  state.tickTimer = null;
++  state.game = null;
++}
++
++// ---------- rendering ----------
++const trails = $("trails").getContext("2d");
++const heads = $("heads").getContext("2d");
++
++function setArena({ w, h }) {
++  state.map = { w, h };
++  for (const id of ["trails", "heads"]) {
++    const c = $(id);
++    c.width = w;
++    c.height = h;
++  }
++  const arena = $("arena");
++  arena.style.aspectRatio = `${w} / ${h}`;
++  arena.style.width = `min(${w}px, 100%)`;
++  arena.style.minWidth = `${Math.min(4, state.players.length) * 180}px`;
++}
++
++function updateMapInfo() {
++  let n = 1 + ($("local2").checked ? 1 : 0);
++  for (const [id, p] of state.peers) if (id !== state.myId && p.dc && p.dc.readyState === "open") n++;
++  n = Math.min(8, n);
++  const { w, h } = mapSize(n, Number($("mapsize").value));
++  $("mapinfo").textContent = `${w}×${h} · ${Math.min(8, n)} stalls · identical showers`;
++}
++
++function enterGame() {
++  $("lobby").hidden = true;
++  $("game").hidden = false;
++  renderScores();
++}
++
++function startRoundView(n) {
++  trails.clearRect(0, 0, state.map.w, state.map.h);
++  heads.clearRect(0, 0, state.map.w, state.map.h);
++  state.lastSnapshot = null;
++  for (const pl of state.players) { pl.alive = true; pl.cargo = 0; }
++  $("next").hidden = true;
++  $("round-status").textContent = `Shift ${n} · catch crystals, dodge mines`;
++  showBanner(`Shift ${n} · Get ready`, 950);
++  renderScores();
++}
++
++function drawSnapshot(snap) {
++  state.lastSnapshot = snap;
++  const ctx = heads;
++  const { w, h } = state.map;
++  ctx.clearRect(0, 0, w, h);
++  const cols = Math.min(4, state.players.length);
++  const rows = Math.ceil(state.players.length / 4);
++  const cw = w / cols, ch = h / rows;
++  $("clock").textContent = snap.f ? "READY" : `${Math.ceil((1050 - snap.k) / TICK_HZ)}s`;
++  snap.p.forEach(([x, cargo, jam, active], i) => {
++    const pl = state.players[i];
++    pl.alive = !!active;
++    pl.cargo = cargo;
++    pl.score = snap.q[i];
++    const ox = (i % cols) * cw, oy = Math.floor(i / cols) * ch;
++    ctx.save();
++    ctx.translate(ox, oy);
++    ctx.beginPath();
++    ctx.rect(0, 0, cw, ch);
++    ctx.clip();
++    ctx.fillStyle = i % 2 ? "#142436" : "#102030";
++    ctx.fillRect(3, 3, cw - 6, ch - 6);
++    ctx.globalAlpha = active ? 1 : 0.35;
++    const pad = cw * 0.06, fieldW = cw - 2 * pad;
++    const top = ch * 0.17, fieldH = ch * 0.80;
++    const px = v => pad + v / 1000 * fieldW;
++    const py = v => top + v / 1000 * fieldH;
++    const font = Math.max(13, Math.min(22, cw * 0.063));
++    ctx.font = `600 ${font}px system-ui`;
++    ctx.fillStyle = pl.color;
++    ctx.textAlign = "left";
++    ctx.fillText(`${i + 1} · ${pl.name}${pl.owner === state.myId ? " (you)" : ""}`, pad, ch * 0.065, fieldW);
++    ctx.font = `${font * 0.85}px system-ui`;
++    ctx.fillStyle = "#d3e4ee";
++    ctx.fillText(`${cargo} cargo  /  ${pl.score} pts`, pad, ch * 0.115);
++    ctx.strokeStyle = "#263c50";
++    ctx.lineWidth = 1;
++    for (let lane = 1; lane < 5; lane++) {
++      ctx.beginPath(); ctx.moveTo(px(lane * 200), top); ctx.lineTo(px(lane * 200), py(960)); ctx.stroke();
++    }
++    ctx.setLineDash([4, 6]);
++    ctx.beginPath(); ctx.moveTo(pad, py(900)); ctx.lineTo(cw - pad, py(900)); ctx.stroke();
++    ctx.setLineDash([]);
++    for (const [, dx, dy, value] of snap.o) {
++      const radius = Math.max(7, fieldW * 0.035);
++      ctx.save(); ctx.translate(px(dx), py(dy));
++      ctx.fillStyle = value < 0 ? "#ff6078" : value === 3 ? "#ffcd66" : "#62e8ef";
++      ctx.beginPath();
++      if (value < 0) ctx.arc(0, 0, radius, 0, Math.PI * 2);
++      else { ctx.moveTo(0, -radius * 1.3); ctx.lineTo(radius, 0); ctx.lineTo(0, radius * 1.3); ctx.lineTo(-radius, 0); ctx.closePath(); }
++      ctx.fill();
++      ctx.fillStyle = "#102030"; ctx.textAlign = "center";
++      ctx.font = `bold ${radius * 1.4}px system-ui`;
++      ctx.fillText(value < 0 ? "×" : value === 3 ? "3" : "1", 0, radius * 0.48);
++      ctx.restore();
++    }
++    const bx = px(x), by = py(900), half = fieldW * 0.085;
++    ctx.fillStyle = jam ? "#ff6078" : pl.color;
++    ctx.beginPath(); ctx.moveTo(bx - half, by); ctx.lineTo(bx + half, by);
++    ctx.lineTo(bx + half * 0.7, by + ch * 0.035); ctx.lineTo(bx - half * 0.7, by + ch * 0.035); ctx.closePath(); ctx.fill();
++    ctx.fillStyle = "#f0f6ff"; ctx.textAlign = "center";
++    ctx.font = `${font * 0.8}px system-ui`;
++    const event = snap.d.find(e => e[0] === i && e[1] !== 0);
++    if (!active || jam || event) ctx.fillText(!active ? "OFFLINE" : jam ? "JAMMED −4" : `+${event[1]}`, bx, by - ch * 0.035);
++    ctx.restore();
++  });
++}
++
++let bannerTimer;
++function showBanner(text, ms) {
++  const b = $("banner");
++  b.textContent = text;
++  b.hidden = false;
++  clearTimeout(bannerTimer);
++  if (ms) bannerTimer = setTimeout(() => (b.hidden = true), ms);
++}
++
++function renderScores() {
++  const ol = $("scores");
++  ol.innerHTML = "";
++  for (const pl of state.players) {
++    const li = document.createElement("li");
++    li.className = pl.alive === false ? "dead" : "";
++    li.innerHTML = `<span class="swatch" style="background:${pl.color}"></span>${esc(pl.name)} <strong>${pl.score} pts</strong><small>${pl.alive === false ? "offline" : `${pl.cargo || 0} cargo`}</small>`;
++    ol.appendChild(li);
++  }
++  const target = document.createElement("li");
++  target.className = "muted";
++  target.style.listStyle = "none";
++  target.textContent = `First to ${state.target} · unique leader wins`;
++  ol.appendChild(target);
++}
++
++function renderPeers() {
++  const ul = $("peers");
++  ul.innerHTML = "";
++  for (const [id, p] of state.peers) {
++    const li = document.createElement("li");
++    li.textContent = p.name + (id === state.myId ? " (you)" : "");
++    if (id === state.hostId) li.classList.add("host");
++    ul.appendChild(li);
++  }
++  renderRtc();
++}
++
++function renderRtc() {
++  const parts = [];
++  for (const [id, p] of state.peers) {
++    if (id === state.myId || !p.pc) continue;
++    parts.push(`${p.name}: ${p.pc.connectionState}/${p.dc ? p.dc.readyState : "-"}`);
++  }
++  $("rtc").textContent = parts.join(" · ");
++  if (isHost()) updateMapInfo();
++  const peersEl = $("peers");
++  peersEl.title = parts.join("\n");
++}
++
++function showRoom() {
++  $("room-info").hidden = false;
++  $("room-code").textContent = state.room;
++  $("host-controls").hidden = !isHost();
++  $("wait").hidden = isHost();
++  $("create").disabled = true;
++  $("join").disabled = true;
++  history.replaceState(null, "", `?room=${state.room}`);
++  const link = `${location.origin}/?room=${state.room}`;
++  $("invite-link").textContent = link;
++  $("invite-link").href = link;
++  $("invite").hidden = !isHost();
++  renderPeers();
++}
++
++const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
++const setStatus = (s) => ($("status").textContent = s);
++
++// ---------- input ----------
++const KEYS = { ArrowLeft: [0, -1], ArrowRight: [0, 1], KeyA: [1, -1], KeyD: [1, 1] };
++const held = new Set();
++const touches = new Map();
++function updateDirs() {
++  const dirs = [0, 0];
++  for (const code of new Set([...held, ...touches.values()])) {
++    const [slot, d] = KEYS[code];
++    dirs[slot] += d;
++  }
++  const changed = dirs[0] !== state.localDirs[0];
++  state.localDirs = dirs.map(Math.sign);
++  if (!isHost() && changed) {
++    const host = state.peers.get(state.hostId);
++    if (host) dcSend(host.dc, { t: "i", d: state.localDirs[0] });
++  }
++}
++window.addEventListener("keydown", (e) => {
++  if ($("game").hidden || /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
++  if (e.code === "Space" && isHost() && state.game && state.game.roundOver) {
++    e.preventDefault();
++    hostNextRound();
++    return;
++  }
++  if (KEYS[e.code] && !e.repeat) {
++    e.preventDefault();
++    held.add(e.code);
++    updateDirs();
++  }
++});
++window.addEventListener("keyup", (e) => {
++  if (KEYS[e.code]) {
++    held.delete(e.code);
++    updateDirs();
++  }
++});
++function releaseInput() {
++  held.clear();
++  touches.clear();
++  updateDirs();
++}
++window.addEventListener("blur", releaseInput);
++document.addEventListener("visibilitychange", () => { if (document.hidden) releaseInput(); });
++for (const button of document.querySelectorAll("[data-direction]")) {
++  button.onpointerdown = e => {
++    e.preventDefault();
++    button.setPointerCapture(e.pointerId);
++    touches.set(e.pointerId, button.dataset.direction === "-1" ? "ArrowLeft" : "ArrowRight");
++    updateDirs();
++  };
++  const release = e => { touches.delete(e.pointerId); updateDirs(); };
++  button.onpointerup = release;
++  button.onpointercancel = release;
++  button.onlostpointercapture = release;
++}
++$("next").onclick = () => { if (isHost() && state.game?.roundOver) hostNextRound(); };
++
++// ---------- lobby UI ----------
++$("create").onclick = () => sig({ t: "create", name: myName() });
++$("join").onclick = () => sig({ t: "join", room: $("code").value.trim(), name: myName() });
++$("start").onclick = () => hostStart();
++$("mapsize").onchange = updateMapInfo;
++$("local2").onchange = updateMapInfo;
++$("copy-link").onclick = async () => {
++  try {
++    await navigator.clipboard.writeText(`${location.origin}/?room=${state.room}`);
++    $("copy-link").textContent = "copied!";
++  } catch {
++    $("copy-link").textContent = "select the link to copy";
++  }
++  setTimeout(() => ($("copy-link").textContent = "copy"), 1500);
++};
++$("name").value = localStorage.getItem("achtung-name") || "";
++$("name").onchange = () => localStorage.setItem("achtung-name", $("name").value);
++
++connectWs();
+diff --git a/daily-2026-09-10/public/game.js b/daily-2026-09-10/public/game.js
+new file mode 100644
+index 0000000..9d50bfb
+--- /dev/null
++++ b/daily-2026-09-10/public/game.js
+@@ -0,0 +1,118 @@
++// Only the host simulates; all peers receive complete renderable snapshots.
++export const TICK_HZ = 30;
++export const MAP = {
++  baseW: 960, baseH: 560, perPlayer: 0,
++  presets: { small: 0.7, normal: 1, large: 1.4, huge: 2 },
++};
++export const COLORS = [
++  "#62e8ef", "#ffca64", "#b69cff", "#ff8bba",
++  "#91ee94", "#81b6ff", "#ffab78", "#eef08b",
++];
++export function mapSize(players, scale = 1) {
++  const cols = Math.min(4, Math.max(1, players));
++  const rows = Math.ceil(players / 4);
++  const f = Math.sqrt(scale);
++  return { w: Math.round(Math.max(480, cols * 280) * f), h: Math.round(rows * 500 * f) };
++}
++const DURATION = 35 * TICK_HZ;
++const READY = TICK_HZ;
++const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
++
++export class Game {
++  constructor(playerCount, opts = mapSize(playerCount)) {
++    if (!Number.isInteger(playerCount) || playerCount < 1 || playerCount > 8) {
++      throw new RangeError("Meteor Market supports 1–8 players");
++    }
++    this.n = playerCount;
++    this.w = opts.w;
++    this.h = opts.h;
++    this.random = opts.random || Math.random;
++    this.scores = Array(playerCount).fill(0);
++    this.players = Array.from({ length: playerCount }, () => ({ x: 500, cargo: 0, jam: 0, active: true }));
++    this.round = 0;
++    this.roundOver = true;
++    this.tick = 0;
++    this.freeze = 0;
++    this.objects = [];
++    this.leaders = [];
++    this.nextId = 0;
++  }
++
++  startRound() {
++    this.round++;
++    this.roundOver = false;
++    this.tick = 0;
++    this.freeze = READY;
++    this.objects = [];
++    this.leaders = [];
++    this.nextId = 0;
++    for (const p of this.players) {
++      p.x = 500;
++      p.cargo = 0;
++      p.jam = 0;
++    }
++  }
++
++  disconnect(pid) {
++    if (this.players[pid]) this.players[pid].active = false;
++  }
++
++  step(inputs = []) {
++    const events = [];
++    if (!this.roundOver && this.freeze > 0) {
++      this.freeze--;
++    } else if (!this.roundOver) {
++      this.tick++;
++      for (let i = 0; i < this.n; i++) {
++        const p = this.players[i];
++        if (!p.active) continue;
++        if (p.jam > 0) p.jam--;
++        else {
++          const d = inputs[i] === -1 ? -1 : inputs[i] === 1 ? 1 : 0;
++          p.x = clamp(p.x + d * 18, 85, 915);
++        }
++      }
++      // Stop spawning in time for the last object to reach the basket.
++      if ((this.tick - 1) % 20 === 0 && this.tick <= DURATION - 129) {
++        const roll = this.random();
++        this.objects.push([this.nextId++, 100 + Math.floor(this.random() * 801), 0, roll < 0.28 ? -4 : roll < 0.5 ? 3 : 1]);
++      }
++      let keep = 0;
++      for (const o of this.objects) {
++        o[2] += 7;
++        if (o[2] < 900) {
++          this.objects[keep++] = o;
++          continue;
++        }
++        for (let i = 0; i < this.n; i++) {
++          const p = this.players[i];
++          if (!p.active || Math.abs(p.x - o[1]) > 85) continue;
++          p.cargo = Math.max(0, p.cargo + o[3]);
++          if (o[3] < 0) p.jam = 12;
++          events.push([i, o[3]]);
++        }
++      }
++      this.objects.length = keep;
++      if (this.tick >= DURATION) {
++        this.roundOver = true;
++        const best = Math.max(0, ...this.players.filter(p => p.active).map(p => p.cargo));
++        this.leaders = this.players.flatMap((p, i) => p.active && best > 0 && p.cargo === best ? [i] : []);
++        for (const i of this.leaders) {
++          this.scores[i] += this.leaders.length === 1 ? 2 : 1;
++          events.push([i, 0]);
++        }
++      }
++    }
++    return {
++      t: "s", k: this.tick, f: this.freeze,
++      p: this.players.map(p => [Math.round(p.x), p.cargo, p.jam, p.active ? 1 : 0]),
++      o: this.objects.map(o => o.slice()), q: this.scores.slice(),
++      d: events, r: this.leaders.slice(), over: this.roundOver,
++    };
++  }
++
++  winner(target) {
++    const best = Math.max(...this.scores);
++    return best >= target && this.scores.filter(s => s === best).length === 1 ? this.scores.indexOf(best) : -1;
++  }
++}
+diff --git a/daily-2026-09-10/public/index.html b/daily-2026-09-10/public/index.html
+new file mode 100644
+index 0000000..db72679
+--- /dev/null
++++ b/daily-2026-09-10/public/index.html
+@@ -0,0 +1,95 @@
++<!doctype html>
++<html lang="en">
++<head>
++  <meta charset="utf-8" />
++  <meta name="viewport" content="width=device-width, initial-scale=1" />
++  <meta name="theme-color" content="#0a1523" />
++  <title>Meteor Market · Multiplayer</title>
++  <link rel="stylesheet" href="/style.css" />
++</head>
++<body>
++  <header>
++    <a class="brand" href="/">✦ Meteor Market</a>
++    <span id="status" class="muted" role="status">connecting…</span>
++    <a id="all-games" href="https://edge-multiplayer-games.wasmer.app">← all games</a>
++  </header>
++  <main>
++    <section id="lobby">
++      <div class="intro">
++        <p class="eyebrow">2–8 players · peer-to-peer · solo practice</p>
++        <h1>Fortune falls.<br><span>Catch yours.</span></h1>
++        <p>One shower. Your own stall. Slide your basket to catch crystals and dodge mines. The biggest haul after 35 seconds wins the shift.</p>
++        <div class="legend"><span class="cyan">◆ +1 crystal</span><span class="gold">◆ +3 gold</span><span class="red">⊗ −4 & jam</span></div>
++        <p class="muted">Identical showers for everyone. Win a shift for 2 points; ties earn 1 each. First unique leader to 5 wins the match.</p>
++      </div>
++      <div class="lobby-card">
++        <h2>Open your stall</h2>
++        <label>Your name <input id="name" maxlength="16" placeholder="your name" autocomplete="nickname" /></label>
++        <div class="row">
++          <button id="create" class="primary">Create room</button>
++          <span class="muted">or</span>
++          <input id="code" maxlength="4" placeholder="CODE" aria-label="Room code" />
++          <button id="join">Join</button>
++        </div>
++        <div id="room-info" hidden>
++          <p>Market code <strong id="room-code"></strong></p>
++          <div id="invite" class="invite" hidden>
++            <span class="muted">Invite friends to your market:</span>
++            <a id="invite-link" href="#"></a>
++            <button id="copy-link" class="small">copy</button>
++          </div>
++          <ul id="peers"></ul>
++          <div id="host-controls" hidden>
++            <label class="checkbox"><input type="checkbox" id="local2" /> Add local player 2 (A / D; max 8 total)</label>
++            <label>Display size
++              <select id="mapsize">
++                <option value="0.7">Compact</option>
++                <option value="1" selected>Normal</option>
++                <option value="1.4">Large</option>
++                <option value="2">Huge</option>
++              </select>
++            </label>
++            <span id="mapinfo" class="muted"></span>
++            <button id="start" class="primary">Start the market →</button>
++          </div>
++          <p id="wait" class="muted" hidden>Waiting for the host to start. Joining mid-match? Wait for a new match.</p>
++        </div>
++      </div>
++    </section>
++    <section id="game" hidden>
++      <div class="play-area">
++        <div class="game-hud"><span id="round-status">Catch crystals, dodge mines</span><strong id="clock">35s</strong></div>
++        <div class="stage-scroll">
++          <div id="arena">
++            <canvas id="trails" aria-hidden="true"></canvas>
++            <canvas id="heads" aria-label="Market stalls, falling crystals and mines, and player baskets"></canvas>
++            <div id="banner" role="status" hidden></div>
++          </div>
++        </div>
++        <div class="controls">
++          <div class="touch-controls" aria-label="Hold to move your basket">
++            <button data-direction="-1" aria-label="Move left">←</button>
++            <button data-direction="1" aria-label="Move right">→</button>
++          </div>
++          <p class="muted">Hold ← / → to slide<br>Local player 2: A / D</p>
++          <button id="next" class="primary" hidden>Next round · Space</button>
++        </div>
++      </div>
++      <aside>
++        <p class="eyebrow">Market standings</p>
++        <ol id="scores"></ol>
++        <div class="rules">
++          <p><span class="cyan">◆</span> Crystal <strong>+1 cargo</strong></p>
++          <p><span class="gold">◆</span> Gold <strong>+3 cargo</strong></p>
++          <p><span class="red">⊗</span> Mine <strong>−4, brief jam</strong></p>
++          <p class="muted">Highest positive cargo wins: +2 match points. Tied leaders: +1 each. Everyone has their own copy of the shower.</p>
++        </div>
++        <p class="muted">Host: Space advances after a shift. After a match win, Space opens a fresh market.</p>
++        <p id="rtc" class="muted"></p>
++      </aside>
++    </section>
++  </main>
++  <footer>Host-powered simulation · WebRTC multiplayer · No downloads</footer>
++  <script type="module" src="/client.js"></script>
++</body>
++</html>
+diff --git a/daily-2026-09-10/public/style.css b/daily-2026-09-10/public/style.css
+new file mode 100644
+index 0000000..8b51063
+--- /dev/null
++++ b/daily-2026-09-10/public/style.css
+@@ -0,0 +1,80 @@
++:root {
++  color-scheme: dark;
++  --bg: #0a1523;
++  --fg: #e6f2fb;
++  --muted: #99b0c5;
++  --panel: #122438;
++  --accent: #62e8ef;
++}
++* { box-sizing: border-box; }
++[hidden] { display: none !important; }
++body { margin: 0; font: 15px/1.5 system-ui, sans-serif; background: radial-gradient(ellipse at 10% 0, #203752, transparent 65%), var(--bg); color: var(--fg); min-height: 100vh; }
++header { display: flex; align-items: center; flex-wrap: wrap; gap: 1rem; padding: 1.1rem 4vw; border-bottom: 1px solid #2a3b50; }
++a { color: var(--accent); }
++.brand { font-size: 1.3rem; font-weight: 800; letter-spacing: -.04em; text-decoration: none; }
++#all-games { margin-left: auto; font-size: .9rem; text-decoration: none; }
++main { max-width: 1540px; margin: auto; padding: 2.5rem 4vw; }
++#lobby { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; max-width: 1120px; margin: 2rem auto; }
++h1 { font-size: clamp(2.8rem, 5vw, 5rem); line-height: 1.05; letter-spacing: -.065em; margin: 1rem 0 1.5rem; }
++h1 span { color: var(--accent); }
++h2 { font-size: 1.25rem; margin-top: 0; }
++.intro > p { max-width: 32rem; }
++.eyebrow { color: var(--accent); text-transform: uppercase; letter-spacing: .13em; font-size: .72rem; font-weight: 750; }
++.muted { color: var(--muted); font-size: .87rem; }
++.legend { display: flex; flex-wrap: wrap; gap: 1rem; font-weight: 650; margin: 1.5rem 0; }
++.cyan { color: var(--accent); } .gold { color: #ffcd66; } .red { color: #ff6078; }
++.lobby-card, aside { padding: 1.5rem; background: #122438d9; border: 1px solid #2b4158; border-radius: 18px; box-shadow: 0 16px 50px #0002; }
++label { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; }
++.row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: 1rem 0; }
++input, button, select { font: inherit; padding: .6rem .8rem; border-radius: 8px; border: 1px solid #3c546b; background: #0c1b2a; color: var(--fg); }
++input { min-width: 0; max-width: 100%; }
++input#code { width: 6rem; text-transform: uppercase; letter-spacing: .1em; }
++button { cursor: pointer; font-weight: 650; }
++button.primary { color: #0a2330; background: var(--accent); border-color: var(--accent); }
++button:hover { filter: brightness(1.14); border-color: var(--accent); }
++button:disabled { opacity: .4; cursor: default; }
++button.small { padding: .25rem .5rem; font-size: .8rem; }
++:focus-visible { outline: 3px solid #ffcd66; outline-offset: 3px; }
++#room-code { letter-spacing: .16em; color: #ffcd66; }
++.invite { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; padding: .9rem; background: #091927; border-radius: 10px; }
++.invite a { overflow-wrap: anywhere; }
++#host-controls { display: grid; gap: .8rem; }
++#peers { padding-left: 1.2rem; }
++#peers li.host::after { content: " (host)"; color: var(--muted); }
++#game { display: grid; grid-template-columns: minmax(0, 1fr) 245px; gap: 1.25rem; align-items: start; }
++.play-area { min-width: 0; }
++.game-hud { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .7rem; }
++#clock { color: #ffcd66; font-size: 1.5rem; font-variant-numeric: tabular-nums; }
++.stage-scroll { overflow-x: auto; border: 1px solid #3c546b; border-radius: 12px; }
++#arena { position: relative; width: min(960px, 100%); aspect-ratio: 12 / 7; background: #102030; margin: auto; }
++#arena canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
++#banner { position: absolute; inset: 25% 5%; display: grid; place-items: center; text-align: center; background: #091523ed; border: 1px solid #62e8ef66; border-radius: 16px; padding: 1.5rem; font-size: clamp(1.2rem, 2.5vw, 2.2rem); font-weight: 800; pointer-events: none; overflow-wrap: anywhere; }
++.controls { display: flex; align-items: center; flex-wrap: wrap; gap: 1rem; margin-top: .75rem; }
++.touch-controls { display: flex; gap: .5rem; }
++.touch-controls button { width: 64px; height: 50px; font-size: 1.5rem; touch-action: none; user-select: none; }
++.touch-controls button:active { background: #2b5265; }
++#next { margin-left: auto; }
++#scores { padding-left: 1.2rem; margin-bottom: 1.5rem; }
++#scores li { padding: .45rem 0; font-size: .9rem; overflow-wrap: anywhere; }
++#scores strong { white-space: nowrap; }
++#scores small { display: block; margin-left: 1.2rem; color: var(--muted); }
++#scores .dead { opacity: .45; }
++.swatch { display: inline-block; width: .65em; height: .65em; border-radius: 50%; margin-right: .4em; }
++.rules { border-top: 1px solid #30465e; font-size: .85rem; }
++.rules strong { float: right; }
++#rtc { overflow-wrap: anywhere; font-size: .72rem; }
++footer { text-align: center; color: var(--muted); font-size: .75rem; padding: 1rem 2rem 2rem; }
++@media (max-width: 950px) {
++  #lobby { gap: 2rem; }
++  #game { grid-template-columns: minmax(0, 1fr); }
++  aside { padding: 1rem; }
++  #scores { display: flex; gap: 1.5rem; flex-wrap: wrap; }
++}
++@media (max-width: 680px) {
++  header { gap: .7rem; } #status { order: 3; width: 100%; }
++  main { padding: 1.2rem 4vw; }
++  #lobby { grid-template-columns: 1fr; gap: 1.4rem; margin: 0; }
++  h1 { font-size: 3rem; }
++  .lobby-card { padding: 1.1rem; }
++  #next { margin-left: 0; }
++}
+diff --git a/daily-2026-09-10/src/server.js b/daily-2026-09-10/src/server.js
+new file mode 100644
+index 0000000..4f62317
+--- /dev/null
++++ b/daily-2026-09-10/src/server.js
+@@ -0,0 +1,164 @@
++// Signaling + static server. Gameplay never touches this process: peers
++// exchange SDP/ICE here, then talk over WebRTC DataChannels.
++import http from "node:http";
++import fs from "node:fs";
++import path from "node:path";
++import { fileURLToPath } from "node:url";
++import { WebSocketServer } from "ws";
++
++const HOST = process.env.HOST || "0.0.0.0";
++const PORT = Number(process.env.PORT || 8080);
++const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "public");
++
++const MIME = {
++  ".html": "text/html; charset=utf-8",
++  ".js": "text/javascript; charset=utf-8",
++  ".css": "text/css; charset=utf-8",
++  ".svg": "image/svg+xml",
++  ".ico": "image/x-icon",
++};
++
++const rooms = new Map();
++let nextPeerId = 1;
++
++const ROOM_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
++function newRoomCode() {
++  for (;;) {
++    let code = "";
++    for (let i = 0; i < 4; i++) {
++      code += ROOM_ALPHABET[Math.floor(Math.random() * ROOM_ALPHABET.length)];
++    }
++    if (!rooms.has(code)) return code;
++  }
++}
++
++function send(ws, msg) {
++  if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg));
++}
++
++function broadcast(room, msg, except) {
++  for (const [id, peer] of room.peers) {
++    if (id !== except) send(peer.ws, msg);
++  }
++}
++
++function leave(ws) {
++  const { room: code, id } = ws.meta;
++  if (!code) return;
++  const room = rooms.get(code);
++  if (!room) return;
++  room.peers.delete(id);
++  ws.meta.room = null;
++  if (room.host === id || room.peers.size === 0) {
++    broadcast(room, { t: "host-left" });
++    for (const peer of room.peers.values()) peer.ws.meta.room = null;
++    rooms.delete(code);
++    console.log(`room ${code} closed`);
++  } else {
++    broadcast(room, { t: "leave", id });
++  }
++}
++
++function onMessage(ws, raw) {
++  let msg;
++  try {
++    msg = JSON.parse(raw);
++  } catch {
++    return send(ws, { t: "error", code: "bad_json" });
++  }
++  const name = String(msg.name || "anon").slice(0, 16);
++  switch (msg.t) {
++    case "ping":
++      return send(ws, { t: "pong" });
++    case "create": {
++      leave(ws);
++      const code = newRoomCode();
++      rooms.set(code, { host: ws.meta.id, peers: new Map([[ws.meta.id, { ws, name }]]) });
++      ws.meta.room = code;
++      console.log(`room ${code} created by ${ws.meta.id}`);
++      return send(ws, { t: "created", room: code, id: ws.meta.id });
++    }
++    case "join": {
++      const code = String(msg.room || "").toUpperCase();
++      const room = rooms.get(code);
++      if (!room) return send(ws, { t: "error", code: "no_such_room" });
++      if (room.peers.size >= 8) return send(ws, { t: "error", code: "room_full" });
++      leave(ws);
++      room.peers.set(ws.meta.id, { ws, name });
++      ws.meta.room = code;
++      const peers = [...room.peers].map(([id, p]) => ({ id, name: p.name }));
++      send(ws, { t: "joined", room: code, id: ws.meta.id, host: room.host, peers });
++      broadcast(room, { t: "peer", id: ws.meta.id, name }, ws.meta.id);
++      return;
++    }
++    case "signal": {
++      const room = rooms.get(ws.meta.room);
++      const target = room && room.peers.get(msg.to);
++      if (!target) return send(ws, { t: "error", code: "no_such_peer" });
++      return send(target.ws, { t: "signal", from: ws.meta.id, data: msg.data });
++    }
++    default:
++      return send(ws, { t: "error", code: "unknown_type" });
++  }
++}
++
++const wss = new WebSocketServer({ noServer: true, maxPayload: 64 * 1024 });
++wss.on("connection", (ws) => {
++  ws.meta = { id: String(nextPeerId++), room: null };
++  ws.on("message", (raw) => onMessage(ws, raw.toString()));
++  ws.on("close", () => leave(ws));
++  ws.on("error", () => leave(ws));
++});
++
++function serveStatic(req, res, pathname) {
++  const rel = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
++  const file = path.normalize(path.join(PUBLIC_DIR, rel));
++  if (!file.startsWith(PUBLIC_DIR)) {
++    res.writeHead(403);
++    return res.end();
++  }
++  fs.readFile(file, (err, data) => {
++    if (err) {
++      res.writeHead(404, { "Content-Type": "text/plain" });
++      return res.end("Not Found");
++    }
++    res.writeHead(200, {
++      "Content-Type": MIME[path.extname(file)] || "application/octet-stream",
++      "Cache-Control": "no-cache",
++    });
++    res.end(data);
++  });
++}
++
++const server = http.createServer((req, res) => {
++  const { pathname } = new URL(req.url, "http://localhost");
++  if (pathname === "/healthz") {
++    let players = 0;
++    for (const r of rooms.values()) players += r.peers.size;
++    res.writeHead(200, {
++      "Content-Type": "application/json",
++      "Access-Control-Allow-Origin": "*",
++      "Cache-Control": "no-store",
++    });
++    return res.end(JSON.stringify({ ok: true, rooms: rooms.size, players }));
++  }
++  if (pathname === "/ws") {
++    res.writeHead(426, { "Content-Type": "text/plain" });
++    return res.end("Upgrade Required");
++  }
++  if (req.method !== "GET") {
++    res.writeHead(405);
++    return res.end();
++  }
++  serveStatic(req, res, pathname);
++});
++
++server.on("upgrade", (req, socket, head) => {
++  const { pathname } = new URL(req.url, "http://localhost");
++  if (pathname !== "/ws") return socket.destroy();
++  wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
++});
++
++server.listen(PORT, HOST, () => {
++  console.log(`listening on http://${HOST}:${PORT}`);
++});
+diff --git a/daily-2026-09-10/test/run.mjs b/daily-2026-09-10/test/run.mjs
+new file mode 100644
+index 0000000..22ba232
+--- /dev/null
++++ b/daily-2026-09-10/test/run.mjs
+@@ -0,0 +1,34 @@
++import { Game, COLORS, TICK_HZ, MAP, mapSize } from '../public/game.js';
++import { scenarios } from './scenarios.js';
++
++function require(condition, message) {
++  if (!condition) throw new Error(message);
++}
++require(Array.isArray(COLORS) && COLORS.length >= 2, 'Player colors are required');
++require(TICK_HZ > 0 && TICK_HZ <= 120, 'Invalid tick rate');
++require(MAP && typeof mapSize === 'function', 'Map interface is required');
++const game = new Game(2, mapSize(2));
++require(game.round === 0 && Array.isArray(game.scores), 'Invalid initial game state');
++game.startRound();
++require(game.round === 1 && !game.roundOver, 'Round must start');
++for (let tick = 0; tick < 120; tick++) {
++  const snapshot = game.step([tick % 3 - 1, 0]);
++  require(snapshot && typeof snapshot.over === 'boolean', 'Snapshot must include over');
++  require(JSON.stringify(snapshot).length < 2000, 'Snapshot is too large');
++}
++require(typeof game.winner(10) === 'number', 'winner must return a player index or -1');
++game.startRound();
++require(game.round === 2, 'Round must advance');
++require(Array.isArray(scenarios) && scenarios.length >= 2 && scenarios.length <= 8, 'Require two scenario checks');
++const names = new Set();
++for (const scenario of scenarios) {
++  require(typeof scenario.name === 'string' && !names.has(scenario.name), 'Scenario names must be distinct');
++  names.add(scenario.name);
++  let assertions = 0;
++  await scenario.run(Game, (condition, message) => {
++    assertions++;
++    require(condition, message || scenario.name);
++  });
++  require(assertions > 0, `No assertions in ${scenario.name}`);
++}
++console.log(JSON.stringify({ ok: true, scenarios: [...names], interface: true }));
+diff --git a/daily-2026-09-10/test/scenarios.js b/daily-2026-09-10/test/scenarios.js
+new file mode 100644
+index 0000000..ce65a0a
+--- /dev/null
++++ b/daily-2026-09-10/test/scenarios.js
+@@ -0,0 +1,108 @@
++export const scenarios = [
++  {
++    name: "Shared crystals resolve independently; mines floor cargo and jam movement",
++    run(Game, assert) {
++      const g = new Game(2, { w: 560, h: 500, random: () => 0.8 });
++      g.startRound();
++      g.freeze = 0;
++      g.tick = 1;
++      g.objects = [[0, 500, 899, 3]];
++      const gold = g.step([0, 0]);
++      assert(gold.p.every(p => p[1] === 3), "Both stalls must catch their own copy of gold");
++      assert(gold.d.length === 2 && gold.o.length === 0, "Each catch emits an event and consumes the object");
++      g.players[1].x = 900;
++      g.objects = [[1, 500, 899, -4]];
++      const mine = g.step([0, 0]);
++      assert(mine.p[0][1] === 0 && mine.p[0][2] === 12, "Mine subtracts four, floors at zero, and jams for 12 ticks");
++      assert(mine.p[1][1] === 3 && mine.p[1][2] === 0, "Distant player avoids the mine");
++      for (let t = 0; t < 12; t++) g.step([1, 0]);
++      assert(g.players[0].x === 500 && g.players[0].jam === 0, "Jam prevents exactly twelve movement ticks");
++      g.step([1, 0]);
++      assert(g.players[0].x === 518, "Movement resumes after the jam");
++      assert(gold.p[0][1] === 3 && gold.p[0][2] === 0, "Later ticks cannot mutate old snapshots");
++    },
++  },
++  {
++    name: "Ready phase, input validation, basket bounds, and exact catch edge",
++    run(Game, assert) {
++      const g = new Game(2);
++      g.startRound();
++      for (let t = 0; t < 30; t++) g.step([-1, 1]);
++      assert(g.tick === 0 && g.freeze === 0, "Thirty ready ticks precede the active clock");
++      assert(g.players.every(p => p.x === 500), "Ready phase ignores movement");
++      g.step([Infinity, "1"]);
++      assert(g.players.every(p => p.x === 500), "Invalid intent is neutral");
++      for (let t = 0; t < 30; t++) g.step([-1, 1]);
++      assert(g.players[0].x === 85 && g.players[1].x === 915, "Baskets stay inside the stall");
++      g.objects = [[99, 170, 899, 1], [100, 829, 899, 3]];
++      g.step([0, 0]);
++      assert(g.players[0].cargo === 1, "Exactly 85 units from center catches");
++      assert(g.players[1].cargo === 0, "86 units from center misses");
++    },
++  },
++  {
++    name: "Timeout awards once, ties play on, and next round resets only shift state",
++    run(Game, assert) {
++      const g = new Game(2);
++      g.startRound();
++      g.freeze = 0;
++      g.tick = 1049;
++      g.players[0].cargo = 7;
++      g.players[1].cargo = 2;
++      const end = g.step([0, 0]);
++      assert(end.over && end.k === 1050 && end.r.join() === "0", "Shift ends precisely at 35 active seconds");
++      assert(g.scores.join() === "2,0" && end.d.some(e => e[0] === 0 && e[1] === 0), "Sole leader receives two points and a score event");
++      const again = g.step([1, 1]);
++      assert(g.scores.join() === "2,0" && again.d.length === 0, "Over ticks never award again");
++      g.startRound();
++      assert(g.round === 2 && g.tick === 0 && g.freeze === 30 && !g.roundOver, "Round advance resets lifecycle");
++      assert(g.players.every(p => p.cargo === 0 && p.x === 500 && p.jam === 0) && !g.objects.length, "Round-local state is cleared");
++      assert(g.scores[0] === 2, "Match points survive round advance");
++      g.scores = [4, 4];
++      g.tick = 1049; g.freeze = 0;
++      g.players.forEach(p => p.cargo = 9);
++      const tie = g.step([]);
++      assert(tie.r.length === 2 && g.scores.join() === "5,5", "Tied positive leaders earn one each");
++      assert(g.winner(5) === -1, "A tied match at target continues");
++      g.startRound(); g.tick = 1049; g.freeze = 0;
++      g.players[1].cargo = 1;
++      g.step([]);
++      assert(g.winner(5) === 1, "Unique leader beyond target wins the match");
++    },
++  },
++  {
++    name: "Disconnected and empty stalls cannot earn round awards",
++    run(Game, assert) {
++      const g = new Game(2);
++      g.startRound(); g.tick = 1049; g.freeze = 0;
++      g.players[0].cargo = 100;
++      g.disconnect(0);
++      const end = g.step([]);
++      assert(end.r.length === 0 && g.scores.every(s => s === 0), "Offline cargo and zero active cargo award nobody");
++      g.startRound();
++      assert(!g.players[0].active, "Disconnected players do not reappear next round");
++      g.tick = 1049; g.freeze = 0; g.players[1].cargo = 1;
++      g.step([]);
++      assert(g.scores[1] === 2 && g.scores[0] === 0, "Remaining active player can finish the match");
++    },
++  },
++  {
++    name: "Eight-player full replay has bounded complete snapshots and no lingering drops",
++    run(Game, assert) {
++      let seed = 123;
++      const random = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
++      const g = new Game(8, { w: 1120, h: 1000, random });
++      g.startRound();
++      let maxBytes = 0, maxObjects = 0, last;
++      for (let t = 0; t < 1080; t++) {
++        last = g.step(Array.from({ length: 8 }, (_, i) => Math.floor(t / 25 + i) % 3 - 1));
++        maxBytes = Math.max(maxBytes, JSON.stringify(last).length);
++        maxObjects = Math.max(maxObjects, last.o.length);
++      }
++      assert(last.over && last.k === 1050 && last.o.length === 0, "Full match drains its shower and ends on schedule");
++      assert(maxObjects <= 7 && maxBytes < 1000, "Shared shower and full player snapshots stay compact");
++      assert(last.p.length === 8 && last.q.length === 8 && Array.isArray(last.d), "Snapshots contain every player's render and score state");
++      assert(last.p.every(p => p.every(Number.isFinite)), "All player snapshot values are finite");
++    },
++  },
++];
