@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Prism Post · Multiplayer parcel arcade</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header>
+    <h1>Prism Post <small>PARCEL ARCADE</small></h1>
+    <span id="status" class="muted">connecting…</span>
+    <a id="all-games" class="muted" href="https://edge-multiplayer-games.wasmer.app">← all games</a>
+  </header>
+
+  <section id="lobby">
+    <p class="eyebrow">SAME DELIVERIES. SHARPER REFLEXES.</p>
+    <h2>Run the brightest bay in the depot.</h2>
+    <p>Slide your cart to catch <strong class="mint">mint + parcels</strong>. Dodge <strong class="coral">coral × glitches</strong>: they cost two points. Everyone gets the same deliveries in their own bay.</p>
+    <p class="muted">30-second shifts · first to 20 points at shift end · 2–8 players or solo practice</p>
+    <label>Name <input id="name" maxlength="16" placeholder="your name" /></label>
+    <div class="row">
+      <button id="create">Create room</button>
+      <span class="muted">or</span>
+      <input id="code" maxlength="4" placeholder="CODE" />
+      <button id="join">Join</button>
+    </div>
+    <div id="room-info" hidden>
+      <p>Room <strong id="room-code"></strong></p>
+      <div id="invite" class="invite" hidden>
+        <span class="muted">Send this to your friends:</span>
+        <a id="invite-link" href="#"></a>
+        <button id="copy-link" class="small">copy</button>
+      </div>
+      <ul id="peers"></ul>
+      <div id="host-controls" hidden>
+        <label><input type="checkbox" id="local2" /> add local player 2 (A / D)</label>
+        <label>Display size
+          <select id="mapsize">
+            <option value="0.7">compact</option>
+            <option value="1" selected>normal</option>
+            <option value="1.4">large</option>
+            <option value="2">wall display</option>
+          </select>
+          <span id="mapinfo" class="muted"></span>
+        </label>
+        <button id="start">Start game</button>
+      </div>
+      <p id="wait" class="muted" hidden>waiting for host to start…</p>
+    </div>
+  </section>
+
+  <section id="game" hidden>
+    <div id="arena">
+      <canvas id="trails"></canvas>
+      <canvas id="heads"></canvas>
+      <div id="banner" hidden></div>
+    </div>
+    <aside>
+      <p class="eyebrow">LIVE DEPOT</p>
+      <h2 id="clock" aria-live="off">Get ready</h2>
+      <ol id="scores"></ol>
+      <div class="touch-controls" aria-label="Cart controls">
+        <button id="left" aria-label="Move cart left">←</button>
+        <button id="right" aria-label="Move cart right">→</button>
+      </div>
+      <p>← → slide · release to stop<br>Local player 2: A / D</p>
+      <p class="muted"><span class="mint">+ catch: +1</span> · <span class="coral">× glitch: −2</span><br>Missed parcels cost nothing. Ties continue another shift.</p>
+      <button id="next" hidden>Next round (Space)</button>
+      <p class="muted">Host: Space advances shifts. Join before Start; late arrivals wait for a new match.</p>
+      <p id="rtc" class="muted"></p>
+    </aside>
+  </section>
+
+  <script type="module" src="/client.js"></script>
+</body>
+</html>
