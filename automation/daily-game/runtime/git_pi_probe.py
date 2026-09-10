@@ -7,25 +7,10 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+from pi_runner import run_pi
 
 
-def execute(args, cwd, env, timeout=60):
-    operation = args[3] if len(args) > 3 and args[1:3] == ["-c", "core.hooksPath=/dev/null"] else args[1]
-    print(f"RUN {Path(args[0]).name} {operation}", flush=True)
-    previous = os.getcwd()
-    try:
-        os.chdir(cwd)
-        result = subprocess.run(args, env=env, capture_output=True,
-                                text=True, timeout=timeout, check=False)
-    finally:
-        os.chdir(previous)
-    if result.returncode:
-        detail = result.stderr.strip()
-        for key, value in env.items():
-            if value and any(word in key.upper() for word in ("KEY", "TOKEN", "SECRET", "PASSWORD")):
-                detail = detail.replace(value, "[REDACTED]")
-        raise RuntimeError(f"{Path(args[0]).name} failed with exit code {result.returncode}: {detail[-4000:]}")
-    return result.stdout.strip()
+from processes import execute
 
 
 def main():
@@ -99,17 +84,10 @@ def main():
 
         if args.agent:
             agent_env = {**env, "OPENAI_API_KEY": api_key}
-            system = Path(__file__).with_name("pi-probe-system.md").read_text()
+            system = Path(__file__).with_name("pi-probe-system.md")
             prompt = ("INPUT\nWork directory: " + str(work)
                       + "\nFailing check: node test.mjs\nEditable file: sum.js\n")
-            output = execute([args.node, args.pi_cli, "--print", "--mode", "json", "--no-session",
-                              "--no-extensions", "--no-skills", "--no-prompt-templates", "--no-themes",
-                              "--provider", args.provider, "--model", args.model,
-                              "--append-system-prompt", system, prompt], work, agent_env, timeout=300)
-            events = [json.loads(line) for line in output.splitlines() if line.strip()]
-            bash_events = [event for event in events if event.get("type") == "tool_execution_start"
-                           and event.get("toolName") == "bash"]
-            assert bash_events, "Pi did not exercise its Bash tool"
+            run_pi(work, agent_env, system, prompt, args.model, seconds=300)
             print("PASS Pi model request and Bash tool invocation", flush=True)
         else:
             (work / "sum.js").write_text('export const sum = (a, b) => a + b;\n')

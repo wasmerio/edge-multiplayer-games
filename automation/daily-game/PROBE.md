@@ -4,8 +4,8 @@ The package has a `probe` command for the proposed Edge runtime.
 It uses packaged Python, Git, Bash, Edge.js, and Pi.
 It does not call host Git, Bash, or Node.
 
-This is a compatibility test. The daily game job still uses the earlier,
-inactive generator. The clone-and-Pi job is not ready for deployment.
+This is a compatibility test. The [daily-game command](README.md) uses Pi
+to generate a full game and optionally opens a draft PR.
 
 ## Prepare the package
 
@@ -66,7 +66,7 @@ wasmer run . -e probe --net \
 ```
 
 This mode makes a billable model request. Pi must fix the fixture and use
-its Bash tool. The outer probe then checks, commits, pushes, and verifies
+its Bash tool successfully. The outer probe then checks, commits, pushes, and verifies
 an independent checkout. It also requires this message:
 
 ```text
@@ -119,8 +119,16 @@ The complete probe without model access passed with Wasmer 7.3.0 on
 JavaScript tests, Git commits, pushes, and an independent checkout.
 WebC package building and the same probe from the built artifact also passed.
 
-The model-backed test requires explicit approval to use the OpenAI key.
-Authenticated GitHub pushes and actual Edge invocations remain unverified.
+The model test uses `OPENAI_API_KEY` from the shell.
+The daily command also passed authenticated GitHub push and draft PR creation
+inside `wasmer run`: [Meteor Market PR #1](https://github.com/wasmerio/edge-multiplayer-games/pull/1).
+Actual Edge invocations remain unverified.
+
+The shared Pi runner uses the SDK with in-memory credentials and session state.
+This avoids credential locks that need unsupported `utime` calls.
+Its Bash adapter disables detached process groups, which WASIX rejects.
+The adapter preserves streamed output, exit status, cancellation, and timeouts.
+A real Pi read/edit/Bash repair test passed with these adaptations.
 
 Python's WASIX subprocess implementation does not support `cwd`.
 The coordinator changes its working directory before each subprocess and

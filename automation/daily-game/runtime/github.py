@@ -1,4 +1,3 @@
-import base64
 import json
 import re
 import urllib.error
@@ -21,7 +20,7 @@ def request_json(url, token, data=None, method=None, timeout=30):
     headers = {"Accept": "application/json", "Content-Type": "application/json",
                "User-Agent": "wasmer-daily-game"}
     if url.startswith("https://api.github.com/"):
-        headers["X-GitHub-Api-Version"] = "2022-11-28"
+        headers["X-GitHub-Api-Version"] = "2026-03-10"
     req = urllib.request.Request(url, headers=headers, method=method,
                                  data=None if data is None else json.dumps(data).encode())
     req.add_unredirected_header("Authorization", "Bearer " + token)
@@ -34,20 +33,9 @@ def request_json(url, token, data=None, method=None, timeout=30):
 class GitHub:
     def __init__(self, repository, token):
         require(re.fullmatch(r"[\w.-]+/[\w.-]+", repository), "Invalid repository")
-        require(bool(token), "GITHUB_TOKEN secret is missing")
+        require(bool(token), "GH_TOKEN secret is missing")
         self.root = "https://api.github.com/repos/" + repository
         self.token = token
 
     def request(self, path, data=None, method=None):
         return request_json(self.root + path, self.token, data, method)
-
-    def file(self, path, ref):
-        try:
-            result = self.request("/contents/" + path + "?ref=" + ref)
-        except urllib.error.HTTPError as error:
-            if error.code == 404:
-                error.close()
-                return None
-            raise
-        require(result.get("encoding") == "base64", "Unsupported repository file encoding")
-        return base64.b64decode(result["content"]).decode("utf-8")

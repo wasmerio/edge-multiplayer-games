@@ -14,7 +14,7 @@ jobs:
     trigger: '0 6 * * *'
     action:
       execute:
-        command: coordinator
-        cli_args: [/app/cron.py]
+        command: daily-game
+        cli_args: [--publish]
         timeout: 50m
         retries: 0
