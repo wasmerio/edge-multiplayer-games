@@ -84,6 +84,7 @@ deploy_dir() {
   echo "==> $name ($dir)"
   local args=(--non-interactive)
   if [ -f "$dir/wasmer.toml" ]; then
+    args+=(--bump)
     if [ "$name" = super ]; then
       command -v npm >/dev/null || die "npm is required to prepare Pi for the root package"
       npm ci --prefix "$ROOT/automation/daily-game/pi" --ignore-scripts --no-bin-links --no-audit --no-fund

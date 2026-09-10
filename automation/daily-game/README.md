@@ -196,8 +196,10 @@ The job does not overwrite another candidate with a forced push.
 
 ## Edge schedule
 
-The root [`app.yaml`](../../app.yaml) configures `daily-game --publish` at `0 6 * * *`, or 06:00 UTC.
-The timeout is 50 minutes and automatic retries are disabled.
+The root [`app.yaml`](../../app.yaml) configures `daily-game --publish` at `45 14 * * *`, or 14:45 UTC.
+This is 17:45 in Helsinki during summer time.
+The configuration requests a 50-minute timeout and no automatic retries.
+The deployed cron currently reports 180 seconds because the backend reads timeout fields from a different location than the CLI writes.
 Pi has a 30-minute limit within that invocation.
 
 The root [`wasmer.toml`](../../wasmer.toml) defines the website and job commands in one package.
@@ -220,9 +222,46 @@ For local runs, pass `-- --publish --model MODEL` or forward `OPENAI_MODEL` with
 `wasmer run` reads the package manifest, not the app's environment or Edge secrets.
 
 Pi output goes to cron stdout, so it is available in the Edge job logs.
-After deployment, check that the root app has one enabled `daily-game` job at `0 6 * * *`.
-No root secrets or jobs were configured during the migration check. The combined configuration awaits deployment.
+After deployment, check the enabled jobs and their effective timeouts.
+The single `daily-game` job temporarily uses `--date 2026-09-09` to exercise generation without today's existing PR.
+Remove the date override after validation succeeds so subsequent runs use the current UTC date.
 The former standalone app manifests are removed. If you deployed that app separately, disable its schedule before activating the root schedule.
+
+## Persistent run files
+
+The `daily-game-runs` volume mounts at `/data`.
+`DAILY_GAME_WORK_ROOT=/data` keeps each attempt in a separate `daily-YYYY-MM-DD-*` directory.
+The checkout, temporary files, and agent home use that directory.
+Failed attempts remain available. Retries create new directories.
+
+The run directory contains:
+
+- `repository/`: the checkout and generated source, including incomplete edits.
+- `pi-control/input.txt`: the generation prompt, including repository instructions.
+- `pi-control/pi.log`: Pi activity and tool results, appended as events arrive with the API key redacted.
+- `pi-control/report.json`: the Pi result, when the supervisor completes.
+- `artifacts/`: the validated patch and check report, when validation completes.
+- `pr.json`: the PR URL, when publication completes.
+- `status.json`: coordinator status. A killed process can leave this set to `running`.
+
+Open the app dashboard's Storage tab and select **Explore files** on `daily-game-runs`.
+Correlate the printed `Run files:` path with the cron invocation logs.
+Volume writes can take time to appear outside the running instance.
+The volume is outside the website's `/public` directory.
+Run directories remain until you delete them through the volume file browser.
+
+For a local run, create an empty host directory and mount it into Wasmer:
+
+```bash
+mkdir -p /tmp/edge-game-runs
+wasmer run . -e daily-game --net --volume /tmp/edge-game-runs:/data \
+  --env "OPENAI_API_KEY=${OPENAI_API_KEY:?Set OPENAI_API_KEY first}" \
+  --env "GH_TOKEN=${GH_TOKEN:?Set GH_TOKEN first}" \
+  -- --publish --work-root /data --date 2026-09-09
+```
+
+Without `--work-root` or `DAILY_GAME_WORK_ROOT`, local runs keep the existing temporary-directory behavior.
+Pi still holds its active conversation in memory. Persistent files do not remove the runtime's memory requirements.
 
 ## Verification
 
@@ -257,7 +296,7 @@ wasmer run . -e node --volume .:/repository \
   -- /repository/automation/daily-game/test/wasmer.mjs
 ```
 
-This command runs all 20 Python tests plus the JavaScript runtime checks.
+This command runs all 25 Python tests plus the JavaScript runtime checks.
 Four integration tests use real Git in disposable guest repositories.
 They cover source mutation, staged-only edits, preview mutation, and Git attribute conversion.
 The suite uses no model API, GitHub token, or external Git remote.

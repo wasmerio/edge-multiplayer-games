@@ -164,6 +164,31 @@ class DailyGameTests(unittest.TestCase):
         self.invoke(agent=lambda *args: self.fail('Pi should not run'))
         self.assertFalse(self.commands.calls)
 
+    def test_persistent_run_retains_checkout_patch_and_pr(self):
+        with tempfile.TemporaryDirectory() as root:
+            self.args.work_root = root
+            self.invoke()
+            attempt, = Path(root).iterdir()
+            self.assertTrue((attempt / 'repository' / ('daily-' + DAY) / 'public/game.js').is_file())
+            self.assertTrue((attempt / 'artifacts' / ('daily-' + DAY + '.patch')).is_file())
+            self.assertEqual(json.loads((attempt / 'pr.json').read_text())['url'], self.gh.pull['html_url'])
+            self.assertEqual(json.loads((attempt / 'status.json').read_text())['status'], 'completed')
+            self.assertEqual(Path(self.agent_env['TMPDIR']), attempt)
+            self.assertTrue(Path(self.agent_env['HOME']).is_relative_to(attempt))
+
+    def test_persistent_run_retains_failed_agent_edits(self):
+        with tempfile.TemporaryDirectory() as root:
+            self.args.work_root = root
+            def fail(work, *args):
+                (work / ('daily-' + DAY) / 'public/game.js').write_text('partial candidate')
+                raise RuntimeError('Pi stopped')
+            with self.assertRaisesRegex(RuntimeError, 'Pi stopped'):
+                self.invoke(agent=fail)
+            attempt, = Path(root).iterdir()
+            self.assertEqual((attempt / 'repository' / ('daily-' + DAY) / 'public/game.js').read_text(), 'partial candidate')
+            self.assertEqual(json.loads((attempt / 'status.json').read_text())['status'], 'failed')
+            self.assertFalse(any(args[0] == 'push' for args, env in self.commands.calls))
+
     def test_prompt_injects_guide_and_pr_registers_root_catalog(self):
         self.invoke()
         self.assertEqual(self.agent_input['repository_instructions'], (ROOT / 'AGENTS.md').read_text())

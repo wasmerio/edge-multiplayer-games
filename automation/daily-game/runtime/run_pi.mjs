@@ -1,13 +1,16 @@
 import { spawn } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { appendFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { PiReporter } from './pi_events.mjs';
 import { terminateChild } from './terminate_child.mjs';
 
 const [reportPath, systemPath, inputPath, model, seconds = '1800'] = process.argv.slice(2);
 if (!reportPath || !systemPath || !inputPath || !model) throw new Error('Missing Pi run arguments');
+const logPath = join(dirname(reportPath), 'pi.log');
 let lastActivity = Date.now();
 const reporter = new PiReporter(text => {
   lastActivity = Date.now();
+  appendFileSync(logPath, text);
   process.stdout.write(text);
 }, [process.env.OPENAI_API_KEY]);
 const heartbeat = setInterval(() => {

@@ -5,16 +5,15 @@ owner: wasmer
 package: .
 locality:
   regions:
-  - fr-roub1
+    - fr-roub1
 env:
+  DAILY_GAME_WORK_ROOT: /data
   GITHUB_REPOSITORY: wasmerio/edge-multiplayer-games
   OPENAI_MODEL: gpt-6-astra
   JS_COMMAND: /bin/node
-jobs:
-- name: daily-game
-  trigger: 0 6 * * *
-  action:
-    execute:
-      command: daily-game
-      cli_args:
-      - --publish
+capabilities:
+  memory:
+    limit: 953.7 MiB
+volumes:
+  - name: daily-game-runs
+    mount: /data

@@ -6,11 +6,12 @@ import { spawnSync } from 'node:child_process';
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'deploy-check-'));
 try {
-  for (const dir of ['bin', 'public', 'scripts']) fs.mkdirSync(path.join(root, dir));
+  for (const dir of ['bin', 'public', 'scripts', 'fixture-game']) fs.mkdirSync(path.join(root, dir));
   for (const file of ['deploy.sh', 'scripts/register-game.mjs']) {
     fs.copyFileSync(new URL(`../${file}`, import.meta.url), path.join(root, file));
   }
   fs.writeFileSync(path.join(root, 'app.yaml'), 'name: fixture\n');
+  fs.writeFileSync(path.join(root, 'fixture-game/app.yaml'), 'name: fixture-game\n');
   fs.writeFileSync(path.join(root, 'wasmer.toml'), '[package]\nname="fixture/root"\n');
   fs.writeFileSync(path.join(root, 'public/games.json'), '[]\n');
   fs.writeFileSync(path.join(root, '.wasmerignore'), '/scripts/\n');
@@ -28,6 +29,9 @@ if (tool === 'wasmer') {
     fs.ftruncateSync(file, process.env.CHECK_MODE === 'oversize' ? 65*1024*1024 : 1024);
     fs.closeSync(file);
   } else if (args[0] === 'deploy') {
+    if (fs.existsSync('wasmer.toml') && !args.includes('--bump')) {
+      out('error: The version 0.2.0 already exists for package fixture/root'); process.exit(1);
+    }
     const attempts = fs.readFileSync(process.env.CHECK_LOG, 'utf8').trim().split('\\n')
       .map(line => JSON.parse(line)).filter(call => call.args[0] === 'deploy').length;
     if (process.env.CHECK_MODE === 'permanent') { out('Invalid app configuration'); process.exit(1); }
@@ -41,9 +45,9 @@ if (tool === 'wasmer') {
   for (const tool of ['wasmer', 'npm', 'curl', 'sleep']) {
     fs.writeFileSync(path.join(root, 'bin', tool), stub, { mode: 0o755 });
   }
-  function run(mode) {
+  function run(mode, target = 'super') {
     const log = path.join(root, `${mode}.jsonl`);
-    const result = spawnSync('bash', [path.join(root, 'deploy.sh'), 'super'], {
+    const result = spawnSync('bash', [path.join(root, 'deploy.sh'), target], {
       env: { ...process.env, PATH: `${root}/bin:${process.env.PATH}`, CHECK_LOG: log, CHECK_MODE: mode },
       encoding: 'utf8', timeout: 15000,
     });
@@ -55,6 +59,7 @@ if (tool === 'wasmer') {
   assert.equal(retry.status, 0, retry.stdout + retry.stderr);
   assert.equal(retry.deploys.length, 3);
   assert.ok(retry.deploys.every(call => !call.args.includes('--build-remote')));
+  assert.ok(retry.deploys.every(call => call.args.includes('--bump')));
   assert.equal(retry.calls.filter(call => call.tool === 'npm' && call.args[0] === 'ci').length, 1);
   assert.deepEqual(retry.calls.filter(call => call.tool === 'sleep').map(call => call.args), [['5'], ['10']]);
   const permanent = run('permanent');
@@ -68,7 +73,14 @@ if (tool === 'wasmer') {
   assert.equal(oversize.status, 1);
   assert.equal(oversize.deploys.length, 0);
   assert.match(oversize.stderr, /package size check failed before upload/);
-  console.log('PASS deployment gateway retries, retry limit, permanent failures, preparation once, and package size guard');
+  fs.writeFileSync(path.join(root, 'fixture-game/game-entry.json'), JSON.stringify({
+    slug: 'fixture-game', source: 'fixture-game/', name: 'Fixture',
+    description: 'Deployment test game.', players: '2 to 8',
+  }));
+  const remote = run('remote', 'fixture-game');
+  assert.equal(remote.status, 0, remote.stdout + remote.stderr);
+  assert.ok(remote.deploys.every(call => call.args.includes('--build-remote') && !call.args.includes('--bump')));
+  console.log('PASS package version bumps, remote build flags, gateway retries, retry limit, permanent failures, preparation once, and package size guard');
 } finally {
   fs.rmSync(root, { recursive: true, force: true });
 }

@@ -9,7 +9,6 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
-import tempfile
 import urllib.error
 from urllib.parse import urlencode, quote
 
@@ -18,6 +17,7 @@ from github import GitHub, require
 from processes import execute
 from pi_runner import run_pi
 from repository import regular_file, snapshot, assert_unchanged, stage_checked_files
+from workspace import run_workspace
 
 EDITABLE = ("README.md", "public/game.js", "public/client.js", "public/index.html",
             "public/style.css", "test/scenarios.js", "game-entry.json")
@@ -159,8 +159,8 @@ def run(args):
     reuse = recovery or bool(preview)
     require(reuse or os.environ.get("OPENAI_API_KEY"), "OPENAI_API_KEY is missing")
     print(f"Daily game {day}: {'publish draft PR' if args.publish else 'preview'}", flush=True)
-    with tempfile.TemporaryDirectory(prefix="edge-daily-", ignore_cleanup_errors=True) as directory:
-        temp = Path(directory)
+    work_root = getattr(args, "work_root", None)
+    with run_workspace(work_root, day) as temp:
         work = temp / "repository"
         env = environment(temp)
         auth_env = git_environment(env, token)
@@ -295,8 +295,9 @@ def run(args):
             validate_paths(changed, allowed)
         if not recovery:
             stage_checked_files(git, expected)
-        if args.output:
-            output = Path(args.output)
+        output_path = args.output or (temp / "artifacts" if work_root else None)
+        if output_path:
+            output = Path(output_path)
             output.mkdir(parents=True, exist_ok=True)
             (output / f"{slug}.patch").write_text(git("diff", "--binary", base, "HEAD", raw=True) if recovery else git("diff", "--cached", "--binary", base, raw=True))
             (output / f"{slug}.json").write_text(json_text(record))
@@ -308,13 +309,18 @@ def run(args):
             git("commit", "-m", f"Add daily multiplayer game for {day}: {entry['name']}")
             # A concurrent writer rejects this ordinary push; never force an update.
             git("push", "origin", "HEAD:refs/heads/" + branch, network=True)
-        print("PR: " + ensure_pr(gh, branch, record), flush=True)
+        pr_url = ensure_pr(gh, branch, record)
+        if work_root:
+            (temp / "pr.json").write_text(json_text({"url": pr_url, "branch": branch}))
+        print("PR: " + pr_url, flush=True)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--publish", action="store_true", help="Push a dated branch and open a draft PR")
     parser.add_argument("--output", help="Directory for the patch and check report")
+    parser.add_argument("--work-root", default=os.environ.get("DAILY_GAME_WORK_ROOT"),
+                        help="Mounted directory for retained run files, including failed attempts")
     parser.add_argument("--from-preview", help="Reuse an existing preview directory and repeat validation without a model call")
     parser.add_argument("--repository", default=os.environ.get("GITHUB_REPOSITORY", "wasmerio/edge-multiplayer-games"))
     parser.add_argument("--model", default=os.environ.get("OPENAI_MODEL", "gpt-6-astra"))
