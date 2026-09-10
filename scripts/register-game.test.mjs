@@ -14,7 +14,7 @@ try {
     description: 'A new game.', source: 'new-game/' };
   const catalog = path.join(root, 'public/games.json');
   fs.writeFileSync(catalog, JSON.stringify([original]));
-  fs.writeFileSync(path.join(root, '.ignore'), '/scripts/\n');
+  fs.writeFileSync(path.join(root, '.wasmerignore'), '/scripts/\n');
   fs.writeFileSync(path.join(root, 'new-game/game-entry.json'), JSON.stringify(metadata));
   assert.deepEqual(pendingGames(root), ['new-game']);
   registerGame(root, 'new-game', 'https://actual-deployment.wasmer.app/');
@@ -24,7 +24,7 @@ try {
   const once = fs.readFileSync(catalog, 'utf8');
   registerGame(root, 'new-game', 'https://actual-deployment.wasmer.app');
   assert.equal(fs.readFileSync(catalog, 'utf8'), once);
-  assert.equal(fs.readFileSync(path.join(root, '.ignore'), 'utf8'), '/scripts/\n/new-game/\n');
+  assert.equal(fs.readFileSync(path.join(root, '.wasmerignore'), 'utf8'), '/scripts/\n/new-game/\n');
   registerGame(root, 'existing', 'https://updated.wasmer.app');
   assert.equal(JSON.parse(fs.readFileSync(catalog))[0].url, 'https://updated.wasmer.app');
   assert.throws(() => registerGame(root, 'new-game', 'http://invalid.example'), /HTTPS/);

@@ -35,7 +35,7 @@ export function registerGame(root, slug, address) {
   const index = games.findIndex(game => game.slug === slug);
   if (index < 0) games.push(entry);
   else games[index] = { ...games[index], ...entry };
-  const ignorePath = path.join(root, '.ignore');
+  const ignorePath = path.join(root, '.wasmerignore');
   const ignore = fs.readFileSync(ignorePath, 'utf8');
   save(catalogPath, games);
   if (!ignore.split(/\r?\n/).includes(`/${slug}/`)) {

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploy the superapp and/or games to Wasmer Edge with a remote build.
+# Deploy the root Wasmer package and/or game apps with remote builds.
 #
 #   ./deploy.sh                 # everything: every game dir, then the superapp
 #   ./deploy.sh super           # superapp only (repo root)
@@ -54,25 +54,67 @@ sync_catalog() {
   done <<< "$pending"
 }
 
+check_root_package() {
+  local package_dir
+  package_dir=$(mktemp -d)
+  if ! wasmer package build "$ROOT" -o "$package_dir/root.webc"; then
+    rm -rf "$package_dir"
+    die "super: local package build failed before upload"
+  fi
+  if ! node --input-type=module - "$package_dir/root.webc" <<'NODE'
+import fs from 'node:fs';
+const mib = fs.statSync(process.argv[2]).size / 1024 / 1024;
+console.log(`super: package size ${mib.toFixed(1)} MiB`);
+if (mib > 64) {
+  console.error('Root package exceeds 64 MiB. Check the Pi exclusions in automation/daily-game/.wasmerignore.');
+  process.exitCode = 1;
+}
+NODE
+  then
+    rm -rf "$package_dir"
+    die "super: package size check failed before upload"
+  fi
+  rm -rf "$package_dir"
+}
+
 deploy_dir() {
   local name=$1 dir=$2
   [ -f "$dir/app.yaml" ] || die "$dir has no app.yaml"
   echo
   echo "==> $name ($dir)"
-  local args=(--build-remote --non-interactive)
+  local args=(--non-interactive)
+  if [ -f "$dir/wasmer.toml" ]; then
+    if [ "$name" = super ]; then
+      command -v npm >/dev/null || die "npm is required to prepare Pi for the root package"
+      npm ci --prefix "$ROOT/automation/daily-game/pi" --ignore-scripts --no-bin-links --no-audit --no-fund
+      npm run --prefix "$ROOT/automation/daily-game/pi" prepare:wasmer
+      check_root_package
+    fi
+  else
+    args+=(--build-remote)
+  fi
   [ -n "${OWNER:-}" ] && args+=(--owner "$OWNER")
   [ -n "${NO_WAIT:-}" ] && args+=(--no-wait)
-  local log
+  local log attempt
   log=$(mktemp)
-  # tee keeps the live output; the log is parsed afterwards
-  if ! (cd "$dir" && wasmer deploy "${args[@]}") 2>&1 | tee "$log"; then
-    rm -f "$log"
-    die "$name: deploy failed"
-  fi
+  for attempt in 1 2 3; do
+    echo "$name: deploy attempt $attempt/3"
+    if (cd "$dir" && wasmer deploy "${args[@]}") 2>&1 | tee "$log"; then
+      break
+    fi
+    if [ "$attempt" -eq 3 ] || ! grep -Eq 'Server returned (502|503|504)' "$log"; then
+      echo "$name: failure log saved to $log" >&2
+      die "$name: deploy failed"
+    fi
+    echo "$name: temporary gateway error; retrying in $((attempt * 5)) seconds" >&2
+    sleep "$((attempt * 5))"
+  done
   local files
   files=$(tr '\r' '\n' < "$log" | sed -n 's/.*Packaging project directory (\([0-9]*\) files.*/\1/p' | head -1)
   rm -f "$log"
-  if [ -z "$files" ]; then
+  if [ -f "$dir/wasmer.toml" ]; then
+    echo "$name: deployed the local Wasmer package"
+  elif [ -z "$files" ]; then
     echo "warning: $name: no 'Packaging project directory' line found" >&2
   elif [ "$files" -lt "$MIN_FILES" ]; then
     die "$name: only $files file(s) were packaged; the upload is empty (wrong working directory?)"

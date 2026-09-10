@@ -189,6 +189,8 @@ def run(args):
             if (work / slug).exists() or (work / record_path).exists():
                 print("Game for this date is already on main", flush=True)
                 return
+        upload_filter = record.get("upload_filter", ".ignore") if reuse else ".wasmerignore"
+        require(upload_filter in {".wasmerignore", ".ignore"}, "Invalid saved upload filter")
         refs = {path: git("show", base + ":" + path, raw=True) for path in REFERENCE}
         generated = json.loads(git("show", base + ":" + CATALOG, raw=True)) if git(
             "ls-tree", "--name-only", base, CATALOG) else []
@@ -206,7 +208,7 @@ def run(args):
             prompt = "INPUT\n" + json_text({"date": day, "game_directory": slug,
                 "repository_instructions": refs["AGENTS.md"],
                 "registration_contract": {
-                    "catalog": "public/games.json", "upload_filter": ".ignore",
+                    "catalog": "public/games.json", "upload_filter": upload_filter,
                     "metadata": "Write game-entry.json with name and description. The coordinator adds slug, players, source, and url: null to the root catalog and excludes the game directory from the root upload.",
                     "deployment": f"After merge, ./deploy.sh {slug} super deploys the game, records its actual Wasmer URL, and redeploys the superapp. Document this command in the game README; leave browser and deployment checks pending."},
                 "editable_paths": [slug + "/" + path for path in EDITABLE],
@@ -241,14 +243,14 @@ def run(args):
         # Old saved previews remain recoverable; new runs always register in the superapp.
         registers_root = not reuse or record.get("root_catalog") == "public/games.json"
         root_catalog = json.loads(refs["public/games.json"]) + [{**entry, "url": None}]
-        metadata_paths = {".ignore", CATALOG, record_path}
+        metadata_paths = {upload_filter, CATALOG, record_path}
         if registers_root:
             metadata_paths.add("public/games.json")
         allowed = {slug + "/" + path for path in files} | metadata_paths
         if reuse:
             validate_paths(git("diff", "--name-only", base, "HEAD").splitlines() if recovery else
                            git("diff", "--cached", "--name-only", base).splitlines(), allowed)
-            require((work / ".ignore").read_text() == git("show", base + ":.ignore", raw=True).rstrip() + "\n/" + slug + "/\n",
+            require((work / upload_filter).read_text() == git("show", base + ":" + upload_filter, raw=True).rstrip() + "\n/" + slug + "/\n",
                     "Saved upload exclusions differ from the expected game entry")
             require(json.loads((work / CATALOG).read_text()) == generated + [entry], "Saved catalog differs from the expected game entry")
             if registers_root:
@@ -272,8 +274,8 @@ def run(args):
         else:
             record = {"date": day, "slug": slug, "base_sha": base, "entry": entry,
                       "checks": report, "browser_checks": "pending", "deployment": "pending",
-                      "root_catalog": "public/games.json"}
-            ignore = work / ".ignore"
+                      "root_catalog": "public/games.json", "upload_filter": upload_filter}
+            ignore = work / upload_filter
             ignore_text = ignore.read_text().rstrip() + "\n/" + slug + "/\n"
             ignore.write_text(ignore_text)
             (work / CATALOG).parent.mkdir(parents=True, exist_ok=True)
@@ -281,7 +283,7 @@ def run(args):
             regular_file(work, "public/games.json").write_text(json_text(root_catalog))
             (work / record_path).parent.mkdir(parents=True, exist_ok=True)
             (work / record_path).write_text(json_text(record))
-            expected.update({".ignore": ignore_text.encode(), CATALOG: json_text(generated + [entry]).encode(),
+            expected.update({upload_filter: ignore_text.encode(), CATALOG: json_text(generated + [entry]).encode(),
                              "public/games.json": json_text(root_catalog).encode(),
                              record_path: json_text(record).encode()})
             changed = git("diff", "--name-only", "HEAD").splitlines()

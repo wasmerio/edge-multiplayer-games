@@ -1,22 +1,24 @@
 [package]
-name = "wasmer/multiplayer-game-cron"
-version = "0.1.0"
-description = "Generate multiplayer games with Pi and open draft pull requests"
-entrypoint = "coordinator"
+name = "wasmer/edge-multiplayer-games"
+private = true
+version = "0.2.0"
+description = "Multiplayer game index with a daily Pi game generator"
+entrypoint = "serve"
 
 [dependencies]
 "python/python" = "=3.13.18"
 "wasmer/edgejs-quickjs" = "=0.2.0"
 "wasmer/bash" = "=1.0.25"
 "kilyanni/git" = "=2.52.0"
+"wasmer/static-web-server" = "=1.1.0"
 
 [[command]]
-name = "coordinator"
-module = "python/python:python"
+name = "serve"
+module = "wasmer/static-web-server:webserver"
 runner = "wasi"
 
 [command.annotations.wasi]
-env = ["PYTHONEXECUTABLE=/nix/store/j58ck1sbhdkvx61mkm2dbrcidgi3msaj-python3-static-wasm32-unknown-wasi-3.13.15/bin/python3.13.wasm", "SSL_CERT_DIR=/etc/ssl/certs", "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"]
+env = ["SERVER_ROOT=/public", "SERVER_HOST=0.0.0.0", "SERVER_PORT=8080"]
 
 [[command]]
 name = "probe"
@@ -37,5 +39,6 @@ main-args = ["/app/daily.mjs"]
 env = ["PYTHONEXECUTABLE=/nix/store/j58ck1sbhdkvx61mkm2dbrcidgi3msaj-python3-static-wasm32-unknown-wasi-3.13.15/bin/python3.13.wasm", "PATH=/bin:/usr/bin", "GIT_SSL_CAINFO=/etc/ssl/certs/ca-bundle.crt", "SSL_CERT_DIR=/etc/ssl/certs", "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"]
 
 [fs]
-"/app" = "./runtime"
-"/pi" = "./pi"
+"/public" = "./public"
+"/app" = "./automation/daily-game/runtime"
+"/pi" = "./automation/daily-game/pi"

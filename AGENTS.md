@@ -190,7 +190,7 @@ its card.
 
 For daily games, write `game-entry.json` with `slug`, `name`, `players`,
 `description`, and `source`. The generation coordinator adds these fields to
-`public/games.json` with `url: null` and adds `/<game>/` to `.ignore` in the PR.
+`public/games.json` with `url: null` and adds `/<game>/` to `.wasmerignore` in the PR.
 The page shows these entries as coming soon until deployment supplies a URL.
 Do not guess a Wasmer URL.
 
@@ -225,17 +225,25 @@ root app:
 ./deploy.sh super
 ```
 
-The superapp is static by choice: no `package.json` at the root,
-`public/index.html` present, so the remote build picks the static
-provider and serves `public/`. Do not add a root `package.json`; it would
-flip detection to Node.
+The root app serves the static index and owns the daily generation cron job.
+Its `wasmer.toml` bundles `public/`, the generation runtime, and prepared Pi dependencies.
+The default `serve` command serves `/public`. The root `app.yaml` schedules
+`daily-game --publish` with the root app's secrets. Do not add a root `package.json`.
 
-Also add `/<game>/` to the root `.ignore`. That file is the upload
-filter for the root deploy (ripgrep syntax, honoured by the wasmer
-packager, not by git). It already excludes `CLAUDE.md`, which is a
+Deploy the root with `./deploy.sh super`. The script prepares Pi and publishes
+the explicit Wasmer package without `--build-remote`. Individual game apps
+still use remote Node builds. Do not restore the old static-provider annotations
+or add a second automation app or cron schedule.
+
+Also add `/<game>/` to the root `.wasmerignore`. That file is the upload
+filter for the root deploy (Git-style patterns, read only by the Wasmer
+packager). Do not use `.ignore`; search tools also read that filename.
+The filter already excludes `CLAUDE.md`, which is a
 symlink the packager would otherwise refuse, and the other game
-directories. Expect `Packaging project directory (3 files, …)` for the
-root: `app.yaml`, `index.html`, `games.json`.
+directories. The root package also contains the automation runtime and Pi,
+so the old three-file upload expectation no longer applies. Its filesystem
+mounts are `/public`, `/app`, and `/pi`. Keep generated game directories outside
+those mounts. Keep the Pi `node_modules` exceptions in the automation `.wasmerignore`.
 
 ## 4. Constraints to design around
 

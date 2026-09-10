@@ -67,8 +67,9 @@ constraints and keeps the latency-critical path off the server entirely.
 
 ## The superapp
 
-The root `app.yaml` deploys `public/` as a static site, nothing else runs
-for it. `index.html` fetches `games.json`, renders one card per game with
+The root app serves `public/` through its `serve` command and owns the daily game cron job.
+The cron starts the `daily-game` command from the same Wasmer package.
+`index.html` fetches `games.json`, renders one card per game with
 a "Host a game" button that opens `<game>/?create=1`, a "Play a random
 game" button in the header that picks an online game, and polls each
 game's `/healthz` every 15 seconds. The games answer with
@@ -116,13 +117,14 @@ python3 -m http.server 8090 --directory public
 
 ## Deploy
 
-Every app directory, the root included, deploys with a remote build.
-Games are detected as Node from `package.json` (`start` script, no
+Game apps deploy with a remote build.
+They are detected as Node from `package.json` (`start` script, no
 `wasmer.toml`) and run on the EdgeJS runtime; expect
-`Detected Node.js provider` in their build logs. The root has no
-`package.json` and a `public/index.html`, so it is detected as a static
-site and served by static-web-server; expect
-`Detected static site provider` there and nowhere else.
+`Detected Node.js provider` in their build logs.
+The root uses an explicit `wasmer.toml` package with the static server and generation runtime.
+Its deployment does not use remote provider detection.
+The manifest sets `private = true` to match the existing registry package.
+Package visibility does not restrict access to the public game website.
 
 ```bash
 ./deploy.sh              # every game, then the superapp
@@ -132,9 +134,14 @@ site and served by static-web-server; expect
 ```
 
 The script checks that `wasmer whoami` points at `wasmer.io`, runs
-`wasmer deploy --build-remote --non-interactive` in each directory,
-refuses to continue if fewer than 3 files were packaged, and probes the
-deployed URL afterwards. `OWNER=<namespace>` overrides the owner in
+`wasmer deploy --non-interactive` for the root, and adds `--build-remote` for each game.
+Before the root deployment, it installs the pinned Pi dependencies and prepares them for QuickJS.
+It builds the package locally, prints its size, and rejects packages larger than 64 MiB before upload.
+The Wasmer filter excludes Pi's unused native dependencies. The root package is about 20 MiB.
+The script retries registry 502, 503, and 504 responses twice, after 5 and 10 seconds.
+It prepares Pi once per invocation and keeps the final failure log when deployment fails.
+It checks game upload sizes and probes the deployed URLs.
+`OWNER=<namespace>` overrides the owner in
 `app.yaml`; `NO_WAIT=1` skips waiting for the rollout.
 
 Ring Rumble uses WASD or arrows to move, J to punch, and K or Shift to dash.
@@ -151,15 +158,16 @@ Check catalog updates and pending cards with:
 ```bash
 node scripts/register-game.test.mjs
 node scripts/superapp.test.mjs
+node scripts/deploy.test.mjs
 ```
 
 `CLAUDE.md` is a symlink to `AGENTS.md`, and the packager refuses
-symlinks. The root `.ignore` file (ripgrep syntax, honoured by the
-packager, ignored by git) keeps the symlink, the docs, and the game
-directories out of the superapp upload, so the root deploy ships only
-`app.yaml` and `public/`. Add every new game directory to `.ignore`.
+symlinks. The root `.wasmerignore` file uses Git-style patterns and applies only
+to Wasmer packaging. It keeps the symlink, the docs, and the game
+directories out of the superapp upload. The root package mounts `public/`,
+the automation runtime, and Pi dependencies. Add every new game directory to `.wasmerignore`.
 
-Watch for `Packaging project directory (N files, …)` before the upload.
+For game builds, watch for `Packaging project directory (N files, …)` before the upload.
 If `N` is tiny, the archive is empty and the build will fall back to a
 static site with nothing in it; fix the working directory before
 anything else. This repository is a git checkout, so `.gitignore` is
@@ -167,11 +175,22 @@ honoured by the packager and `node_modules/` stays out of the upload.
 
 ## Agent skills
 
-The [daily game automation](automation/daily-game/README.md) uses an Edge cron job.
+The [daily game automation](automation/daily-game/README.md) runs as a cron job on this root app.
 It clones this repository, streams Pi activity, checks a new game, and uses Git
 to push a dated branch. It opens a draft PR against `main` for review.
-The local runtime probe passed; model generation, remote PR creation, and
-the deployed cron invocation still require end-to-end verification.
+The root `app.yaml` schedules it daily at 06:00 UTC and selects the coding model with `env.OPENAI_MODEL`.
+Set `OPENAI_API_KEY` and `GH_TOKEN` as secrets on `wasmer/edge-multiplayer-games` before deployment.
+Local model generation and remote PR creation passed. The root cron deployment remains pending.
+
+After [preparing Pi](automation/daily-game/README.md#prepare-once), run these commands from the repository root:
+
+```bash
+wasmer run . --net                                  # website at http://localhost:8080
+wasmer run . -e daily-game --net \
+  --env "OPENAI_API_KEY=${OPENAI_API_KEY:?Set OPENAI_API_KEY first}" \
+  --env "GH_TOKEN=${GH_TOKEN:?Set GH_TOKEN first}" \
+  -- --publish
+```
 
 Install the Wasmer skills once, then let the agent use them for deploys,
 logs, rollbacks, and local runtime questions:
@@ -191,8 +210,10 @@ edge-multiplayer-games/
 ├── README.md              this file
 ├── AGENTS.md              how to clone the model onto a new game
 ├── CLAUDE.md -> AGENTS.md
-├── app.yaml               the superapp
-├── deploy.sh              remote-build deploy for root and games
+├── app.yaml               superapp configuration and daily cron schedule
+├── wasmer.toml            static server and generation commands
+├── automation/daily-game/ Pi implementation, dependencies, and tests
+├── deploy.sh              root package and remote game builds
 ├── public/
 │   ├── index.html         game index with live status
 │   └── games.json         registry of deployed games

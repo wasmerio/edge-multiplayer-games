@@ -25,7 +25,7 @@ class GitIntegrationTests(unittest.TestCase):
         self.env = job.environment(self.root)
         self.seed = self.root / 'seed'
         self.seed.mkdir()
-        for name in (*job.REFERENCE, '.ignore'):
+        for name in (*job.REFERENCE, '.wasmerignore'):
             dest = self.seed / name
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_bytes((ROOT / name).read_bytes())

@@ -12,9 +12,8 @@ to generate a full game and optionally opens a draft PR.
 From the repository root:
 
 ```bash
-cd automation/daily-game
-npm ci --prefix pi --ignore-scripts --no-bin-links --no-audit --no-fund
-npm run --prefix pi prepare:wasmer
+npm ci --prefix automation/daily-game/pi --ignore-scripts --no-bin-links --no-audit --no-fund
+npm run --prefix automation/daily-game/pi prepare:wasmer
 ```
 
 Host npm installs the pinned Pi files before packaging.
@@ -34,7 +33,7 @@ those imports unavailable to an Edge.js child process.
 
 ## Run without a model request
 
-From `automation/daily-game`:
+From the repository root:
 
 ```bash
 wasmer run . -e probe --net
@@ -86,12 +85,12 @@ That requires a separate remote test branch and credential.
 You can build once and run the same artifact repeatedly:
 
 ```bash
-wasmer package build -o /tmp/multiplayer-game-cron.webc
-wasmer run /tmp/multiplayer-game-cron.webc -e probe --net
+wasmer package build -o /tmp/edge-multiplayer-games.webc
+wasmer run /tmp/edge-multiplayer-games.webc -e probe --net
 ```
 
 Use the same `--env` and `-- --agent` options for the model test.
-The Edge cron must eventually use this package and the production job command.
+The root app's Edge cron uses this same package with the `daily-game` command.
 Local execution does not test Edge scheduling, secrets, or execution limits.
 
 ## Diagnose a failure

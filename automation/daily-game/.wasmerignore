@@ -1,3 +1,16 @@
 .git/
 __pycache__/
 *.pyc
+node_modules/
+!/pi/node_modules/
+!/pi/node_modules/**
+# Pi's bundled SDK needs Chord, but not the other nested packages.
+/pi/node_modules/@earendil-works/pi-coding-agent/node_modules/**
+!/pi/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/
+!/pi/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/chord/
+!/pi/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/chord/**
+/pi/node_modules/@earendil-works/pi-coding-agent/docs/
+/pi/node_modules/@earendil-works/pi-coding-agent/examples/
+test/
+README.md
+*.webc

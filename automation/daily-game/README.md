@@ -1,6 +1,8 @@
 # Daily games with Pi on Wasmer
 
-The Edge job clones this repository, runs Pi, checks the generated game,
+The root `wasmer/edge-multiplayer-games` app owns the daily Edge job.
+Its package serves the website and contains the `daily-game` command.
+The job clones this repository, runs Pi, checks the generated game,
 and pushes a dated branch. It opens a draft pull request against `main`.
 The same `daily-game` command runs locally with Wasmer.
 
@@ -13,13 +15,17 @@ The job does not merge PRs, push to `main`, or use GitHub Actions.
 From the repository root:
 
 ```bash
-cd automation/daily-game
-npm ci --prefix pi --ignore-scripts --no-bin-links --no-audit --no-fund
-npm run --prefix pi prepare:wasmer
+npm ci --prefix automation/daily-game/pi --ignore-scripts --no-bin-links --no-audit --no-fund
+npm run --prefix automation/daily-game/pi prepare:wasmer
 ```
 
 The preparation step converts Pi's Unicode-set expressions for QuickJS.
 Repeat it after each `npm ci`. The prepared dependencies are packaged at `/pi`.
+The Wasmer filter includes Pi's bundled SDK and its Chord context module.
+It excludes the remaining nested dependency tree, including native binaries for other platforms.
+The installed npm tree remains intact for preparation. The upload shrinks from about 398 MiB to about 20 MiB.
+Run all commands in this guide from the repository root.
+The automation directory contains implementation files, not a separate Edge app.
 
 ## Generate and open a real PR
 
@@ -55,20 +61,20 @@ A preview still uses the model API. Mount an output directory to keep
 the patch and check report after Wasmer exits:
 
 ```bash
-mkdir -p output
-wasmer run . -e daily-game --net --volume output:/output \
+mkdir -p automation/daily-game/output
+wasmer run . -e daily-game --net --volume automation/daily-game/output:/output \
   --env "OPENAI_API_KEY=${OPENAI_API_KEY:?Set OPENAI_API_KEY first}" \
   -- --output /output
 ```
 
-Read `output/daily-YYYY-MM-DD.patch` and its matching JSON report.
+Read `automation/daily-game/output/daily-YYYY-MM-DD.patch` and its matching JSON report.
 No remote branch or PR is created in this mode.
 You can also use `--output` with `--publish`.
 
 To publish that exact preview after setting `GH_TOKEN`:
 
 ```bash
-wasmer run . -e daily-game --net --volume output:/output \
+wasmer run . -e daily-game --net --volume automation/daily-game/output:/output \
   --env "GH_TOKEN=${GH_TOKEN:?Set GH_TOKEN first}" \
   -- --publish --from-preview /output --date YYYY-MM-DD
 ```
@@ -172,6 +178,7 @@ and deploys the superapp. It also adds missing entries from older generated game
 If the game is already deployed, `./deploy.sh super` resolves any missing catalog URLs before the root deployment.
 Commit the catalog URL and CLI manifest changes after deployment.
 Saved previews from older versions remain recoverable; deployment adds their missing root entries.
+New runs write upload exclusions to `.wasmerignore`. Saved previews retain their original filter filename during recovery.
 
 ## Reruns and failures
 
@@ -189,45 +196,75 @@ The job does not overwrite another candidate with a forced push.
 
 ## Edge schedule
 
-`app.yaml` configures `daily-game --publish` at `0 6 * * *`, or 06:00 UTC.
+The root [`app.yaml`](../../app.yaml) configures `daily-game --publish` at `0 6 * * *`, or 06:00 UTC.
 The timeout is 50 minutes and automatic retries are disabled.
 Pi has a 30-minute limit within that invocation.
 
-Set `OPENAI_API_KEY` and `GH_TOKEN` as Edge secrets when deploying this package.
+The root [`wasmer.toml`](../../wasmer.toml) defines the website and job commands in one package.
+The default `serve` command serves only `/public`.
+The scheduled command starts a separate invocation of that package with the root app's secrets.
+The job creates a game PR against its own source repository, `wasmerio/edge-multiplayer-games`.
+Merging the PR and deploying the game and index remain separate steps.
+
+Set both secrets on **wasmer/edge-multiplayer-games** before deployment:
+
+```bash
+wasmer app secrets create OPENAI_API_KEY "${OPENAI_API_KEY:?Set OPENAI_API_KEY first}" --app wasmer/edge-multiplayer-games
+wasmer app secrets create GH_TOKEN "${GH_TOKEN:?Set GH_TOKEN first}" --app wasmer/edge-multiplayer-games
+./deploy.sh super
+```
+
+For existing secrets, update their values through the Wasmer dashboard before deployment.
+Change `env.OPENAI_MODEL` in the root `app.yaml` to select the scheduled model.
+For local runs, pass `-- --publish --model MODEL` or forward `OPENAI_MODEL` with `--env`.
+`wasmer run` reads the package manifest, not the app's environment or Edge secrets.
+
 Pi output goes to cron stdout, so it is available in the Edge job logs.
-This configuration has not been deployed or verified in an Edge invocation.
+After deployment, check that the root app has one enabled `daily-game` job at `0 6 * * *`.
+No root secrets or jobs were configured during the migration check. The combined configuration awaits deployment.
+The former standalone app manifests are removed. If you deployed that app separately, disable its schedule before activating the root schedule.
 
 ## Verification
+
+The combined root WebC passed local checks on Wasmer 7.3.0.
+Its default command served the exact root page and catalog. Runtime and configuration URLs returned 404.
+Its `daily-game --help` command started successfully.
+The Git/Pi probe passed HTTPS cloning, Pi startup, and commit/push checks against a disposable local remote.
+The same artifact passed all 19 Python tests and the JavaScript runtime checks.
+These checks made no model request and created no GitHub PR.
+The root Edge deployment was blocked by the local command hook.
 
 The local Git/Pi startup probe passed in Wasmer 7.3.0 and from a built WebC.
 The new daily command starts in Wasmer. Its event renderer was checked there
 with synthetic events.
 
-Fifteen coordinator tests simulate Git and GitHub while running real JavaScript checks.
+Sixteen coordinator tests simulate Git and GitHub while running real JavaScript checks.
 They cover preview export and reuse,
 credential separation, failed validation, protected files, duplicate PRs,
 rejected pushes, recovery after a successful push, injected instructions, and root catalog integrity.
 
 ```bash
-python3 -m unittest discover -s test -v
-node test/test_pi_events.mjs
-node test/test_bash_operations.mjs
-node test/test_capture.mjs
+python3 -m unittest discover -s automation/daily-game/test -v
+node automation/daily-game/test/test_pi_events.mjs
+node automation/daily-game/test/test_bash_operations.mjs
+node automation/daily-game/test/test_capture.mjs
 ```
 
-Run the complete suite inside Wasmer from this directory:
+Run the complete suite inside the root Wasmer package:
 
 ```bash
-wasmer run . -e node --volume ../..:/repository \
+wasmer run . -e node --volume .:/repository \
   -- /repository/automation/daily-game/test/wasmer.mjs
 ```
 
-This command runs all 19 Python tests plus the JavaScript runtime checks.
+This command runs all 20 Python tests plus the JavaScript runtime checks.
 Four integration tests use real Git in disposable guest repositories.
 They cover source mutation, staged-only edits, preview mutation, and Git attribute conversion.
 The suite uses no model API, GitHub token, or external Git remote.
 Native unit tests skip those four integration tests and run game checks directly.
 The Wasmer suite also checks the subprocess output limit.
+It starts a real Pi SDK session and exercises its read, write, edit, and Bash tools without a model request.
+This check detects missing runtime dependencies in the filtered package.
 
 ## Maintenance
 

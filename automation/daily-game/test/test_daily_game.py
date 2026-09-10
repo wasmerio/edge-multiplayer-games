@@ -48,7 +48,7 @@ class FakeCommands:
         self.calls = []
         self.published = None
         self.reject_push = False
-        self.base = {p: (ROOT / p).read_text() for p in (*job.REFERENCE, '.ignore')}
+        self.base = {p: (ROOT / p).read_text() for p in (*job.REFERENCE, '.wasmerignore')}
         self.node = shutil.which('node')
 
     def files(self):
@@ -168,6 +168,8 @@ class DailyGameTests(unittest.TestCase):
         self.invoke()
         self.assertEqual(self.agent_input['repository_instructions'], (ROOT / 'AGENTS.md').read_text())
         self.assertEqual(self.agent_input['registration_contract']['catalog'], 'public/games.json')
+        self.assertEqual(self.agent_input['registration_contract']['upload_filter'], '.wasmerignore')
+        self.assertNotIn('.ignore', self.commands.published)
         original = json.loads(self.commands.base['public/games.json'])
         published = json.loads(self.commands.published['public/games.json'])
         self.assertEqual(published[:-1], original)
@@ -176,7 +178,7 @@ class DailyGameTests(unittest.TestCase):
             'description': candidate()['description'], 'players': '2 to 8',
             'source': 'daily-' + DAY + '/', 'url': None,
         })
-        self.assertIn('/daily-' + DAY + '/\n', self.commands.published['.ignore'])
+        self.assertIn('/daily-' + DAY + '/\n', self.commands.published['.wasmerignore'])
 
     def test_saved_preview_rejects_root_catalog_replacement(self):
         with tempfile.TemporaryDirectory() as output:
@@ -285,6 +287,26 @@ class DailyGameTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Unexpected changed paths'):
                 self.invoke(agent=lambda *args: self.fail('Must not regenerate'))
             self.assertFalse(any(a[0] == 'push' for a, _ in self.commands.calls))
+
+    def test_replays_preview_with_legacy_upload_filter(self):
+        with tempfile.TemporaryDirectory() as output:
+            self.args.publish = False
+            self.args.output = output
+            self.invoke()
+            patchfile = Path(output) / ('daily-' + DAY + '.patch')
+            reportfile = Path(output) / ('daily-' + DAY + '.json')
+            files = json.loads(patchfile.read_text())
+            report = json.loads(reportfile.read_text())
+            del report['upload_filter']
+            files['automation/daily-game/runs/' + DAY + '.json'] = json.dumps(report)
+            files['.ignore'] = files.pop('.wasmerignore')
+            self.commands.base['.ignore'] = self.commands.base.pop('.wasmerignore')
+            patchfile.write_text(json.dumps(files))
+            reportfile.write_text(json.dumps(report))
+            self.args.publish = True
+            self.args.from_preview = output
+            self.invoke(agent=lambda *args: self.fail('Must reuse the saved game'))
+            self.assertIsNotNone(self.gh.pull)
 
     def test_broken_simulation_never_pushes(self):
         def broken(*args):

@@ -1,4 +1,4 @@
-# Upload filter for the superapp (ripgrep-style .ignore, honoured by the wasmer packager, ignored by git).
+# Wasmer package filter. Other tools must keep the source files visible.
 # The packager refuses symlinks, so CLAUDE.md must stay out; game dirs deploy on their own.
 /CLAUDE.md
 /AGENTS.md
@@ -7,5 +7,4 @@
 /ring-rumble/
 /deploy.sh
 /daily-2026-09-11/
-/automation/
 /scripts/
