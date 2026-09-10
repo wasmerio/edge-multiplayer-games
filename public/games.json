@@ -22,5 +22,13 @@
     "players": "2 to 8",
     "description": "Slide your cart to catch mint parcels and dodge costly glitches in identical delivery bays, racing friends to 20 points across thirty-second shifts.",
     "source": "daily-2026-09-11/"
+  },
+  {
+    "slug": "daily-2026-09-09",
+    "name": "Vault Tempo",
+    "description": "Drill volatile rich veins, manage rising heat, and bank your haul before meltdown in a multiplayer push-your-luck mining race.",
+    "players": "2 to 8",
+    "source": "daily-2026-09-09/",
+    "url": null
   }
 ]
