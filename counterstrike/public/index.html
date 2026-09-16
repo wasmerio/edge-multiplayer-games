@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#11191c" />
+  <title>Counterstrike: Breach — Multiplayer</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header><a id="all-games" href="https://edge-multiplayer-games.wasmer.app">← ALL GAMES</a><span class="brand">CS <i>/</i> BREACH</span><span id="status">connecting…</span></header>
+  <main>
+    <section id="lobby">
+      <div class="hero">
+        <div class="eyebrow"><span></span> FIRST-PERSON 3D / 2–8 PLAYERS</div>
+        <h1>COUNTERSTRIKE<span>BREACH<span class="period">.</span></span></h1>
+        <p class="lead">One squad. Two bombsites.<br>Every angle matters.</p>
+        <p class="intro">Take cover, hold your nerve, and make the round count.<br>A first-person 3D shooter inspired by Counter-Strike.</p>
+        <div class="tags"><span>3D FIRST-PERSON</span><span>FIRST TO FIVE</span><span>NO DOWNLOAD</span></div>
+        <div class="briefing"><span class="brief-number">01 /</span><div><b>ATTACK</b><p>Take A or B. Hold E to plant. Protect the bomb.</p></div></div>
+        <div class="briefing"><span class="brief-number blue">02 /</span><div><b>DEFEND</b><p>Hold the sites. Stop the push. Hold E to defuse.</p></div></div>
+      </div>
+      <div class="deploy-panel">
+        <div class="panel-top"><span>OPERATIONS DESK</span><span class="live-dot">● LIVE</span></div>
+        <div class="panel-body">
+          <h2>Ready to breach?</h2><p class="muted">Create a room. Send the link. Bring your squad.</p>
+          <label for="name">CALLSIGN</label><input id="name" maxlength="16" placeholder="Your name" autocomplete="nickname" />
+          <button id="create" class="primary" disabled>Create room <span>↗</span></button>
+          <div class="divider"><span>OR JOIN YOUR SQUAD</span></div>
+          <div class="join-row"><input id="code" maxlength="4" placeholder="ROOM CODE" aria-label="Room code" /><button id="join" disabled>Join →</button></div>
+          <div id="room-info" hidden>
+            <div class="room-title">ROOM <strong id="room-code"></strong></div>
+            <div id="invite" hidden><a id="invite-link" href="#"></a><button id="copy-link">Copy invite</button></div>
+            <ul id="peers"></ul><p id="connection-detail" class="muted"></p>
+            <div id="host-controls" hidden><button id="start" class="primary" disabled>Start match →</button></div>
+            <p id="wait" class="muted" hidden>Waiting for the host to start…</p>
+          </div>
+        </div>
+        <div class="panel-foot">⌘ Keyboard + mouse <span>90 SEC / ROUND</span></div>
+      </div>
+      <div class="controls-strip"><span><kbd>W A S D</kbd> Move</span><span><kbd>MOUSE</kbd> Aim & fire</span><span><kbd>R</kbd> Reload</span><span><kbd>B</kbd> Buy menu</span><span><kbd>E</kbd> Plant / defuse</span></div>
+    </section>
+    <section id="game" hidden>
+      <div class="match-top"><span id="round-label">ROUND 01</span><div class="scoreboard"><span class="attacker">ATTACKERS <b id="attack-score">0</b></span><span id="timer">1:30</span><span class="defender"><b id="defend-score">0</b> DEFENDERS</span></div><span id="room-tag"></span></div>
+      <div class="match-layout"><div class="arena-wrap"><div id="arena">
+        <canvas id="scene" aria-label="First-person 3D game. Click to capture mouse."></canvas>
+        <div id="graphics-error" role="alert" hidden></div>
+        <div id="crosshair" hidden></div>
+        <div id="pointer-hint" hidden>CLICK TO PLAY <small>Mouse to look · Escape to release</small></div>
+        <section id="buy-menu" role="dialog" aria-modal="true" aria-labelledby="buy-title" hidden>
+          <div class="buy-heading"><div><span class="eyebrow">ROUND LOADOUT / <span id="buy-time"></span></span><h2 id="buy-title">Gear up.</h2></div><div class="buy-wallet"><span>AVAILABLE</span><strong id="buy-balance">$800</strong></div><button id="buy-close" aria-label="Close buy menu">✕</button></div>
+          <div id="buy-items"></div><div class="buy-footer"><span id="buy-feedback" role="status">Choose your equipment.</span><span>B / ESC TO CLOSE</span></div>
+        </section>
+        <div id="banner" hidden><h2 id="banner-title"></h2><p id="banner-subtitle"></p><button id="next" class="primary" hidden>Next round →</button></div>
+      </div><div class="objective-bar"><span id="objective">Get ready</span><div id="action-progress"></div></div></div>
+      <aside><div class="eyebrow">SQUAD STATUS <span>K</span></div><ol id="scores"></ol><div class="mission"><p>15-second buy period.<br>Press B to gear up.</p><b>THE MISSION</b><p>Attackers: plant at A or B.<br>Defenders: protect both sites.</p><p>First team to 5 rounds wins.<br>No respawns. Make it count.</p></div><p id="killfeed"></p></aside></div>
+      <div class="hud"><div><span id="team-label">ATTACKERS</span><strong><span id="health">100</span><small> HP</small></strong></div><div><span id="weapon-label">P12 Pistol</span><strong id="ammo">12 / 12</strong></div><div><span>ARMOR</span><strong id="armor">0</strong></div><div><span>FUNDS</span><strong id="money">$800</strong></div><button id="buy-toggle">Buy <kbd>B</kbd></button><p><kbd>WASD</kbd> move <kbd>R</kbd> reload <kbd>E</kbd> interact<br>Left mouse: fire · Right mouse: sights · Host: Space for next round</p></div><p id="kit-status"></p><p id="rtc" class="muted"></p>
+    </section>
+  </main>
+  <footer><span>BUILT FOR YOUR SQUAD.</span><span>HOSTED ON WASMER EDGE <i>↗</i></span></footer>
+  <script type="module" src="/client.js"></script>
+</body>
+</html>
