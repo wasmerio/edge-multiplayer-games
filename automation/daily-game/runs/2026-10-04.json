@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-04",
+  "slug": "daily-2026-10-04",
+  "base_sha": "bfba468b1a2545bc3d26a7d1470afde36e5efe85",
+  "entry": {
+    "slug": "daily-2026-10-04",
+    "name": "Switchback Regatta",
+    "description": "Race skiffs through ordered buoy rings, steer around reefs and shifting currents, and win a two-lap regatta against your friends.",
+    "players": "2 to 8",
+    "source": "daily-2026-10-04/"
+  },
+  "checks": {
+    "ok": true,
+    "scenarios": [
+      "ordered rings, countdown and straight sailing",
+      "reef and shore collisions recover instead of eliminating",
+      "full two-lap race, scoring once and round reset",
+      "timeout ties, disconnected boats and self-contained snapshots"
+    ],
+    "interface": true
+  },
+  "browser_checks": "pending",
+  "deployment": "pending",
+  "root_catalog": "public/games.json",
+  "upload_filter": ".wasmerignore"
+}
