@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-05",
+  "slug": "daily-2026-10-05",
+  "base_sha": "bfba468b1a2545bc3d26a7d1470afde36e5efe85",
+  "entry": {
+    "slug": "daily-2026-10-05",
+    "name": "Relay Orbit",
+    "description": "Steer a momentum-driven antenna into shared broadcast windows, brake for precise transmissions, and race friends to 60 points across ten-pulse rounds.",
+    "players": "2 to 8",
+    "source": "daily-2026-10-05/"
+  },
+  "checks": {
+    "ok": true,
+    "scenarios": [
+      "Broadcast accuracy, wraparound and one-shot scoring",
+      "Momentum, neutral braking, malformed intent and disconnect",
+      "Ten-pulse lifecycle, tie handling and eight-player snapshot budget"
+    ],
+    "interface": true
+  },
+  "browser_checks": "pending",
+  "deployment": "pending",
+  "root_catalog": "public/games.json",
+  "upload_filter": ".wasmerignore"
+}

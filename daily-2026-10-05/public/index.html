@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Relay Orbit · Multiplayer antenna race</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header>
+    <h1>Relay Orbit <small>deep-space broadcast club</small></h1>
+    <span id="status" class="muted">connecting…</span>
+    <a id="all-games" class="muted" href="https://edge-multiplayer-games.wasmer.app">← all games</a>
+  </header>
+
+  <section id="lobby">
+    <p class="eyebrow">PRECISION / MOMENTUM / FRIENDLY RIVALRY</p>
+    <h2>Catch the window.<br>Make the transmission.</h2>
+    <p>Turn your antenna into the gold arc before the relay fires. Release to brake: your antenna has momentum. Everyone shares the same ten targets.</p>
+    <div class="rules"><strong>Center +3</strong> · outer arc +1 · miss +0<br>One broadcast every 2.5 seconds. Dashed arc = next target.<br>Reach 60 points and lead at round end to win.</div>
+    <label>Name <input id="name" maxlength="16" placeholder="your name" /></label>
+    <div class="row">
+      <button id="create">Create room</button>
+      <span class="muted">or</span>
+      <input id="code" maxlength="4" placeholder="CODE" />
+      <button id="join">Join</button>
+    </div>
+    <div id="room-info" hidden>
+      <p>Room <strong id="room-code"></strong></p>
+      <div id="invite" class="invite" hidden>
+        <span class="muted">Send this to your friends:</span>
+        <a id="invite-link" href="#"></a>
+        <button id="copy-link" class="small">copy</button>
+      </div>
+      <ul id="peers"></ul>
+      <div id="host-controls" hidden>
+        <label><input type="checkbox" id="local2" /> add local player 2 (A / D)</label>
+        <label>Display
+          <select id="mapsize">
+            <option value="0.7">compact</option>
+            <option value="1" selected>standard</option>
+            <option value="1.4">large</option>
+          </select>
+          <span id="mapinfo" class="muted"></span>
+        </label>
+        <button id="start">Launch relay</button>
+        <p class="muted">2–8 pilots; solo practice works too. Wait for friends to connect before launching. New arrivals play in the next match.</p>
+      </div>
+      <p id="wait" class="muted" hidden>waiting for host to start…</p>
+    </div>
+  </section>
+
+  <section id="game" hidden>
+    <div class="flight-deck">
+    <p id="telemetry" role="status">Preparing relay…</p>
+    <div class="pulse-track" aria-hidden="true"><div id="pulse-fill"></div></div>
+    <div id="arena">
+      <canvas id="trails"></canvas>
+      <canvas id="heads"></canvas>
+      <div id="banner" role="status" hidden></div>
+    </div>
+    <div class="touch-controls" aria-label="Antenna controls">
+      <button id="turn-left" aria-label="Turn counterclockwise">↶ Hold left</button>
+      <span class="muted">Release to brake</span>
+      <button id="turn-right" aria-label="Turn clockwise">Hold right ↷</button>
+    </div>
+    </div>
+    <aside>
+      <h2>Signal standings</h2>
+      <ol id="scores"></ol>
+      <p>← → rotate · release to brake<br>A / D for local pilot two</p>
+      <p class="muted">Gold center: +3<br>Outer window: +1<br>Dashed arc: next target</p>
+      <p class="muted">Host: Space advances the round or starts a new match. Keep the host tab visible.</p>
+      <button id="next" hidden>Next round · Space</button>
+      <p id="rtc" class="muted"></p>
+    </aside>
+  </section>
+
+  <script type="module" src="/client.js"></script>
+</body>
+</html>

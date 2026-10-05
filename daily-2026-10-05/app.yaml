@@ -1,0 +1,11 @@
+{
+  "kind": "wasmer.io/App.v0",
+  "name": "daily-2026-10-05",
+  "owner": "wasmer",
+  "package": ".",
+  "locality": {
+    "regions": [
+      "fr-roub1"
+    ]
+  }
+}
