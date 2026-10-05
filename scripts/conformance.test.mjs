@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { runConformance, stripSource } from './conformance.mjs';
+import { runConformance, stripSource, cssLoads, isForeignLoad } from './conformance.mjs';
 import { engineVersion, publish, vendorGame, verifyPublished } from './sync-engine.mjs';
 import { scaffold } from './new-game.mjs';
 
@@ -15,6 +15,8 @@ const VERSION = engineVersion(REPO);
 const ORIGIN = fs.readFileSync(path.join(REPO, 'engine/params.js'), 'utf8').match(/SUPERAPP_ORIGIN *= *"([^"]+)"/)[1];
 // A version published earlier and frozen beside the current one (D-24).
 const FROZEN = fs.readdirSync(path.join(REPO, 'public/engine')).filter((name) => name !== VERSION).sort()[0] ?? null;
+// The reference game pins a published version, which need not be the current one.
+const PIN = fs.readFileSync(path.join(REPO, 'achtung/public/index.html'), 'utf8').match(/\/engine\/(\d+\.\d+\.\d+)\//)[1];
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'conformance-'));
 after(() => fs.rmSync(scratch, { recursive: true, force: true }));
 
@@ -38,7 +40,7 @@ const edit = (file, from, to) => {
   assert.ok(before.includes(from), `${file} no longer contains ${from}`);
   fs.writeFileSync(file, before.replace(from, to));
 };
-const ROWS = ['healthz', 'create', 'join', 'link', 'slots', 'stylesheet', 'pinned', 'published', 'server', 'accumulator', 'netcode',
+const ROWS = ['healthz', 'create', 'join', 'link', 'slots', 'stylesheet', 'origin', 'pinned', 'published', 'server', 'accumulator', 'netcode',
   'simulation', 'schema', 'fixture', 'budget', 'readme', 'ledger'];
 
 test('the reference game passes every row against its own server and a headless browser', async () => {
@@ -137,11 +139,97 @@ test('a page that owns its chrome needs its own invite link, superapp link and s
   assert.match(rows.stylesheet.detail, /brings no stylesheet/);
 });
 
+test('the stylesheet scan finds every url() and @import, and only another origin is foreign', () => {
+  const css = '/* url(https://ignored.example/a.png) */ @import url("https://fonts.example/css"); @import \'/local.css\';\n'
+    + 'a { background: url( /img/a.png ); } @font-face { src: url(data:font/woff2;base64,AAAA) format("woff2"), url("//cdn.example/f.woff2"); }';
+  assert.deepEqual(cssLoads(css), ['https://fonts.example/css', '/local.css', '/img/a.png', 'data:font/woff2;base64,AAAA', '//cdn.example/f.woff2']);
+  const foreign = (url) => isForeignLoad(url, ORIGIN);
+  assert.deepEqual(cssLoads(css).filter(foreign), ['https://fonts.example/css', '//cdn.example/f.woff2']);
+  for (const local of ['/style.css', 'fonts/a.woff2', './a.png', '#gradient', 'data:image/png;base64,AA', 'blob:x', `${ORIGIN}/engine/1.0.0/engine.js`, `${ORIGIN}/assets/1.0.0/sounds/hit.wav`]) {
+    assert.equal(foreign(local), false, local);
+  }
+  assert.equal(foreign(`${ORIGIN}/other.css`), true, 'only the engine and asset paths of the superapp are shared');
+  assert.equal(foreign(`${ORIGIN}.evil.example/engine/x.js`), true);
+});
+
+test('a page that loads anything from another origin fails the origin row from source alone', async () => {
+  const root = checkout('foreign');
+  const dir = path.join(root, 'achtung');
+  const page = path.join(dir, 'public/index.html');
+  const sheet = path.join(dir, 'public/style.css');
+  const client = path.join(dir, 'public/client.js');
+  const original = { page: fs.readFileSync(page, 'utf8'), sheet: fs.readFileSync(sheet, 'utf8'), client: fs.readFileSync(client, 'utf8') };
+  const origin = async () => byId(await runConformance(dir, { static: true })).origin;
+  const reset = () => { fs.writeFileSync(page, original.page); fs.writeFileSync(sheet, original.sheet); fs.writeFileSync(client, original.client); };
+
+  assert.equal((await origin()).status, 'pass');
+
+  edit(page, '</head>', '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee">\n</head>');
+  let row = await origin();
+  assert.equal(row.status, 'fail');
+  assert.match(row.detail, /index\.html <link href> https:\/\/fonts\.googleapis\.com\/css2\?family=Bungee/);
+  assert.match(row.detail, /ship the file under public\//);
+  const all = byId(await runConformance(dir, { static: true }));
+  assert.equal(all.stylesheet.status, 'pass', 'the stylesheet row alone did not catch it');
+  reset();
+
+  fs.appendFileSync(sheet, '\n@import url("https://fonts.googleapis.com/css2?family=Bungee");\n.x { background: url(//cdn.example/tile.png); }\n');
+  row = await origin();
+  assert.match(row.detail, /public\/style\.css https:\/\/fonts\.googleapis\.com/);
+  assert.match(row.detail, /public\/style\.css \/\/cdn\.example\/tile\.png/);
+  reset();
+
+  fs.appendFileSync(sheet, '\n/* @import url("https://fonts.example/x"); */\n@font-face { font-family: Own; src: url("/fonts/own.woff2") format("woff2"); }\n.y { background: url(data:image/gif;base64,R0lGODlhAQABAAAAACw=); }\n');
+  assert.equal((await origin()).status, 'pass', 'a local font file, a data URL and a commented-out import are fine');
+  reset();
+
+  edit(page, '<body>', '<body><img src="https://img.example/logo.png" alt=""><a href="https://elsewhere.example/">a link is not a load</a>');
+  row = await origin();
+  assert.match(row.detail, /<img src> https:\/\/img\.example\/logo\.png/);
+  assert.doesNotMatch(row.detail, /elsewhere/);
+  reset();
+
+  edit(page, '<script type="module" src="/client.js"></script>', '<script src="https://cdn.example/lib.js"></script><script type="module" src="/client.js"></script>');
+  assert.match((await origin()).detail, /<script src> https:\/\/cdn\.example\/lib\.js/);
+  reset();
+
+  fs.appendFileSync(client, '\nconst NS = "http://www.w3.org/2000/svg";\nfetch("https://api.example/score");\n');
+  row = await origin();
+  assert.match(row.detail, /public\/client\.js https:\/\/api\.example\/score/);
+  assert.doesNotMatch(row.detail, /w3\.org/);
+});
+
+test('a stick must name two intent fields and needs an engine that binds it', async () => {
+  const root = checkout('stick');
+  const dir = path.join(root, 'achtung');
+  const page = path.join(dir, 'public/index.html');
+  const button = '<button data-engine-touch="turn=-1" aria-label="Turn left">◀</button>';
+  edit(page, `/engine/${PIN}/`, `/engine/${VERSION}/`);
+  edit(page, button, `${button}<div data-engine-stick="turn,turn"><i></i></div>`);
+  let rows = byId(await runConformance(dir, { static: true }));
+  assert.equal(rows.slots.status, 'pass', rows.slots.detail);
+  assert.match(rows.slots.detail, /1 stick\(s\)/);
+
+  edit(page, 'data-engine-stick="turn,turn"', 'data-engine-stick="turn,up"');
+  rows = byId(await runConformance(dir, { static: true }));
+  assert.match(rows.slots.detail, /data-engine-stick names unknown intent field up/);
+
+  edit(page, 'data-engine-stick="turn,up"', 'data-engine-stick="turn"');
+  rows = byId(await runConformance(dir, { static: true }));
+  assert.match(rows.slots.detail, /is not <field>,<field>/);
+
+  edit(page, 'data-engine-stick="turn"', 'data-engine-stick="turn,turn"');
+  edit(page, `/engine/${VERSION}/`, '/engine/1.0.1/');
+  rows = byId(await runConformance(dir, { static: true }));
+  assert.equal(rows.slots.status, 'fail');
+  assert.match(rows.slots.detail, /predates data-engine-stick/);
+});
+
 test('a frozen earlier engine version stays usable by a bare page and is refused for page slots', { skip: FROZEN ? false : 'no earlier engine version is published' }, async () => {
   const root = checkout('frozen');
   const dir = path.join(root, 'achtung');
   const page = path.join(dir, 'public/index.html');
-  edit(page, `/engine/${VERSION}/`, `/engine/${FROZEN}/`);
+  edit(page, `/engine/${PIN}/`, `/engine/${FROZEN}/`);
   let rows = byId(await runConformance(dir, { static: true }));
   assert.equal(rows.pinned.detail, `pinned to ${FROZEN}`);
   assert.equal(rows.published.status, 'pass', rows.published.detail);
@@ -197,7 +285,7 @@ test('a removed health endpoint fails that row by name and the other rows are st
 test('an unpinned engine import fails the pinning row', async () => {
   const root = checkout('unpinned');
   const page = path.join(root, 'achtung/public/index.html');
-  edit(page, `/engine/${VERSION}/`, '/engine/');
+  edit(page, `/engine/${PIN}/`, '/engine/');
   let rows = byId(await runConformance(path.join(root, 'achtung'), { static: true }));
   assert.equal(rows.pinned.status, 'fail');
   assert.match(rows.pinned.detail, /unpinned engine specifier/);
@@ -214,12 +302,12 @@ test('an unpinned engine import fails the pinning row', async () => {
 
 test('a missing engine version directory is reported with the version', async () => {
   const root = checkout('unpublished');
-  fs.rmSync(path.join(root, 'public/engine', VERSION), { recursive: true });
+  fs.rmSync(path.join(root, 'public/engine', PIN), { recursive: true });
   const result = await runConformance(path.join(root, 'achtung'), { port: 8842 });
   const rows = byId(result);
   assert.equal(rows.published.status, 'fail');
-  assert.ok(rows.published.detail.includes(`engine ${VERSION} is not published`), rows.published.detail);
-  assert.ok(rows.published.detail.includes(`public/engine/${VERSION}/engine.js`), rows.published.detail);
+  assert.ok(rows.published.detail.includes(`engine ${PIN} is not published`), rows.published.detail);
+  assert.ok(rows.published.detail.includes(`public/engine/${PIN}/engine.js`), rows.published.detail);
   assert.equal(rows.create.status, 'fail', 'the page cannot load an engine that is not there');
   assert.equal(rows.healthz.status, 'pass');
 });
@@ -334,13 +422,20 @@ test('a scaffolded game passes its own tests and conformance out of the box', as
     'invite-link', 'copy', 'peers', 'host-controls', 'wait', 'game', 'banner', 'scores', 'next', 'hud']) {
     assert.ok(page.includes(`data-engine="${role}"`), `the scaffolded page has no ${role} slot`);
   }
-  assert.match(page, /data-engine-touch="turn=-1"[\s\S]*data-engine-touch="turn=1"/);
+  assert.match(page, /data-engine-stick="mx,my"[\s\S]*data-engine-touch="boost=1"/);
   const css = fs.readFileSync(path.join(made.dir, 'public/style.css'), 'utf8');
   assert.match(css, /:root \{[^}]*--bg:[^}]*--accent:/, 'theme properties sit at the top');
   assert.match(css, /\[hidden\] \{ display: none !important; \}/);
   assert.match(css, /@media \(max-width: \d+px\)/);
   assert.doesNotMatch(css, /\{\{|engine-root/);
-  assert.doesNotMatch(fs.readFileSync(path.join(made.dir, 'public/client.js'), 'utf8'), /touchControls/);
+  assert.match(css, /--stick-x/);
+  const client = fs.readFileSync(path.join(made.dir, 'public/client.js'), 'utf8');
+  assert.doesNotMatch(client, /touchControls|\{\{/);
+  // The scaffold is the guide's example, so it shows each piece an author will want.
+  for (const piece of ['ctx.events("took")', 'surface.shake(', 'audioMap:', 'labels:', 'scoreboard(players, scores, snap)', 'onRound()', 'nextKey:', 'palette:', 'ctx.hud(', 'outline:', 'linear:']) {
+    assert.ok(client.includes(piece), `the scaffolded client does not show ${piece}`);
+  }
+  assert.match(byId(await runConformance(made.dir, { static: true })).slots.detail, /1 touch button\(s\), 1 stick\(s\)/);
 
   const tests = spawnSync('npm', ['test'], { cwd: made.dir, encoding: 'utf8' });
   assert.equal(tests.status, 0, tests.stdout + tests.stderr);

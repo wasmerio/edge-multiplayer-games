@@ -1,0 +1,7 @@
+{
+  "slug": "fuse",
+  "name": "Short Fuse",
+  "description": "Hot-potato tag with a live bomb: pass it by touch before the fuse burns out, and haunt the survivors after you pop.",
+  "players": "2 to 8",
+  "source": "fuse/"
+}

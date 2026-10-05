@@ -1,0 +1,103 @@
+/* {{name}}: this stylesheet is the game's own. Change it freely.
+   The engine binds behaviour to the data-engine roles in index.html and
+   shows or hides elements with the hidden attribute; it brings no theme. */
+
+/* 1. Theme: restyle from here first. System font stacks only: the page loads nothing from another origin. */
+:root {
+  color-scheme: dark;
+  --bg: #12141a;
+  --panel: #1c2029;
+  --line: #2e3442;
+  --ink: #eceef3;
+  --muted: #8d93a3;
+  --accent: #ffb347;
+  --on-accent: #1a1304;
+  --arena: #05060a;
+  --radius: 10px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --display: Impact, Haettenschweiler, "Arial Narrow Bold", "Roboto Condensed", sans-serif;
+}
+
+/* 2. Base. Keep the [hidden] rule: the engine shows and hides with that attribute. */
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); font: 16px/1.5 var(--font); }
+input, button {
+  font: inherit; color: var(--ink); background: var(--panel);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 0.55rem 0.9rem; min-height: 44px; max-width: 100%;
+}
+button { cursor: pointer; }
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { opacity: 0.5; cursor: default; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 650; }
+button.quiet { min-height: 32px; padding: 0.15rem 0.6rem; font-size: 0.85rem; }
+
+/* 3. Header. */
+.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem 1rem; padding: 0.75rem 1rem; border-bottom: 1px solid var(--line); }
+.top h1 { margin: 0; font: 400 1.5rem/1 var(--display); letter-spacing: 0.04em; color: var(--accent); }
+.status, .help, .wait, .or { color: var(--muted); font-size: 0.9rem; }
+.home { margin-left: auto; color: var(--muted); text-decoration: none; font-size: 0.9rem; }
+.home:hover { color: var(--accent); }
+
+/* 4. Lobby. */
+main { padding: 1rem; }
+.lobby { max-width: 34rem; margin: 0 auto; display: grid; gap: 0.75rem; }
+.pitch { margin: 0; color: var(--muted); }
+.field { display: grid; gap: 0.25rem; font-size: 0.9rem; color: var(--muted); }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.code { width: 7rem; text-transform: uppercase; letter-spacing: 0.15em; }
+.room { display: grid; gap: 0.5rem; padding: 0.75rem; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.room p, .help { margin: 0; }
+.invite { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.invite a { color: var(--accent); word-break: break-all; }
+.peers { margin: 0; padding-left: 1.2rem; }
+.peers li.you { color: var(--accent); }
+
+/* 5. Game. The engine sets the arena's width and aspect ratio; give it a background, not a size. */
+/*    The arena's parent needs a definite width (a 1fr grid column here), or the arena collapses. */
+.game { display: grid; grid-template-columns: minmax(0, 1fr) 14rem; align-items: start; gap: 1rem; max-width: 80rem; margin: 0 auto; }
+.stage { display: grid; justify-items: center; gap: 0.6rem; min-width: 0; }
+/*    The max-width keeps the whole board on screen: the engine publishes --arena-w and --arena-h. */
+.arena {
+  position: relative; background: var(--arena); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
+  max-width: min(100%, calc((100vh - 9rem) * var(--arena-w, 4) / var(--arena-h, 3)));
+}
+.banner {
+  position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; pointer-events: none; padding: 1rem; text-align: center;
+  font: 400 clamp(1.4rem, 6vw, 2.6rem)/1.1 var(--display); letter-spacing: 0.03em; text-shadow: 0 2px 12px var(--arena);
+}
+.banner[data-kind="win"] { color: var(--accent); }
+.hud { width: 100%; min-height: 1.5em; margin: 0; color: var(--muted); text-align: center; }
+.side { display: grid; gap: 0.6rem; }
+
+/* 6. Scoreboard rows: li.you, li.host and li.dead are set by the engine; data-state and .note come from scoreboard(). */
+.scores { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.25rem; }
+.scores li { display: flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0.5rem; border-left: 3px solid transparent; background: var(--panel); border-radius: 4px; }
+.scores .swatch { flex: none; width: 0.8em; height: 0.8em; border-radius: 50%; }
+.scores .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scores .score { font: 400 1.25rem/1 var(--display); font-variant-numeric: tabular-nums; }
+.scores .note { order: 3; color: var(--muted); font-size: 0.75rem; }
+.scores li.you .name { color: var(--accent); }
+.scores li.you .name::after { content: " (you)"; color: var(--muted); font-size: 0.8em; }
+.scores li.dead { opacity: 0.45; }
+.scores li[data-state="lead"] { border-left-color: var(--accent); }
+
+/* 7. Touch controls: the engine sets data-touch="on" on a touch device and --stick-x / --stick-y while the stick is dragged. */
+.touch { display: none; width: 100%; max-width: 30rem; justify-content: space-between; align-items: center; -webkit-tap-highlight-color: transparent; }
+[data-touch="on"] .touch { display: flex; }
+[data-touch="on"] .keys { display: none; }
+.stick { position: relative; width: 132px; height: 132px; border-radius: 50%; background: var(--panel); border: 2px solid var(--line); }
+.stick i {
+  position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; pointer-events: none;
+  background: var(--muted); transform: translate(calc(var(--stick-x, 0) * 38px), calc(var(--stick-y, 0) * 38px));
+}
+.stick[data-active] i { background: var(--accent); }
+.boost { width: 104px; height: 104px; border-radius: 50%; background: var(--accent); border-color: var(--accent); color: var(--on-accent); font: 400 1.3rem var(--display); }
+.boost[data-pressed] { filter: brightness(1.3); }
+
+/* 8. Phone width. */
+@media (max-width: 900px) {
+  main { padding: 0.75rem; }
+  .game { grid-template-columns: minmax(0, 1fr); }
+}

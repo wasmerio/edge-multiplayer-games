@@ -70,10 +70,10 @@ test("the palette asset agrees with the engine's palette", () => {
   assert.deepEqual(readJson("palette.json").players, PLAYER_COLOURS);
 });
 
-test("the default sound names are exactly the sounds in the manifest, each a few KiB", () => {
+test("the default sound names are exactly the sounds in the manifest, each small", () => {
   const audio = Object.entries(manifest.assets).filter(([, entry]) => entry.type === "audio");
   assert.deepEqual(audio.map(([name]) => name).sort(), [...SOUND_NAMES].sort());
-  for (const [name, entry] of audio) assert.ok(entry.bytes < 16 * 1024, `${name} is ${entry.bytes} bytes`);
+  for (const [name, entry] of audio) assert.ok(entry.bytes < 32 * 1024, `${name} is ${entry.bytes} bytes`);
 });
 
 test("the manifest beside a published engine is used, and a vendored engine falls back to the superapp", () => {

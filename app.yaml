@@ -1,7 +1,7 @@
 kind: wasmer.io/App.v0
 name: edge-multiplayer-games
+owner: wasmer-playground
 app_id: da_RLmILtvUOlma
-owner: wasmer
 package: .
 locality:
   regions:

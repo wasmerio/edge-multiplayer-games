@@ -49,7 +49,11 @@ sync_catalog() {
   pending=$(node "$ROOT/scripts/register-game.mjs" "$ROOT" --pending)
   while IFS= read -r slug; do
     [ -n "$slug" ] || continue
-    url=$(app_url "$ROOT/$slug") || die "$slug: cannot resolve its URL; deploy the game before the superapp"
+    # An undeployed game stays out of the catalog until its own deploy registers it.
+    if ! url=$(app_url "$ROOT/$slug" 2>/dev/null); then
+      echo "warning: $slug: not deployed yet; left out of the catalog for now" >&2
+      continue
+    fi
     node "$ROOT/scripts/register-game.mjs" "$ROOT" "$slug" "$url"
   done <<< "$pending"
 }

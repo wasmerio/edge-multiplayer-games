@@ -1,0 +1,169 @@
+{
+  "version": "1.1.0",
+  "assets": {
+    "palette": {
+      "path": "palette.json",
+      "type": "json",
+      "bytes": 142,
+      "sha256": "adc5df685e4a131fcb9933cef5023132b479dc45afa72a3d96af55317f5b01f5"
+    },
+    "ui-sprites": {
+      "path": "ui-sprites.svg",
+      "type": "image",
+      "mime": "image/svg+xml",
+      "cell": 24,
+      "sprites": {
+        "sound-on": 0,
+        "sound-off": 1,
+        "copy": 2,
+        "crown": 3,
+        "left": 4,
+        "right": 5,
+        "check": 6,
+        "skull": 7
+      },
+      "bytes": 1063,
+      "sha256": "102481b22c1bf245e3374cf487cb7bbae7c8ab1197e449783a176da44ee7ea1f"
+    },
+    "blip": {
+      "path": "sounds/blip.wav",
+      "type": "audio",
+      "mime": "audio/wav",
+      "bytes": 1588,
+      "sha256": "c19ea16ee68c049df8651cfed2e046f9d04fed6dcf5b78012fe976571231416a"
+    },
+    "hit": {
+      "path": "sounds/hit.wav",
+      "type": "audio",
+      "mime": "audio/wav",
+      "bytes": 6220,
+      "sha256": "f82863cd666c52685d3414e1e2cc8cdf260222590e7323e6a6fcaee024823bef"
+    },
+    "score": {
+      "path": "sounds/score.wav",
+      "type": "audio",
+      "mime": "audio/wav",
+      "bytes": 5336,
+      "sha256": "7b3d5b097cdc601bede2a714671a1f57e97dd0cb06e41098ec8b6607611d58b5"
+    },
+    "start": {
+      "path": "sounds/start.wav",
+      "type": "audio",
+      "mime": "audio/wav",
+      "bytes": 8424,
+      "sha256": "20f0a679f854a3a78f1b30f136b5cf74ce69ed045b5d43dde7e0d59e4834f616"
+    },
+    "win": {
+      "path": "sounds/win.wav",
+      "type": "audio",
+      "mime": "audio/wav",
+      "bytes": 13274,
+      "sha256": "4ad4d49a72a576a026a2995c2cd74dc5f691da694079b0dcdf8cc4ff609b64f8"
+    },
+    "boom": {
+      "path": "sounds/boom.wav",
+      "type": "audio",
+      "mime": "audio/wav",
+      "bytes": 17906,
+      "sha256": "ad855519c41ba73bc449d8c31cb2bcf68c942c81bf74a368113a92e9fb795c8c"
+    },
+    "tick": {
+      "path": "sounds/tick.wav",
+      "type": "audio",
+      "mime": "audio/wav",
+      "bytes": 926,
+      "sha256": "09d1fe762bc37f5ad7802be0883fe7cac67f2e77798ea0f0e20e412d4ab11ef5"
+    },
+    "whoosh": {
+      "path": "sounds/whoosh.wav",
+      "type": "audio",
+      "mime": "audio/wav",
+      "bytes": 7100,
+      "sha256": "8cce46f15256d7a8f56164482361145a63f121acac5d46f906f4776a68e38c64"
+    },
+    "pickup": {
+      "path": "sounds/pickup.wav",
+      "type": "audio",
+      "mime": "audio/wav",
+      "bytes": 4234,
+      "sha256": "fb133824889b89b30d247e37b276cfce70a33e3adf0e13ec028d6fa0827e0580"
+    },
+    "bounce": {
+      "path": "sounds/bounce.wav",
+      "type": "audio",
+      "mime": "audio/wav",
+      "bytes": 2690,
+      "sha256": "030b55651d7febe3f1f02457d5744e803f8b49cc91e7ff0526100dd3d1cad241"
+    },
+    "buzz": {
+      "path": "sounds/buzz.wav",
+      "type": "audio",
+      "mime": "audio/wav",
+      "bytes": 6660,
+      "sha256": "75365aef8a2b1fd7be66d8c79acb95550a05d4d1f6cde7eb40207fcbd66ff632"
+    },
+    "beep": {
+      "path": "sounds/beep.wav",
+      "type": "audio",
+      "mime": "audio/wav",
+      "bytes": 2912,
+      "sha256": "63e6a39df90b900d1dd6e56742179f9607e168368f0eacf07053ed1476658ef9"
+    },
+    "go": {
+      "path": "sounds/go.wav",
+      "type": "audio",
+      "mime": "audio/wav",
+      "bytes": 8424,
+      "sha256": "7267b169b525cd363e576e8823b58b729b12660e25e0d80e72d20dbfa248aaa6"
+    },
+    "fanfare": {
+      "path": "sounds/fanfare.wav",
+      "type": "audio",
+      "mime": "audio/wav",
+      "bytes": 24962,
+      "sha256": "d8698f99fe627e70f514e6a1f87c3fdacc73239113e42be99a4c3189b5ab6e0d"
+    },
+    "pop": {
+      "path": "sounds/pop.wav",
+      "type": "audio",
+      "mime": "audio/wav",
+      "bytes": 1368,
+      "sha256": "d350e33b953d107207ea6ffd9e1c06789d17bf6179830b27beb0a7b07c3be324"
+    },
+    "powerup": {
+      "path": "sounds/powerup.wav",
+      "type": "audio",
+      "mime": "audio/wav",
+      "bytes": 11952,
+      "sha256": "22c29ffd97806551dd290c700952ecf8d0da7abcab743309f4d5871c802805ad"
+    },
+    "zap": {
+      "path": "sounds/zap.wav",
+      "type": "audio",
+      "mime": "audio/wav",
+      "bytes": 3794,
+      "sha256": "6d2e4ffc2708c2f1ef5d2a4a1ab705c6befeae5eac65ffc4a87a0ae79c236003"
+    },
+    "thud": {
+      "path": "sounds/thud.wav",
+      "type": "audio",
+      "mime": "audio/wav",
+      "bytes": 3572,
+      "sha256": "f163362ee6eeab6b8e59af869a491f6d9684c971e4d8dcef1127e1884afd18ac"
+    },
+    "lose": {
+      "path": "sounds/lose.wav",
+      "type": "audio",
+      "mime": "audio/wav",
+      "bytes": 15480,
+      "sha256": "b7b46e85c28e9ba3da885560ca3363f6780d820247046342dbb71ae40947d1f8"
+    },
+    "click": {
+      "path": "sounds/click.wav",
+      "type": "audio",
+      "mime": "audio/wav",
+      "bytes": 354,
+      "sha256": "ff36b6216e3d3bfe691bdc1a6c28dfbdbff2d7944280bc6a13a57f023333b9ec"
+    }
+  }
+}

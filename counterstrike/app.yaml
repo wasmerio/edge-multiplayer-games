@@ -1,11 +1,11 @@
 kind: wasmer.io/App.v0
 name: counterstrike-breach
-owner: wasmer
+owner: wasmer-playground
+app_id: da_nQgIotrUxb56
 package: .
 locality:
   regions:
   - fr-roub1
-app_id: da_nQgIotrUxb56
 annotations:
   anybuild.run/config:
     commands:

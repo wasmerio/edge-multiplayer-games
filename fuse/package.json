@@ -1,0 +1,17 @@
+{
+  "name": "fuse",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hot-potato tag with a live bomb: pass it by touch before the fuse burns out, and haunt the survivors after you pop.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.20.1"
+  }
+}

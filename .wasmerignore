@@ -15,3 +15,7 @@
 # Engine source; the served copy is public/engine/<version>/.
 /engine/
 /worklogs/
+# Agent skills are for the checkout, not the served app.
+/.claude/
+/fuse/
+/trapdoor/

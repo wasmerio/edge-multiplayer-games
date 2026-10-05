@@ -392,7 +392,8 @@ class DailyGameTests(unittest.TestCase):
         self.assertEqual(style, candidate()['style_css'])
         self.assertNotEqual(style.encode(), self.scaffold['public/style.css'])
         self.assertIn('Open a lane', page)
-        self.assertIn('data-engine-touch="move=-1"', page)
+        self.assertIn('data-engine-touch="move=1"', page)
+        self.assertIn('data-engine-stick="move,move"', page)
         self.assertNotIn(game_contract.PLACEHOLDER, page)
         for role in game_contract.REQUIRED_ROLES:
             self.assertIn(f'data-engine="{role}"', page)
@@ -438,7 +439,7 @@ class DailyGameTests(unittest.TestCase):
             page = (work / SLUG / 'public/index.html').read_text()
             self.agent(work, *args, page_html=page.replace(game_contract.PLACEHOLDER_DESCRIPTION, 'Reach the wall.')
                        .replace(game_contract.PLACEHOLDER, 'Fixture sprint'))
-        self.rejects('Conformance failed: slots: data-engine-touch names unknown intent field turn', stale_touch)
+        self.rejects('Conformance failed: slots: data-engine-touch names unknown intent field boost', stale_touch)
 
     def test_runtime_references_no_deleted_template_file_or_split_string(self):
         runtime = Path(game_contract.__file__).resolve().parent

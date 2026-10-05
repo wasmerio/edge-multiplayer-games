@@ -1,6 +1,6 @@
 # Weekly games with Pi on Wasmer
 
-The root `wasmer/edge-multiplayer-games` app owns the weekly Edge job.
+The root `wasmer-playground/edge-multiplayer-games` app owns the weekly Edge job.
 Its package serves the website and contains the `daily-game` command.
 The job clones this repository, scaffolds an engine game with
 `node scripts/new-game.mjs`, runs Pi on it, checks the generated game,
@@ -247,11 +247,11 @@ The scheduled command starts a separate invocation of that package with the root
 The job creates a game PR against its own source repository, `wasmerio/edge-multiplayer-games`.
 Merging the PR and deploying the game and index remain separate steps.
 
-Set both secrets on **wasmer/edge-multiplayer-games** before deployment:
+Set both secrets on **wasmer-playground/edge-multiplayer-games** before deployment:
 
 ```bash
-wasmer app secrets create OPENAI_API_KEY "${OPENAI_API_KEY:?Set OPENAI_API_KEY first}" --app wasmer/edge-multiplayer-games
-wasmer app secrets create GH_TOKEN "${GH_TOKEN:?Set GH_TOKEN first}" --app wasmer/edge-multiplayer-games
+wasmer app secrets create OPENAI_API_KEY "${OPENAI_API_KEY:?Set OPENAI_API_KEY first}" --app wasmer-playground/edge-multiplayer-games
+wasmer app secrets create GH_TOKEN "${GH_TOKEN:?Set GH_TOKEN first}" --app wasmer-playground/edge-multiplayer-games
 ./deploy.sh super
 ```
 

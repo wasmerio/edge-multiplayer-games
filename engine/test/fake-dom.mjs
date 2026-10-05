@@ -14,6 +14,7 @@ export function fakeDocument() {
       },
       setAttribute(key, value) { self.attributes[key] = String(value); if (key === "value") self.value = String(value); },
       getAttribute: (key) => self.attributes[key] ?? null,
+      removeAttribute(key) { delete self.attributes[key]; },
       appendChild(child) { child.parentNode = self; self.children.push(child); return child; },
       append(...nodes) { for (const child of nodes) self.appendChild(child); },
       replaceChildren(...nodes) { self.children = []; self.append(...nodes); },

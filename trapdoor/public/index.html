@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trapdoor</title>
+  <meta name="description" content="Trapdoor: stand on the called shape before the floor drops; shove your rivals into the pit.">
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">
+    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.2/" } }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <h1 class="logo" aria-label="Trapdoor">
+      <span>T</span><span>R</span><span>A</span><span>P</span><span>D</span><span class="hole">O</span><span>O</span><span>R</span>
+    </h1>
+    <span class="status" data-engine="status">connecting</span>
+    <button class="chip" data-engine="mute">sound on</button>
+    <a class="chip home" href="https://edge-multiplayer-games.wasmer.app">all games</a>
+  </header>
+
+  <main>
+    <section class="lobby" data-engine="lobby">
+      <div class="poster">
+        <p class="kicker">A floor show for 2 to 8 players</p>
+        <p class="pitch">A shape gets called. <b>Stand on it.</b> Everything else is a trapdoor.</p>
+        <ol class="steps">
+          <li><i class="plate circle"></i><span><b>Find it.</b> The floor reshuffles on every call and the clock gets shorter.</span></li>
+          <li><i class="plate pit"></i><span><b>Keep it.</b> Dash into a rival to shove them off their plate, or into the pit.</span></li>
+          <li><i class="plate crack"></i><span><b>Fell in?</b> Haunt the floor and crack a plate under the survivors.</span></li>
+        </ol>
+      </div>
+
+      <div class="desk">
+        <label class="field">Your name
+          <input data-engine="name" maxlength="16" placeholder="your name" autocomplete="nickname">
+        </label>
+        <div class="row">
+          <button class="primary" data-engine="create">Open a room</button>
+          <span class="joinrow">
+            <span class="or">or</span>
+            <input class="code" data-engine="code" maxlength="8" placeholder="CODE" aria-label="Room code">
+            <button data-engine="join">Join</button>
+          </span>
+        </div>
+        <div class="room" data-engine="room-info" hidden>
+          <p class="roomline">Room <strong data-engine="room-code"></strong></p>
+          <div class="invite" data-engine="invite" hidden>
+            <span>Send this link to the other contestants</span>
+            <a data-engine="invite-link" href="#"></a>
+            <button class="chip" data-engine="copy">copy</button>
+          </div>
+          <ul class="peers" data-engine="peers"></ul>
+          <div class="row" data-engine="host-controls" hidden>
+            <button class="primary" data-engine="start">Start the show</button>
+          </div>
+          <p class="wait" data-engine="wait" hidden>On the floor. Waiting for the host to start the show.</p>
+        </div>
+        <p class="help keys">Move with WASD or the arrow keys. Space dashes. Outlast a rival: +1. Last one standing: +2 more.</p>
+        <p class="help thumbs">Left thumb moves, right thumb dashes. Outlast a rival: +1. Last one standing: +2 more.</p>
+      </div>
+      <div class="floor" aria-hidden="true">
+        <i class="c1"></i><i class="c2"></i><i class="c3"></i><i class="gone"></i><i class="c4"></i><i class="c5"></i><i class="c6"></i><i class="c2"></i><i class="gone"></i><i class="c1"></i><i class="c3"></i><i class="c5"></i>
+      </div>
+    </section>
+
+    <section class="game" data-engine="game" hidden>
+      <div class="stage">
+        <div class="arena" data-engine="arena">
+          <div class="banner" data-engine="banner" hidden></div>
+        </div>
+        <p class="hud" data-engine="hud"></p>
+        <div class="touch">
+          <div class="stick" data-engine-stick="mx,my" role="group" aria-label="Move: drag in any direction"><i></i></div>
+          <button class="act" data-engine-touch="act=1" aria-label="Dash, or crack a tile after you fell"><span class="run">DASH</span><span class="ghost">CRACK</span></button>
+        </div>
+      </div>
+      <aside class="side">
+        <h2>Scores</h2>
+        <ol class="scores" data-engine="scores"></ol>
+        <button class="primary" data-engine="next" hidden>Next round</button>
+        <p class="help keys">WASD or arrows move. Space dashes: hit a rival to shove them. After you fall, Space cracks the called plate under you. The host starts the next round with Enter.</p>
+        <p class="help rules">Outlast a rival: +1. Last one standing: +2. The leader wears the crown and runs a little slower.</p>
+      </aside>
+    </section>
+  </main>
+
+  <script type="module" src="/client.js"></script>
+</body>
+</html>

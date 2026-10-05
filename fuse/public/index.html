@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Short Fuse</title>
+  <meta name="description" content="Hot-potato tag with a live bomb: pass it by touch before the fuse burns out, and haunt the survivors after you pop.">
+  <meta name="theme-color" content="#17130f">
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">
+    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.2/" } }
+  </script>
+</head>
+<body>
+  <div class="tape" aria-hidden="true"></div>
+  <header class="top">
+    <a class="brand" href="/" aria-label="Short Fuse">
+      <span class="bomb" aria-hidden="true"><i></i></span>
+      <h1>Short<br>Fuse</h1>
+    </a>
+    <span class="status" data-engine="status">connecting</span>
+    <button class="chip" data-engine="mute">sound on</button>
+    <a class="chip home" href="https://edge-multiplayer-games.wasmer.app">all games</a>
+  </header>
+
+  <main>
+    <section class="lobby" data-engine="lobby">
+      <div class="hero">
+        <p class="kicker">2 to 8 players · one bomb · nobody wants it</p>
+        <p class="pitch">Someone is holding a lit bomb. <b>Touch a friend to make it their problem.</b> When it blows, everyone still standing scores.</p>
+      </div>
+
+      <div class="desk">
+        <div class="crate">
+          <span class="stencil">Sign in</span>
+          <label class="field">Name on the crate
+            <input data-engine="name" maxlength="16" placeholder="your name" autocomplete="nickname">
+          </label>
+          <div class="signin">
+          <button class="primary" data-engine="create">Light a new room</button>
+          <div class="split"><span>or join one</span></div>
+          <div class="row">
+            <input class="code" data-engine="code" maxlength="8" placeholder="CODE" aria-label="Room code">
+            <button data-engine="join">Join</button>
+          </div>
+          </div>
+
+          <div class="room" data-engine="room-info" hidden>
+            <p class="roomline">Room <strong data-engine="room-code"></strong></p>
+            <div class="invite" data-engine="invite" hidden>
+              <span>Send this link to your friends</span>
+              <a data-engine="invite-link" href="#"></a>
+              <button class="chip" data-engine="copy">copy link</button>
+            </div>
+            <ul class="peers" data-engine="peers"></ul>
+            <div data-engine="host-controls" hidden>
+              <button class="primary go" data-engine="start">Start the match</button>
+              <p class="note">Needs two players. Anyone who arrives later watches until the rematch.</p>
+            </div>
+            <p class="note wait" data-engine="wait" hidden>You are in. Waiting for the host to start.</p>
+          </div>
+        </div>
+
+        <ol class="rules">
+          <li><span class="num">1</span><div><b>The bomb picks a victim.</b> Everyone gets a second and a half to scatter before it goes live.</div></li>
+          <li><span class="num">2</span><div><b>Touch to pass.</b> The holder runs a little faster. The receiver is dazed for a beat and the passer cannot be tagged straight back.</div></li>
+          <li><span class="num">3</span><div><b>Dash.</b> A short burst on a cooldown: lunge with the bomb, or leap out of reach.</div></li>
+          <li><span class="num">4</span><div><b>Boom.</b> Survivors score a point each, the last one standing takes a bonus, and the bomb comes back faster.</div></li>
+          <li><span class="num">5</span><div><b>Ghosts hold grudges.</b> Once you pop, your dash becomes a BOO that shoves the living around.</div></li>
+        </ol>
+      </div>
+
+      <dl class="keys">
+        <div><dt>Move</dt><dd><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows</dd></div>
+        <div><dt>Dash / Boo</dt><dd><kbd>Space</kbd> <kbd>Shift</kbd> <kbd>J</kbd></dd></div>
+        <div><dt>Also</dt><dd>gamepad stick + A, or the on-screen pad on a phone</dd></div>
+      </dl>
+    </section>
+
+    <section class="game" data-engine="game" hidden>
+      <div class="stage">
+        <div class="arena" data-engine="arena">
+          <div class="banner" data-engine="banner" hidden></div>
+        </div>
+        <p class="hud" data-engine="hud"></p>
+        <div class="touch">
+          <div class="stick" data-engine-stick="mx,my" data-stick-dead="0.24" role="group" aria-label="Move: drag in any direction"><i></i></div>
+          <button class="dash" data-engine-touch="dash=1" aria-label="Dash">DASH</button>
+        </div>
+      </div>
+      <aside class="side">
+        <span class="stencil">Still standing</span>
+        <ol class="scores" data-engine="scores"></ol>
+        <button class="primary" data-engine="next" hidden>Next round</button>
+        <p class="note help">Move with WASD or arrows. Space, Shift or J to dash.</p>
+      </aside>
+    </section>
+  </main>
+
+  <script type="module" src="/client.js"></script>
+</body>
+</html>

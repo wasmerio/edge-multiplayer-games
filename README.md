@@ -192,7 +192,7 @@ The [weekly game automation](automation/daily-game/README.md) runs as a cron job
 It clones this repository, streams Pi activity, checks a new game, and uses Git
 to push a dated branch. It opens a draft PR against `main` for review.
 The schedule is set in the Wasmer dashboard, not in `app.yaml`: weekly, `0 6 * * 1` (Mondays 06:00 UTC). The root `app.yaml` selects the coding model with `env.OPENAI_MODEL`.
-Set `OPENAI_API_KEY` and `GH_TOKEN` as secrets on `wasmer/edge-multiplayer-games` before deployment.
+Set `OPENAI_API_KEY` and `GH_TOKEN` as secrets on `wasmer-playground/edge-multiplayer-games` before deployment.
 Local model generation and remote PR creation passed. The root cron deployment remains pending.
 
 After [preparing Pi](automation/daily-game/README.md#prepare-once), run these commands from the repository root:

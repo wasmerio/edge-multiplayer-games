@@ -202,8 +202,14 @@ export async function runSoak(options) {
       }
       if (await host.page.evaluate(() => globalThis.__engine.state().over)) {
         rounds += 1;
-        await key(host.page, 'rawKeyDown', SPACE);
-        await key(host.page, 'keyUp', SPACE);
+        // The next control works whatever key the game gave it; Space is the fallback.
+        const clicked = await host.page.evaluate(() => {
+          const next = document.querySelector('[data-engine="next"]');
+          if (!next || !next.getClientRects().length) return false;
+          next.click();
+          return true;
+        });
+        if (!clicked) { await key(host.page, 'rawKeyDown', SPACE); await key(host.page, 'keyUp', SPACE); }
       }
       await sleep(STEP_MS);
     }

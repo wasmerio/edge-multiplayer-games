@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="24" viewBox="0 0 192 24" fill="#e8ecf1" stroke="#e8ecf1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <g id="sound-on" transform="translate(0 0)"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 8a5 5 0 0 1 0 8M18.5 5.5a9 9 0 0 1 0 13" fill="none"/></g>
+  <g id="sound-off" transform="translate(24 0)"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9l5 6M21 9l-5 6" fill="none"/></g>
+  <g id="copy" transform="translate(48 0)"><rect x="8" y="8" width="11" height="12" rx="2" fill="none"/><path d="M5 16V6a2 2 0 0 1 2-2h8" fill="none"/></g>
+  <g id="crown" transform="translate(72 0)"><path d="M3 18l-1-11 6 5 4-7 4 7 6-5-1 11z"/></g>
+  <g id="left" transform="translate(96 0)"><path d="M15 4l-8 8 8 8z"/></g>
+  <g id="right" transform="translate(120 0)"><path d="M9 4l8 8-8 8z"/></g>
+  <g id="check" transform="translate(144 0)"><path d="M4 12l5 5L20 6" fill="none"/></g>
+  <g id="skull" transform="translate(168 0)"><path d="M12 3a8 8 0 0 0-5 14v3h10v-3a8 8 0 0 0-5-14z"/></g>
+</svg>

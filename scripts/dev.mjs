@@ -32,12 +32,14 @@ export function start(slug, port = 8765, root = ROOT) {
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [slug, port] = process.argv.slice(2);
   if (!slug || slug === '--help') {
-    console.log('usage: node scripts/dev.mjs <game> [port]');
+    console.log('usage: node scripts/dev.mjs <game> [port]\n\nServes the game on http://localhost:<port> (default 8765) until Ctrl+C or a kill of this process.');
     process.exit(slug ? 0 : 1);
   }
   try {
     const child = start(slug, Number(port || 8765));
     child.on('exit', (code) => process.exit(code ?? 0));
+    // Ctrl+C or a kill of this process stops the server too, so the port is free again.
+    for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(signal, () => child.kill(signal));
   } catch (error) {
     console.error(error.message);
     process.exit(1);

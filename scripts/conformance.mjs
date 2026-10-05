@@ -81,6 +81,37 @@ const gameScripts = (publicDir) => walk(publicDir, (rel, entry) => (
   entry.isDirectory() ? /^(engine|vendor)$/.test(rel) : !/\.m?js$/.test(rel) || /\.min\.m?js$/.test(rel)
 ));
 
+const LOADING_RELS = /\b(stylesheet|preload|modulepreload|prefetch|preconnect|dns-prefetch|icon|apple-touch-icon|manifest)\b/i;
+
+// Every url(...) and @import target of a stylesheet, comments removed.
+export function cssLoads(css) {
+  const text = String(css).replace(/\/\*[\s\S]*?\*\//g, '');
+  const found = [];
+  for (const m of text.matchAll(/@import\s+(?:url\(\s*)?(["']?)([^"')\s;]+)\1/gi)) found.push(m[2]);
+  for (const m of text.matchAll(/url\(\s*(["']?)([^"')]+)\1\s*\)/gi)) found.push(m[2].trim());
+  return [...new Set(found)];
+}
+
+// A page may load from its own origin and from the pinned engine and asset paths of the superapp, nothing else.
+export function isForeignLoad(url, superappOrigin) {
+  const value = String(url).trim();
+  if (/^(data|blob|about):/i.test(value) || value.startsWith('#')) return false;
+  if (!/^([a-z][a-z0-9+.-]*:)?\/\//i.test(value)) return false;
+  return !(value.startsWith(`${superappOrigin}/engine/`) || value.startsWith(`${superappOrigin}/assets/`));
+}
+
+const XML_NAMESPACE = /^https?:\/\/www\.w3\.org\//;
+// Absolute URLs a script names: an import, a fetch target, an image or a font source.
+function scriptLoads(text, superappOrigin) {
+  const found = [];
+  for (const m of text.matchAll(/(["'`])((?:https?:)?\/\/[^"'`\s]+)\1/g)) {
+    if (m[2].startsWith('//') && !/^\/\/[\w-]+(\.[\w-]+)+/.test(m[2])) continue;
+    if (XML_NAMESPACE.test(m[2]) || m[2] === superappOrigin || m[2] === `${superappOrigin}/`) continue;
+    found.push(m[2]);
+  }
+  return found;
+}
+
 function parsePage(html) {
   const importMap = {};
   let mapError = null;
@@ -97,10 +128,34 @@ function parsePage(html) {
   const attr = (attrs, name) => attrs.match(new RegExp(`(?:^|\\s)${name}\\s*=\\s*["']([^"']*)["']`, 'i'))?.[1] ?? null;
   const roles = tags.map((t) => attr(t.attrs, 'data-engine')).filter((v) => v !== null);
   const touch = tags.map((t) => attr(t.attrs, 'data-engine-touch')).filter((v) => v !== null);
+  const sticks = tags.map((t) => attr(t.attrs, 'data-engine-stick')).filter((v) => v !== null);
+  // What the browser fetches while it loads the page; a link the player follows is not a load.
+  const loads = [];
+  for (const t of tags) {
+    if (t.tag === 'a' || t.tag === 'base') continue;
+    const rel = attr(t.attrs, 'rel') ?? '';
+    if (t.tag === 'link' && !LOADING_RELS.test(rel)) continue;
+    for (const name of t.tag === 'link' ? ['href'] : ['src', 'poster', 'data']) {
+      const value = attr(t.attrs, name);
+      if (value) loads.push({ where: `<${t.tag} ${name}>`, url: value });
+    }
+    for (const part of (attr(t.attrs, 'srcset') ?? '').split(',')) {
+      const value = part.trim().split(/\s+/)[0];
+      if (value) loads.push({ where: `<${t.tag} srcset>`, url: value });
+    }
+    for (const found of cssLoads(attr(t.attrs, 'style') ?? '')) loads.push({ where: `<${t.tag} style>`, url: found });
+  }
+  for (const block of html.replace(/<!--[\s\S]*?-->/g, '').matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)) {
+    for (const found of cssLoads(block[1])) loads.push({ where: '<style>', url: found });
+  }
+  for (const m of [...html.replace(/<!--[\s\S]*?-->/g, '').matchAll(/<script\b([^>]*)>/gi)]) {
+    const value = attr(m[1], 'src');
+    if (value) loads.push({ where: '<script src>', url: value });
+  }
   const stylesheets = tags.filter((t) => t.tag === 'link' && /\bstylesheet\b/i.test(attr(t.attrs, 'rel') ?? ''))
     .map((t) => attr(t.attrs, 'href')).filter(Boolean);
   const container = tags.some((t) => attr(t.attrs, 'id') === 'game');
-  return { importMap, mapError, modules, links, roles, touch, stylesheets, container, inlineStyle: /<style\b/i.test(markup) };
+  return { importMap, mapError, modules, links, roles, touch, sticks, loads, stylesheets, container, inlineStyle: /<style\b/i.test(markup) };
 }
 
 // The roles the kit binds in a page that owns its chrome; see engine/README.md, "Page slots".
@@ -109,7 +164,7 @@ export const OPTIONAL_SLOTS = ['copy', 'mute', 'next', 'hud', 'status', 'room-co
   'lobby', 'game', 'room-info', 'invite', 'host-controls', 'wait'];
 
 // A page owns its chrome when it has an arena slot; otherwise the kit builds the chrome into #game.
-function checkSlots(page, { intent = null, kitBindsSlots = true } = {}) {
+function checkSlots(page, { intent = null, kitBindsSlots = true, kitBindsSticks = true } = {}) {
   const owned = page.roles.includes('arena');
   if (!owned) {
     if (page.roles.length) return { ok: false, detail: `data-engine roles without an arena slot are ignored by the kit: ${[...new Set(page.roles)].join(', ')}` };
@@ -129,12 +184,19 @@ function checkSlots(page, { intent = null, kitBindsSlots = true } = {}) {
     if (!field || rest.length || amount === undefined || amount.trim() === '' || !Number.isFinite(Number(amount))) problems.push(`data-engine-touch="${value}" is not <field>=<number>`);
     else if (intent && !(field in intent)) problems.push(`data-engine-touch names unknown intent field ${field}`);
   }
+  for (const value of page.sticks) {
+    const fields = value.split(',').map((name) => name.trim());
+    if (fields.length !== 2 || fields.some((name) => !name)) problems.push(`data-engine-stick="${value}" is not <field>,<field>`);
+    else for (const field of fields) if (intent && !(field in intent)) problems.push(`data-engine-stick names unknown intent field ${field}`);
+  }
+  if (page.sticks.length && !kitBindsSticks) problems.push('the pinned engine predates data-engine-stick; pin a version whose kit binds it');
   if (!kitBindsSlots) problems.push('the pinned engine predates page slots; pin a version whose kit binds data-engine roles');
   if (problems.length) return { ok: false, detail: problems.join('; ') };
-  return { ok: true, detail: `the page owns its chrome: ${new Set(page.roles).size} slots, ${page.touch.length} touch button(s)` };
+  return { ok: true, detail: `the page owns its chrome: ${new Set(page.roles).size} slots, ${page.touch.length} touch button(s)${page.sticks.length ? `, ${page.sticks.length} stick(s)` : ''}` };
 }
 
 const isLocalHref = (href) => !/^([a-z][a-z0-9+.-]*:)?\/\//i.test(href) && !/^data:/i.test(href);
+const FOREIGN_FIX = 'ship the file under public/ (fonts: a system stack, or your own licensed file) and reference it by a local path';
 const NO_STYLE = 'the page owns its chrome but brings no stylesheet; the kit injects no theme for it';
 
 // Classifies one place the engine is loaded from.
@@ -263,13 +325,14 @@ function report() {
   return { rows, add, set, skip, run };
 }
 
-const TITLES = {
+export const TITLES = {
   healthz: 'Health endpoint answers JSON with the permissive origin header',
   create: 'Root with the create parameter reaches a room without interaction',
   join: 'Root with a room parameter auto-joins',
   link: 'A link back to the superapp exists',
   slots: 'The page provides the engine\'s required slots, or a bare container',
   stylesheet: 'Every stylesheet the page links exists',
+  origin: 'The page loads nothing from another origin',
   pinned: 'The engine import is pinned to a version',
   published: 'The pinned engine version is reachable at its version path',
   server: 'The game has no server of its own',
@@ -458,7 +521,28 @@ async function checkDirectory(dirArg, options) {
   await r.run(row.slots, () => {
     if (html === null) return { ok: false, detail: 'public/index.html is missing' };
     const ui = engineDir && readOrNull(path.join(engineDir, 'ui.js'));
-    return checkSlots(page, { intent: mod?.INTENT ?? null, kitBindsSlots: !ui || /data-engine/.test(ui) });
+    return checkSlots(page, { intent: mod?.INTENT ?? null, kitBindsSlots: !ui || /data-engine/.test(ui), kitBindsSticks: !ui || /data-engine-stick/.test(ui) });
+  });
+  // The soak run denies every other origin, and so does a player's blocker or a train tunnel.
+  await r.run(row.origin, () => {
+    if (html === null) return { ok: false, detail: 'public/index.html is missing' };
+    const foreign = page.loads.filter((load) => isForeignLoad(load.url, superappOrigin)).map((load) => `index.html ${load.where} ${load.url}`);
+    for (const [key, value] of Object.entries(page.importMap)) {
+      if (key !== '@engine/' && isForeignLoad(String(value), superappOrigin)) foreign.push(`index.html import map "${key}" ${value}`);
+    }
+    const sheets = walk(publicDir, (rel, entry) => (entry.isDirectory() ? /^(engine|vendor)$/.test(rel) : !/\.css$/.test(rel)));
+    for (const name of sheets) {
+      for (const url of cssLoads(fs.readFileSync(path.join(publicDir, name), 'utf8'))) {
+        if (isForeignLoad(url, superappOrigin)) foreign.push(`public/${name} ${url}`);
+      }
+    }
+    for (const file of files) {
+      for (const url of scriptLoads(file.text, superappOrigin)) {
+        if (isForeignLoad(url, superappOrigin)) foreign.push(`${file.name} ${url}`);
+      }
+    }
+    if (foreign.length) return { ok: false, detail: `${foreign.join('; ')}: ${FOREIGN_FIX}` };
+    return { ok: true, detail: `index.html, ${sheets.length} stylesheet(s) and ${files.length} script(s) name no other origin` };
   });
   await r.run(row.stylesheet, () => {
     if (html === null) return { ok: false, detail: 'public/index.html is missing' };
@@ -677,6 +761,17 @@ async function checkGameOrigin(origin, options, engine, health) {
     if (absent.length) return { ok: false, detail: absent.join('; ') };
     if (page.roles.includes('arena') && !page.stylesheets.length && !page.inlineStyle) return { ok: false, detail: NO_STYLE };
     return { ok: true, detail: page.stylesheets.length ? `${page.stylesheets.join(', ')} answered 200` : 'no stylesheet linked' };
+  });
+
+  await r.run(row.origin, async () => {
+    if (html === null) return { ok: false, detail: 'index.html is unreachable' };
+    const foreign = page.loads.filter((load) => isForeignLoad(load.url, superappOrigin)).map((load) => `index.html ${load.where} ${load.url}`);
+    for (const href of page.stylesheets.filter(isLocalHref)) {
+      const sheet = await fetch(new URL(href, `${origin}/`)).then((res) => (res.ok ? res.text() : '')).catch(() => '');
+      for (const url of cssLoads(sheet)) if (isForeignLoad(url, superappOrigin)) foreign.push(`${href} ${url}`);
+    }
+    if (foreign.length) return { ok: false, detail: `${foreign.join('; ')}: ${FOREIGN_FIX}` };
+    return { ok: true, detail: 'index.html and its stylesheets name no other origin' };
   });
 
   const live = await import('./lib/live.mjs');

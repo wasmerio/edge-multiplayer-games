@@ -1,5 +1,5 @@
 [package]
-name = "wasmer/edge-multiplayer-games"
+name = "wasmer-playground/edge-multiplayer-games"
 private = true
 version = "0.2.0"
 description = "Multiplayer game index with a daily Pi game generator"

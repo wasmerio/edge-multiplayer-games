@@ -1,11 +1,11 @@
 kind: wasmer.io/App.v0
 name: ring-rumble
-owner: wasmer
+owner: wasmer-playground
+app_id: da_RbxI9tgU6z6k
 package: .
 locality:
   regions:
   - fr-roub1
-app_id: da_RbxI9tgU6z6k
 annotations:
   anybuild.run/config:
     commands:

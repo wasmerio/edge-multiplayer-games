@@ -1,0 +1,112 @@
+{
+  "palette": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "ui-sprites": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "blip": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "hit": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "score": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "start": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "win": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "boom": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "tick": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "whoosh": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "pickup": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "bounce": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "buzz": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "beep": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "go": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "fanfare": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "pop": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "powerup": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "zap": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "thud": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "lose": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "click": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  }
+}

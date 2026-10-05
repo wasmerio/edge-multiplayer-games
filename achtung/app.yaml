@@ -1,11 +1,11 @@
 kind: wasmer.io/App.v0
 name: achtung-webrtc
-owner: wasmer
+owner: wasmer-playground
+app_id: da_RrWI0t5UD633
 package: .
 locality:
   regions:
   - fr-roub1
-app_id: da_RrWI0t5UD633
 annotations:
   anybuild.run/config:
     commands:

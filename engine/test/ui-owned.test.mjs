@@ -121,7 +121,7 @@ test("a page's own touch buttons are bound through data-engine-touch", () => {
   buttons[1].dispatch("pointerdown");
   buttons[1].dispatch("pointercancel");
   buttons[1].dispatch("pointerleave");
-  assert.deepEqual(calls, [["touch", "turn", -1], ["touch", "turn", 0], ["touch", "turn", 1], ["touch", "turn", 0], ["touch", "turn", 0]]);
+  assert.deepEqual(calls, [["touch", "turn", -1], ["touch", "turn", 0], ["touch", "turn", 1], ["touch", "turn", 0]], "a leave after the release changes nothing");
   ui.enableTouch(true);
   assert.equal(doc.body.dataset.touch, "on", "the page's stylesheet reveals the buttons from this attribute");
 });
@@ -141,7 +141,7 @@ test("score rows carry a swatch, a name and a score the page can style", () => {
   const [ann, bob] = nodes.scores.children;
   assert.deepEqual(ann.children.map((n) => [n.tag, n.className]), [["span", "swatch"], ["span", "name"], ["strong", "score"]]);
   assert.equal(ann.children[0].attributes.style, "background:#abcdef");
-  assert.equal(ann.children[1].textContent, "ann: ");
+  assert.equal(ann.children[1].textContent, "ann", "punctuation between name and score belongs to the stylesheet");
   assert.equal(ann.children[2].textContent, "3");
   assert.equal(bob.className, "dead");
   assert.equal(bob.children[0].attributes.style, "background:#123456", "a seat without a colour takes the game's palette");

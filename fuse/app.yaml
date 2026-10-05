@@ -1,0 +1,25 @@
+kind: wasmer.io/App.v0
+name: fuse
+owner: wasmer-playground
+package: .
+locality:
+  regions:
+  - fr-roub1
+app_id: da_KN4IZtyUP08Y
+annotations:
+  anybuild.run/config:
+    commands:
+      start: node src/server.js
+    edgejs_enable: true
+    edgejs_precompile: true
+    name: out
+    node_install_inputs:
+    - package.json
+    node_package_manager: npm
+    node_package_name: fuse
+    node_remove_native_binaries: true
+    node_server: node
+    npm_version: '11'
+  anybuild.run/provider: node
+  anybuild.run/version: 0.32.2
+  wasmer.io/version: 7.5.0

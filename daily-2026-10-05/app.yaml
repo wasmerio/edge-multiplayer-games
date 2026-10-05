@@ -1,11 +1,11 @@
 kind: wasmer.io/App.v0
 name: daily-2026-10-05
-owner: wasmer
+owner: wasmer-playground
+app_id: da_Ra7IetdUY3yQ
 package: .
 locality:
   regions:
   - fr-roub1
-app_id: da_Ra7IetdUY3yQ
 annotations:
   anybuild.run/config:
     commands:

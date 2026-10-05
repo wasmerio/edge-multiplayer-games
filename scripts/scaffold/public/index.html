@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{nameHtml}}</title>
+  <meta name="description" content="{{descriptionHtml}}">
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">
+    { "imports": { "@engine/": "{{origin}}/engine/{{version}}/" } }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <h1>{{nameHtml}}</h1>
+    <span class="status" data-engine="status">connecting</span>
+    <button class="quiet" data-engine="mute">sound on</button>
+    <a class="home" href="{{origin}}">all games</a>
+  </header>
+
+  <main>
+    <section class="lobby" data-engine="lobby">
+      <p class="pitch">{{descriptionHtml}}</p>
+      <label class="field">Your name
+        <input data-engine="name" maxlength="16" placeholder="your name" autocomplete="nickname">
+      </label>
+      <div class="row">
+        <button class="primary" data-engine="create">Create room</button>
+        <span class="or">or</span>
+        <input class="code" data-engine="code" maxlength="8" placeholder="CODE" aria-label="Room code">
+        <button data-engine="join">Join</button>
+      </div>
+      <div class="room" data-engine="room-info" hidden>
+        <p>Room <strong data-engine="room-code"></strong></p>
+        <div class="invite" data-engine="invite" hidden>
+          <span>Send this link to your friends</span>
+          <a data-engine="invite-link" href="#"></a>
+          <button class="quiet" data-engine="copy">copy</button>
+        </div>
+        <ul class="peers" data-engine="peers"></ul>
+        <div class="row" data-engine="host-controls" hidden>
+          <button class="primary" data-engine="start">Start game</button>
+        </div>
+        <p class="wait" data-engine="wait" hidden>Waiting for the host to start.</p>
+      </div>
+      <p class="help">Move with WASD or the arrow keys. Space boosts.</p>
+    </section>
+
+    <section class="game" data-engine="game" hidden>
+      <div class="stage">
+        <div class="arena" data-engine="arena">
+          <div class="banner" data-engine="banner" hidden></div>
+        </div>
+        <p class="hud" data-engine="hud"></p>
+        <div class="touch">
+          <div class="stick" data-engine-stick="mx,my" role="group" aria-label="Move: drag in any direction"><i></i></div>
+          <button class="boost" data-engine-touch="boost=1" aria-label="Boost">BOOST</button>
+        </div>
+      </div>
+      <aside class="side">
+        <ol class="scores" data-engine="scores"></ol>
+        <button class="primary" data-engine="next" hidden>Next round</button>
+        <p class="help keys">WASD or arrows move. Space boosts. The host starts the next round with Enter.</p>
+      </aside>
+    </section>
+  </main>
+
+  <script type="module" src="/client.js"></script>
+</body>
+</html>

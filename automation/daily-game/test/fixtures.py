@@ -217,7 +217,8 @@ h1 { color: var(--lamp); letter-spacing: 0.2em; text-transform: uppercase; }
 def page_html(scaffold_page, name="Fixture sprint"):
     """The scaffold's page as the model would leave it: own copy, touch buttons for its own intent."""
     return (scaffold_page.replace(cron.PLACEHOLDER_DESCRIPTION, "Hold right and reach the far wall first.")
-            .replace(cron.PLACEHOLDER, name).replace('data-engine-touch="turn=', 'data-engine-touch="move=')
+            .replace(cron.PLACEHOLDER, name).replace('data-engine-stick="mx,my"', 'data-engine-stick="move,move"')
+            .replace('data-engine-touch="boost=1"', 'data-engine-touch="move=1"')
             .replace("Create room", "Open a lane").replace("Start game", "Fire the pistol"))
 
 

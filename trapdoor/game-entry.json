@@ -1,0 +1,7 @@
+{
+  "slug": "trapdoor",
+  "name": "Trapdoor",
+  "description": "Stand on the called shape before the floor drops; shove your rivals into the pit.",
+  "players": "2 to 8",
+  "source": "trapdoor/"
+}

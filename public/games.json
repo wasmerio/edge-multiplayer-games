@@ -54,5 +54,21 @@
     "players": "2 to 8",
     "source": "daily-2026-10-05/",
     "url": "https://daily-2026-10-05.wasmer.app"
+  },
+  {
+    "slug": "fuse",
+    "name": "Short Fuse",
+    "url": "https://fuse-2051.wasmer.app",
+    "players": "2 to 8",
+    "description": "Hot-potato tag with a live bomb: pass it by touch before the fuse burns out, and haunt the survivors after you pop.",
+    "source": "fuse/"
+  },
+  {
+    "slug": "trapdoor",
+    "name": "Trapdoor",
+    "url": "https://trapdoor.wasmer.app",
+    "players": "2 to 8",
+    "description": "Stand on the called shape before the floor drops; shove your rivals into the pit.",
+    "source": "trapdoor/"
   }
 ]
