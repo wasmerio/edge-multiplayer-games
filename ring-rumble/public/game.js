@@ -1,16 +1,28 @@
 export const TICK_HZ = 30;
-export const COLORS = ["#b3ff70", "#ad94ff", "#ff866b", "#6fdcff", "#ffcb65", "#ff82c8", "#6effcf", "#f2f0df"];
 export const INPUT = { LEFT: 1, RIGHT: 2, UP: 4, DOWN: 8, PUNCH: 16, DASH: 32 };
 export const mapSize = (n) => ({ radius: 5.8 + Math.max(0, n - 2) * 0.45 });
 const round = (v) => Math.round(v * 100) / 100 || 0;
 
+
+// The engine delivers an intent object; a bare bitmask is the compact form the
+// scenarios and the replay fixture use.
+export function maskOf(input) {
+  if (typeof input === "number") return (input | 0) & 63;
+  if (!input || typeof input !== "object") return 0;
+  return (input.x < 0 ? 1 : 0) | (input.x > 0 ? 2 : 0) | (input.z < 0 ? 4 : 0) | (input.z > 0 ? 8 : 0)
+    | (input.punch ? 16 : 0) | (input.dash ? 32 : 0);
+}
+
 export class Game {
-  constructor(playerCount, opts = mapSize(playerCount)) {
+  constructor(playerCount, opts, rng) {
     if (!Number.isInteger(playerCount) || playerCount < 2 || playerCount > 8) throw new RangeError("2 to 8 fighters required");
     this.n = playerCount;
-    this.baseRadius = opts.radius;
+    this.rng = rng;
+    this.baseRadius = opts?.arena?.radius ?? opts?.radius ?? mapSize(playerCount).radius;
     this.scores = Array(playerCount).fill(0);
     this.round = 0;
+    this.tick = 0;
+    this.clock = 0;
     this.roundOver = true;
     this.disconnected = new Set();
     this.fighters = [];
@@ -19,6 +31,7 @@ export class Game {
   startRound() {
     this.round++;
     this.tick = 0;
+    this.clock = 0;
     this.freeze = 60;
     this.radius = this.baseRadius;
     this.roundOver = false;
@@ -43,6 +56,7 @@ export class Game {
 
   step(inputs) {
     if (this.roundOver) return this.snapshot();
+    this.clock++;
     const deaths = this.pendingDeaths.splice(0);
     const events = [];
     if (this.freeze > 0) {
@@ -55,7 +69,7 @@ export class Game {
     for (let i = 0; i < this.n; i++) {
       const p = this.fighters[i];
       if (!p.alive) continue;
-      const mask = (inputs[i] | 0) & 63;
+      const mask = maskOf(inputs[i]);
       for (const key of ["attack", "punchCooldown", "dash", "cooldown", "stun"]) p[key] = Math.max(0, p[key] - 1);
       let x = Number(!!(mask & 2)) - Number(!!(mask & 1));
       let z = Number(!!(mask & 8)) - Number(!!(mask & 4));
@@ -146,10 +160,17 @@ export class Game {
     return target;
   }
 
+  // `hit[i]` is a bitmask of the fighters that fighter i struck this tick.
   snapshot(e = [], d = []) {
-    return { t: "s", k: this.tick, r: round(this.radius), f: this.freeze,
-      p: this.fighters.map(p => [round(p.x), round(p.z), round(p.a), p.damage, +p.alive, p.attack, p.dash, p.cooldown, p.stun]),
-      e, d, over: this.roundOver, win: this.roundWinner, scores: [...this.scores] };
+    const f = this.fighters;
+    const hit = f.map(() => 0);
+    for (const [attacker, victim] of e) hit[attacker] |= 1 << victim;
+    return { n: this.clock, k: this.tick, f: this.freeze, r: round(this.radius ?? this.baseRadius),
+      over: this.roundOver, win: this.roundWinner ?? -1,
+      x: f.map(p => round(p.x)), z: f.map(p => round(p.z)), a: f.map(p => round(p.a)),
+      dmg: f.map(p => p.damage), alive: f.map(p => p.alive),
+      atk: f.map(p => p.attack), dash: f.map(p => p.dash), cd: f.map(p => p.cooldown), stun: f.map(p => p.stun),
+      hit, d };
   }
 
   winner(target) {
@@ -171,3 +192,45 @@ export function botInput(game, i) {
   if (game.tick % 45 < 28) mask |= 16;
   return mask;
 }
+
+export const hitPairs = (snapshot) => snapshot.hit.flatMap((mask, attacker) =>
+  snapshot.hit.flatMap((_, victim) => (mask & (1 << victim) ? [[attacker, victim]] : [])));
+
+export const SNAPSHOT = {
+  // `n` counts every step of the round, countdown included, so the stream stays ordered while `k` is frozen.
+  tickField: "n",
+  interpolate: ["x", "z", "r", "a"],
+  fields: {
+    n: { type: "uint", bits: 16 },
+    k: { type: "uint", bits: 16 },
+    f: { type: "uint", bits: 8 },
+    r: { type: "fixed", scale: 100, bits: 16 },
+    over: { type: "bool" },
+    win: { type: "int", bits: 8 },
+    x: { type: "fixed", scale: 100, bits: 16, per: "player" },
+    z: { type: "fixed", scale: 100, bits: 16, per: "player" },
+    a: { type: "fixed", scale: 100, bits: 16, per: "player", wrap: 2 * Math.PI },
+    dmg: { type: "uint", bits: 8, per: "player" },
+    alive: { type: "bool", per: "player" },
+    atk: { type: "uint", bits: 8, per: "player" },
+    dash: { type: "uint", bits: 8, per: "player" },
+    cd: { type: "uint", bits: 8, per: "player" },
+    stun: { type: "uint", bits: 8, per: "player" },
+    hit: { type: "uint", bits: 8, per: "player" },
+    d: { type: "players" },
+  },
+};
+
+export const INTENT = {
+  x: { min: -1, max: 1, neutral: 0 },
+  z: { min: -1, max: 1, neutral: 0 },
+  punch: { values: [0, 1], neutral: 0 },
+  dash: { values: [0, 1], neutral: 0 },
+};
+
+export const BINDINGS = {
+  x: { keys: { ArrowLeft: -1, KeyA: -1, ArrowRight: 1, KeyD: 1 }, axis: 0 },
+  z: { keys: { ArrowUp: -1, KeyW: -1, ArrowDown: 1, KeyS: 1 }, axis: 1 },
+  punch: { keys: { KeyJ: 1 }, buttons: { 0: 1 } },
+  dash: { keys: { KeyK: 1, ShiftLeft: 1, ShiftRight: 1 }, buttons: { 1: 1 } },
+};

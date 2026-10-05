@@ -2,54 +2,84 @@
 
 A 2–8 player push-your-luck drilling race (solo practice also works). Drill a volatile vault, cool your tool, and bank your haul before it melts. Everyone shares the same rich-vein timing, but chooses their own risk. No falling objects, trails, or combat.
 
-## Contract — written before implementation
+The game runs on the repository engine (`engine/`, pinned at `1.0.0` in `public/index.html`). The engine owns the lobby, signaling, WebRTC star, tick loop, snapshot codec, guest interpolation, input sources and chrome. This directory holds the simulation, the snapshot schema, the intent and the renderer.
 
-- **Input:** one integer per player: `-1` bank, `0` cool, `1` drill. Hold Left/Right; A/D controls the optional second host player. Opposite buttons cancel. Touch buttons control player one. Guests send `{t:"i",d}` only on change; the host samples its local intent. Blur/hidden page releases input.
-- **Snapshot:** 30 Hz `{t:"s",k,v,p,d,over}`. `k` is elapsed round ticks; `v` is `[rich, ticksUntilVeinChange]`; `p` contains `[heat,haul,bankProgress,lockTicks,mode,active,score]` per player, all integers. `d` is an event array of `[player,type,amount]` (1 bank, 2 meltdown, 3 closing loss). `over` is boolean. Player arrays fit well below 100 bytes each. Every frame redraws from the snapshot plus the lobby player table; no historical canvas or guest simulation is required. `score` messages retain the reference loop shape, and snapshots also carry scores.
-- **Round lifecycle:** `lobby` supplies players, target 60, and canvas dimensions. `round` resets heat, unbanked haul, drilling/banking progress, lockouts and tick clock, preserving banked scores and disconnected status. Each shift lasts 900 ticks / 30 seconds. Every 180 ticks, the last 60 are rich: triple ore but double heating. Drill grants ore every 10 drilling ticks; interrupted drilling resets fractional progress. At 90 heat, lose all haul and lock out for 45 ticks. Cooling removes 2 heat/tick; banking removes 1 and requires 24 uninterrupted ticks to deposit all haul. Closing destroys unbanked ore (a bank completing on the last tick counts). `over` carries the unique match leader at or above 60, otherwise -1. Ties continue another shift. Host Space or Next shift advances; after a match it starts a fresh match with scores reset.
+## Contract
 
-## Architecture and controls
+### Input
 
-Achtung's static/signaling server and client prefix before `applyMessage` remain byte-for-byte unchanged. One host simulates, ordered reliable star DataChannels carry intent and snapshots, and all peers render via `applyMessage`. Work per tick is O(players). Departed players forfeit their haul and stay inactive; a closed guest channel is also detected by the host loop. Late arrivals wait for a new match. No reconnect/resume or host migration. Keep the host tab visible; background scheduling is capped rather than rapidly replaying a whole hidden shift. STUN-only networking may fail across symmetric NAT; signaling rooms are instance-local and ephemeral.
+One intent field, `act`, declared as `INTENT` in `public/game.js`: `-1` bank, `0` cool, `1` drill.
 
-`/?create=1` automatically creates and displays a full invite link, `/?room=CODE` automatically joins, and the header links to the superapp. `/healthz` remains cross-origin readable. Reload to leave a match or create another room.
+| Source | Mapping |
+|---|---|
+| Keyboard | `ArrowLeft` banks, `ArrowRight` drills. Both together cancel to cool. |
+| Touch | `← bank` and `drill →` buttons on coarse-pointer devices. |
+| Gamepad | Axis 0. |
 
-## Local checks / shared notebook
+The engine sends the intent only on change, re-sends it on an interval, and releases it on blur. The simulation treats any other value as cool.
 
-Installed runtimes are used without package installation; the supplied game directory does not resolve `ws` in this environment (see blocked server check below).
+### Snapshot
 
-```sh
-cd daily-2026-09-09
-node test/run.mjs
-node --check public/client.js
-PORT=8765 node src/server.js
+Declared as `SNAPSHOT` in `public/game.js` and encoded by the engine codec at 30 Hz. Every frame redraws from one snapshot plus the lobby player table.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `k` | uint16 | Elapsed round ticks, `0..900`. Tick field. |
+| `over` | bool | The shift has closed. |
+| `rich` | bool | The rich vein is open. |
+| `vein` | uint8 | Ticks until the vein changes. |
+| `heat` | uint8 per player | `0..90`. Interpolated on guests; the renderer rounds it for text. |
+| `haul` | uint16 per player | Unbanked ore. |
+| `bank` | uint8 per player | Deposit progress, `0..24`. |
+| `lock` | uint8 per player | Meltdown lockout ticks left. |
+| `mode` | int8 per player | The intent the rig is acting on. |
+| `active` | bool per player | False after the player leaves. |
+| `score` | uint16 per player | Banked ore. |
+| `ev` | uint8 per player | Event this tick: `0` none, `1` bank, `2` meltdown, `3` closing loss. |
+| `amt` | uint16 per player | Ore the event moved or destroyed. |
+
+A rig has at most one event per tick, so the old `[player, type, amount]` event list became the two per-player fields `ev` and `amt`. An eight-player snapshot is 94 bytes, against a budget of 800.
+
+### Round lifecycle
+
+- `startRound()` resets heat, unbanked haul, drilling and banking progress, lockouts and the tick clock. Banked scores and disconnected status persist.
+- A shift lasts 900 ticks (30 seconds). In every 180 ticks the last 60 are rich: triple ore, double heat.
+- Drilling grants ore every 10 drilling ticks; an interruption resets the fractional progress.
+- At 90 heat the rig loses its haul and locks for 45 ticks.
+- Cooling removes 2 heat per tick. Banking removes 1 and needs 24 uninterrupted ticks to deposit the whole haul.
+- Closing destroys unbanked ore. A bank that completes on the last tick counts.
+- `winner(60)` is the unique active leader at or above 60, otherwise `-1`. Ties play another shift.
+- The host advances with Space or the Next round button. `disconnect(index)` forfeits that rig's haul and keeps it inactive.
+
+The simulation uses no randomness. The injected generator is stored and never read.
+
+## Changes from the pre-engine version
+
+The engine lobby replaced the per-game lobby, so the optional second local player (A/D) and the display-size selector are gone. Banner texts are the engine's. After a match win the engine keeps announcing the winner; reload to start a new match.
+
+## Local checks
+
+```bash
+npm test
 ```
 
-- **PASS:** `node test/run.mjs` — interface smoke test plus four exported scenarios: interrupted/completed banking; exact meltdown and rich-vein recovery; closing, ties, score persistence and departure; deterministic 900-tick eight-player replay. Eight-player snapshots stay below 800 bytes total.
-- **PASS:** `node --check public/client.js`, plus syntax checks for `public/game.js` and `test/scenarios.js`.
-- **PASS:** `/tmp/vault-static-check.mjs` compares the protected client prefix and full server directly against Achtung; checks unique/present DOM IDs, retained auto-create/auto-join/invite/superapp source contracts, and hidden-panel CSS. These are source checks, not browser verification.
-- **BLOCKED / pending:** attempted `PORT=8765 node src/server.js` exits with `ERR_MODULE_NOT_FOUND: ws`. No dependency or protected file was changed. `curl` is also absent; the fallback `/tmp/vault-check.mjs` HTTP probe fails with local socket `EPERM`. Thus `/healthz` CORS, root 200, `/ws` 426, traversal 404 and live signaling remain unverified. Coordinator must provide the prepared ws dependency and a network-capable runtime, then rerun.
-- Local browser: **pending** — two tabs, DataChannel open, guest drill/bank, local player two, touch release, next shift / new match, auto-create invite and auto-join.
-- Production browser, health, WebSocket, packaging/provider checks: **pending** (coordinator).
+This runs the four original scenarios, the engine shape check, the snapshot budget at eight players, an exact codec round trip, the committed replay fixture `test/replay.ndjson` (four players, three shifts, seed `20260909`), and a determinism check.
 
-## Registration and deployment handoff
+From the repository root:
 
-`game-entry.json` supplies display metadata. The coordinator registers the slug `daily-2026-09-09`, players `2 to 8`, source `daily-2026-09-09/` in both catalogs, adds `/daily-2026-09-09/` to the root `.wasmerignore`, and uses `url: null` in **public/games.json** until deployment. The root superapp does not read the automation catalog.
+```bash
+node scripts/dev.mjs daily-2026-09-09 8811
+```
 
-After merge, from the repository root:
+Open `http://localhost:8811/?create=1` and open the invite link in a second tab.
 
-```sh
+## Registration and deployment
+
+`game-entry.json` supplies the catalog metadata. From the repository root:
+
+```bash
+node scripts/sync-engine.mjs game daily-2026-09-09
 ./deploy.sh daily-2026-09-09 super
 ```
 
-This must read the actual Wasmer URL, update the root catalog, and redeploy the superapp (AGENTS.md §3.8). Do not guess a URL. Commits, pushes, deployment and credentials are left to the coordinator.
-
-**Deployment blocker outside editable paths:** the supplied `app.yaml` still has Achtung's name, app_id and annotations, and `package.json` still has Achtung metadata. The coordinator must rename the app/package, remove copied app_id and annotations, confirm owner, and preserve fr-roub1 / Node start / ws-only dependency before deploying. These files are not permitted edits for this task. Skills/package preparation is supplied; no Wasmer invocation was made.
-
-
-## Automated check status
-
-The Wasmer job ran JavaScript syntax, Game interface, and simulation scenario checks.
-Two-browser gameplay, invite behavior, and production deployment remain pending.
-The PR registers the game in public/games.json with a pending URL. Deploy the game and superapp to publish it.
-Complete the repository AGENTS.md checklist before calling this game done.
+The first command copies the engine's server modules into `engine/` (ignored by git); `src/server.js` imports them. The deploy script reads the deployed URL from Wasmer, updates the root catalog, and redeploys the superapp. Do not guess a URL. Production two-browser play remains a human check.

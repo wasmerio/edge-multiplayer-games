@@ -5,6 +5,6 @@
   "description": "A 3D arena fighter with browser-hosted WebRTC multiplayer on Wasmer Edge",
   "type": "module",
   "engines": { "node": ">=22" },
-  "scripts": { "start": "node src/server.js", "test": "node --test test/game.test.js" },
+  "scripts": { "start": "node src/server.js", "test": "node --test test/*.test.js" },
   "dependencies": { "ws": "^8.20.1" }
 }

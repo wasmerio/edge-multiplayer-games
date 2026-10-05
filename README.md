@@ -15,8 +15,9 @@ deployable on its own.
 | Prism Post | [`daily-2026-09-11/`](daily-2026-09-11/) | https://daily-2026-09-11.wasmer.app |
 
 Want to add a game? Read [`AGENTS.md`](AGENTS.md). It is the step by step
-recipe for cloning the model below onto any real-time multiplayer game
-and registering it in the superapp.
+recipe: scaffold a game on the engine, author its simulation and drawing,
+pass conformance, deploy, and register it in the superapp. The engine API
+is in [`engine/README.md`](engine/README.md).
 
 ## The model
 
@@ -37,24 +38,32 @@ and registering it in the superapp.
 
 Three layers, each with one job.
 
-**Signaling on Edge.** A small Node server (`src/server.js`) serves the
-static client and runs a WebSocket endpoint that knows nothing about any
-game. It hands out room codes, keeps the peer list per room, and relays
+**Signaling on Edge.** The engine's Node server (`engine/server.js`, called
+from each game's five-line `src/server.js`) serves the static client and
+runs a WebSocket endpoint that knows nothing about any game. It hands out room codes, keeps the peer list per room, and relays
 opaque `signal` blobs between two peers by id. Those blobs are the WebRTC
 handshake: SDP offer, SDP answer, ICE candidates. After the handshake the
-socket is only used for late joiners and `host-left`.
+socket is only used for late joiners, rejoins, and host departure.
 
 **Transport between browsers.** The room creator is the host. It opens one
 `RTCPeerConnection` and one `RTCDataChannel` per guest. Guests never talk
 to each other. Public STUN discovers addresses; there is no TURN.
 
 **Game state on the host.** Only the host runs the simulation
-(`public/game.js`). It ticks at a fixed rate, applies the latest input per
-player, and broadcasts a snapshot every tick. Every peer, host included,
-renders through the same `applyMessage()` path. State is never agreed
-upon between peers: one writer owns it and streams it over an ordered,
-reliable channel. Guests send intent (`{t:"i", d:-1}`) only when it
-changes.
+(`public/game.js`). The engine ticks it at a fixed rate, applies the latest
+intent per player, and broadcasts a binary snapshot every tick, encoded
+from the schema the game declares. Every peer, host included, draws
+through the game's one `draw(surface, snapshot, ctx)` function; guests
+draw an interpolated stream. State is never agreed upon between peers:
+one writer owns it and streams it over an ordered, reliable channel.
+Guests send intent only when it changes.
+
+**The engine.** `engine/` is the single copy of everything a game does not
+write: server, lobby and invite panel, WebRTC star, loop, snapshot codec,
+input sources, 2D surface, audio, diagnostics. Browsers import it from
+`https://edge-multiplayer-games.wasmer.app/engine/<version>/`, which the
+superapp serves from `public/engine/<version>/`. A game pins that version
+in the import map of its `index.html`.
 
 ## Why this shape
 
@@ -80,7 +89,7 @@ cold-starting instance.
 Static was a deliberate choice over a Node index: no instance, no cold
 start, nothing to break, and the games already expose what the page
 needs. If the index ever needs server-side features (a shared room
-directory, stats), give it the same `src/server.js` shape as a game.
+directory, stats), give it the same `serveGame` call as a game.
 
 Registering a game is one entry in `public/games.json`:
 
@@ -102,12 +111,12 @@ not an exact count.
 ## Quick start
 
 ```bash
-cd achtung
-npm install
-PORT=8080 node src/server.js
+node scripts/dev.mjs achtung 8080
 ```
 
-Open http://localhost:8080 in two tabs. Create a room in one, join with
+The command publishes the engine into `public/engine/`, copies its server
+modules into the game, installs `ws`, and serves the game against this
+checkout. Open http://localhost:8080 in two tabs. Create a room in one, join with
 the code or the copied invite link in the other, press **Start game** on
 the host. For the superapp, any static file server over `public/` works:
 
@@ -133,6 +142,9 @@ Package visibility does not restrict access to the public game website.
 ./deploy.sh ring-rumble super # 3D fighter and its index card
 ```
 
+For each game, the script first copies the engine's server modules into
+`<game>/engine/`. Before the root deployment, it verifies that
+`public/engine/<version>/` matches `engine/`.
 The script checks that `wasmer whoami` points at `wasmer.io`, runs
 `wasmer deploy --non-interactive` for the root, and adds `--build-remote` for each game.
 Before the root deployment, it installs the pinned Pi dependencies and prepares them for QuickJS.
@@ -156,10 +168,11 @@ New game PRs include a root catalog entry with `url: null`; the page shows these
 Check catalog updates and pending cards with:
 
 ```bash
-node scripts/register-game.test.mjs
-node scripts/superapp.test.mjs
-node scripts/deploy.test.mjs
+node --test scripts/*.test.mjs
 ```
+
+The same command runs the conformance, engine publication, and
+documentation tests. The glob form is required.
 
 `CLAUDE.md` is a symlink to `AGENTS.md`, and the packager refuses
 symlinks. The root `.wasmerignore` file uses Git-style patterns and applies only
@@ -208,22 +221,25 @@ runtime, packages, WASIX, compiler backends, debugging).
 ```
 edge-multiplayer-games/
 ├── README.md              this file
-├── AGENTS.md              how to clone the model onto a new game
+├── AGENTS.md              how to add a game on the engine
 ├── CLAUDE.md -> AGENTS.md
 ├── app.yaml               superapp configuration and daily cron schedule
 ├── wasmer.toml            static server and generation commands
 ├── automation/daily-game/ Pi implementation, dependencies, and tests
 ├── deploy.sh              root package and remote game builds
+├── engine/                the engine: one copy, API in engine/README.md
+├── scripts/               new-game, dev, conformance, soak, sync-engine
 ├── public/
 │   ├── index.html         game index with live status
+│   ├── engine/<version>/  published engine, served to every game
 │   └── games.json         registry of deployed games
 └── achtung/               one directory per game, self-contained
     ├── app.yaml
     ├── package.json
-    ├── src/server.js      signaling + static (game-agnostic)
+    ├── src/server.js      one serveGame call into the engine
+    ├── test/              scenarios, reference match, replay fixture
     └── public/
-        ├── game.js        simulation (host only, headless-testable)
-        ├── client.js      lobby, WebRTC, renderer, input
-        ├── index.html
-        └── style.css
+        ├── game.js        simulation, SNAPSHOT, INTENT (headless-testable)
+        ├── client.js      one startGame call: bindings and draw
+        └── index.html     container and the pinned engine import map
 ```

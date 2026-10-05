@@ -1,0 +1,20 @@
+# Header rules for the superapp's static server; measurements in engine/README.md.
+[advanced]
+
+# D-12: a literal allowance, plus vary for a cache that stored a reflected origin.
+[[advanced.headers]]
+source = "/{engine,assets}/**"
+[advanced.headers.headers]
+Access-Control-Allow-Origin = "*"
+Vary = "Accept-Encoding, Origin"
+
+# D-13: the index and the catalog change on every deploy and must revalidate.
+[[advanced.headers]]
+source = "/{index.html,games.json}"
+[advanced.headers.headers]
+Cache-Control = "no-cache"
+
+[[advanced.headers]]
+source = "/"
+[advanced.headers.headers]
+Cache-Control = "no-cache"

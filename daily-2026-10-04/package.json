@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node src/server.js",
-    "test": "node test/run.mjs"
+    "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
     "ws": "^8.20.1"

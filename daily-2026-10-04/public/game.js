@@ -1,19 +1,24 @@
 // Pure host simulation; coordinates are fractions of the course.
 export const TICK_HZ = 30;
-export const MAP = { baseW: 960, baseH: 680 };
-export const COLORS = ["#ffcf67", "#7ee7db", "#ff8fa3", "#9eafff", "#c5ee82", "#f4a7ee", "#83caff", "#ffac78"];
-export function mapSize() { return { w: MAP.baseW, h: MAP.baseH }; }
-const GATES = [[0.82, 0.78], [0.84, 0.32], [0.52, 0.17], [0.18, 0.28], [0.17, 0.72], [0.5, 0.82]];
-const REEFS = [[0.65, 0.57, 0.075], [0.40, 0.38, 0.08], [0.31, 0.60, 0.05]];
+export const ARENA = { w: 960, h: 680 };
+export const TARGET = 9;
+export const GATE_RADIUS = 0.075;
+export const LAP_GATES = 12;
+export const GATES = [[0.82, 0.78], [0.84, 0.32], [0.52, 0.17], [0.18, 0.28], [0.17, 0.72], [0.5, 0.82]];
+export const REEFS = [[0.65, 0.57, 0.075], [0.40, 0.38, 0.08], [0.31, 0.60, 0.05]];
 const TAU = Math.PI * 2;
 const round = (n) => Math.round(n * 10000) / 10000;
 
 export class Game {
-  constructor(playerCount, opts = mapSize()) {
+  constructor(playerCount, opts, rng) {
+    const arena = opts?.arena ?? ARENA;
     this.n = playerCount;
-    this.w = opts.w;
-    this.h = opts.h;
+    this.rng = rng;
+    this.w = arena.w;
+    this.h = arena.h;
     this.round = 0;
+    this.tick = 0;
+    this.seq = 0;
     this.roundOver = true;
     this.scores = Array(playerCount).fill(0);
     this.disconnected = new Set();
@@ -26,6 +31,7 @@ export class Game {
     this.round++;
     this.roundOver = false;
     this.tick = 0;
+    this.seq = 0;
     this.freeze = 60;
     this.deadline = 1800;
     this.current = [0, 0];
@@ -42,7 +48,8 @@ export class Game {
   }
 
   step(inputs = []) {
-    const events = [];
+    const events = { gate: [], hit: [], done: [], award: [] };
+    if (!this.roundOver) this.seq++;
     if (!this.roundOver && this.freeze > 0) this.freeze--;
     else if (!this.roundOver) {
       this.tick++;
@@ -51,7 +58,8 @@ export class Game {
       for (let i = 0; i < this.n; i++) {
         const b = this.boats[i];
         if (!b.active || b.finish) continue;
-        const turn = inputs[i] === -1 ? -1 : inputs[i] === 1 ? 1 : 0;
+        const raw = inputs[i]?.turn ?? inputs[i];
+        const turn = raw === -1 ? -1 : raw === 1 ? 1 : 0;
         b.a = (b.a + turn * 0.072 + TAU) % TAU;
         if (b.stun) b.stun--;
         const desired = b.stun ? 0.0009 : turn ? 0.0026 : 0.0036;
@@ -82,16 +90,16 @@ export class Game {
         if (hit) {
           b.stun = 24;
           b.speed = 0.0009;
-          events.push([i, 2]);
+          events.hit.push(i);
         }
         const [gx, gy] = this.gates[b.checkpoint % 6];
-        if (Math.hypot(b.x - gx, b.y - gy) <= 0.075) {
+        if (Math.hypot(b.x - gx, b.y - gy) <= GATE_RADIUS) {
           b.checkpoint++;
-          events.push([i, 1]);
-          if (b.checkpoint === 12) {
+          events.gate.push(i);
+          if (b.checkpoint === LAP_GATES) {
             b.finish = this.tick;
             this.deadline = Math.min(this.deadline, this.tick + 240);
-            events.push([i, 3]);
+            events.done.push(i);
           }
         }
       }
@@ -114,16 +122,19 @@ export class Game {
     this.boats.forEach((b, i) => {
       const award = best !== -Infinity && Math.abs(progress[i] - best) < 0.000001 ? 3 : b.active && b.finish ? 1 : 0;
       this.scores[i] += award;
-      if (award) events.push([i, 4]);
+      if (award) events.award.push(i);
     });
   }
 
-  snapshot(events = []) {
+  snapshot(events = {}) {
+    const col = (read) => this.boats.map(read);
     return {
-      t: "s", k: this.tick, f: this.freeze, left: Math.max(0, this.deadline - this.tick),
-      current: this.current.map(round), gates: this.gates, reefs: this.reefs,
-      p: this.boats.map((b) => [round(b.x), round(b.y), round(b.a), b.checkpoint, b.finish, b.stun, b.active ? 1 : 0]),
-      scores: [...this.scores], d: events, over: this.roundOver,
+      n: this.seq, k: this.tick, f: this.freeze, left: Math.max(0, this.deadline - this.tick),
+      cx: round(this.current[0]), cy: round(this.current[1]), over: this.roundOver,
+      x: col((b) => round(b.x)), y: col((b) => round(b.y)), a: col((b) => round(b.a)),
+      cp: col((b) => b.checkpoint), fin: col((b) => b.finish), stun: col((b) => b.stun),
+      on: col((b) => b.active), scores: [...this.scores],
+      gate: events.gate ?? [], hit: events.hit ?? [], done: events.done ?? [], award: events.award ?? [],
     };
   }
 
@@ -132,3 +143,33 @@ export class Game {
     return best >= target && this.scores.filter((s) => s === best).length === 1 ? this.scores.indexOf(best) : -1;
   }
 }
+
+// `n` counts every step of the round, countdown included, so guests can order
+// frames while `k` (race ticks) stands still. Headings wrap, so they never blend.
+export const SNAPSHOT = {
+  tickField: "n",
+  interpolate: ["x", "y", "a"],
+  fields: {
+    n: { type: "uint", bits: 16 },
+    k: { type: "uint", bits: 16 },
+    f: { type: "uint", bits: 8 },
+    left: { type: "uint", bits: 16 },
+    cx: { type: "fixed", scale: 10000, bits: 8 },
+    cy: { type: "fixed", scale: 10000, bits: 8 },
+    over: { type: "bool" },
+    x: { type: "fixed", scale: 10000, bits: 16, signed: false, per: "player" },
+    y: { type: "fixed", scale: 10000, bits: 16, signed: false, per: "player" },
+    a: { type: "fixed", scale: 5000, bits: 16, per: "player", wrap: 2 * Math.PI },
+    cp: { type: "uint", bits: 8, per: "player" },
+    fin: { type: "uint", bits: 16, per: "player" },
+    stun: { type: "uint", bits: 8, per: "player" },
+    on: { type: "bool", per: "player" },
+    scores: { type: "uint", bits: 16, per: "player" },
+    gate: { type: "players" },
+    hit: { type: "players" },
+    done: { type: "players" },
+    award: { type: "players" },
+  },
+};
+
+export const INTENT = { turn: { min: -1, max: 1, neutral: 0 } };

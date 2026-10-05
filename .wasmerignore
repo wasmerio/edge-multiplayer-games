@@ -12,3 +12,6 @@
 /counterstrike/
 /daily-2026-10-04/
 /daily-2026-10-05/
+# Engine source; the served copy is public/engine/<version>/.
+/engine/
+/worklogs/

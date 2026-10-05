@@ -77,15 +77,44 @@ NODE
   rm -rf "$package_dir"
 }
 
+check_published_engine() {
+  local problems
+  [ -f "$ROOT/scripts/sync-engine.mjs" ] || die "super: scripts/sync-engine.mjs is missing; cannot verify the published engine"
+  if ! problems=$(node "$ROOT/scripts/sync-engine.mjs" verify 2>&1); then
+    die "super: published engine is missing or differs from engine/ (run 'node scripts/sync-engine.mjs publish'): $(echo "$problems" | tr '\n' ';')"
+  fi
+  echo "super: $problems"
+}
+
+# The packager honours .gitignore, which hides engine/; an .ignore whitelist outranks it.
+temp_ignores=()
+cleanup_ignores() { local f; for f in "${temp_ignores[@]:-}"; do if [ -n "$f" ]; then rm -f "$f"; fi; done; }
+trap cleanup_ignores EXIT
+
+sync_engine_half() {
+  local name=$1 dir=$2
+  grep -q '\.\./engine/server\.js' "$dir/src/server.js" 2>/dev/null || return 0
+  node "$ROOT/scripts/sync-engine.mjs" game "$name" || die "$name: cannot copy the engine's server modules"
+  [ -f "$dir/engine/server.js" ] || die "$name: $dir/engine/server.js is missing after the engine sync"
+  if [ -f "$dir/.ignore" ]; then
+    grep -qxF '!/engine/' "$dir/.ignore" || die "$name: $dir/.ignore must contain '!/engine/' or engine/ is left out of the upload"
+  else
+    printf '!/engine/\n' > "$dir/.ignore"
+    temp_ignores+=("$dir/.ignore")
+  fi
+}
+
 deploy_dir() {
   local name=$1 dir=$2
   [ -f "$dir/app.yaml" ] || die "$dir has no app.yaml"
   echo
   echo "==> $name ($dir)"
+  [ "$name" = super ] || sync_engine_half "$name" "$dir"
   local args=(--non-interactive)
   if [ -f "$dir/wasmer.toml" ]; then
     args+=(--bump)
     if [ "$name" = super ]; then
+      check_published_engine
       command -v npm >/dev/null || die "npm is required to prepare Pi for the root package"
       npm ci --prefix "$ROOT/automation/daily-game/pi" --ignore-scripts --no-bin-links --no-audit --no-fund
       npm run --prefix "$ROOT/automation/daily-game/pi" prepare:wasmer

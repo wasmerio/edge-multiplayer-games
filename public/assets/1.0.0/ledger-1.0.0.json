@@ -1,0 +1,37 @@
+{
+  "palette": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "ui-sprites": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "blip": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "hit": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "score": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "start": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  },
+  "win": {
+    "source": "Generated in this repository by scripts/make-assets.mjs",
+    "licence": "First-party work of the repository owner; no third-party material",
+    "attribution": "None required"
+  }
+}

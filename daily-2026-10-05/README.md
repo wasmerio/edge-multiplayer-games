@@ -2,40 +2,51 @@
 
 A precision broadcast race for 2–8 players (or solo practice). Turn a momentum-driven antenna toward the gold transmission window. Every 2.5 seconds the relay fires: the inner ±8° earns 3 points, the outer ±22° earns 1, and a miss earns 0. Everyone has the same target and starting angle. A dashed marker previews the next target. Release to brake, or countersteer to reverse. Ten broadcasts make a round; a unique leader with at least 60 total points wins at round end. Ties continue into another round.
 
-## Contract — written before implementation
+## Contract
 
-- **Input:** one integer per player, `-1 | 0 | 1`, counterclockwise / brake / clockwise. Guests send `{t:"i", d}` only on change over the existing ordered reliable DataChannel. Host reads `state.localDirs`. Arrow keys or touch buttons control player one; A/D controls the optional second local player. Both directions together brake. Blur releases controls. No client simulation.
-- **Snapshot:** `{t:"s", k, f, b, a:[current,next], p:[[angle,velocity,roundPoints,active,lastAward],…], q:[totalScores], d:[[player,award],…], over}` at 30 Hz. Angles are degrees clockwise from twelve o'clock, rounded to tenths; velocity is rounded to hundredths. `f` is the remaining ready countdown, `b` is completed broadcasts, `k` is active round ticks. A broadcast occurs every 75 active ticks, ten per round. `lastAward` is -1 before the first broadcast. `d` is the broadcast event list (including misses), not deaths; it retains the host loop's score-message trigger. The complete arrays suffice to redraw without history; no trails or accumulated guest state. Target angles change on the tick after a broadcast so the scoring snapshot shows the window actually scored. Snapshots aim below 100 bytes/player plus fixed overhead.
-- **Round lifecycle:** `startRound()` increments `round`, clears round points, velocity, tick and pulse counters, resets angles to 270°, and gives a 30-tick ready countdown. Totals and disconnected-player flags persist. `round` resets the view and local/remote intent to neutral. `score` repeats totals for the existing host loop. After ten pulses, `over` freezes simulation and `{t:"over", winner}` carries the unique match winner or -1. Host Space / Next round advances; after a match win it starts a fresh match. Disconnects remove that antenna from scoring and winner eligibility. New arrivals wait for a fresh match; reconnect/resume is not supported.
+The game runs on the repository engine (`engine/`, pinned at `1.0.0` in `public/index.html`). The engine owns the lobby, signaling, WebRTC star, fixed-tick host loop, snapshot codec and page chrome. This directory holds the simulation (`public/game.js`), the draw function (`public/client.js`) and the tests.
 
-## Architecture / sub-app contract
+### Input
+The intent is `{ turn }` with `turn` in `-1 | 0 | 1`: counterclockwise, brake, clockwise (`INTENT` in `game.js`). Arrow keys rotate; both keys together brake. Touch devices get two hold-to-rotate buttons, and a gamepad's first axis rotates too. The engine sends the intent only when it changes, re-sends it once a second, and clears it on blur. The simulation also accepts a bare number per player, which the scenario tests use. Guests run no simulation.
 
-`src/server.js` is copied verbatim from Achtung. The entire `public/client.js` prefix before `function applyMessage(msg) {` stays byte-for-byte identical. The browser creator alone runs `Game.step()` in a fixed-rate accumulator; all drawing is reached through `applyMessage`. The server only serves static files and relays SDP/ICE. Simulation is headless, deterministic, O(players), and independent of canvas size.
+### Snapshot
+Declared once as `SNAPSHOT` in `game.js` and encoded by the engine's binary codec (85 bytes at eight players, against a budget of 100 bytes per player), at 30 Hz.
 
-`/?create=1` auto-creates and displays the full invite link plus copy button; `/?room=CODE` auto-joins using the stored/generated name. The header links back to the superapp. `/healthz` returns `{ok,rooms,players}` with wildcard CORS. Existing Achtung storage/debug names remain for prefix compatibility. Keep the host tab visible: browser timer throttling can pause play. STUN-only connections cannot cross every NAT; rooms are per-instance and host authority is trusted.
+| Field | Type | Meaning |
+|---|---|---|
+| `n` | uint16 | Steps since the round began, countdown included. The frame order key for guests. |
+| `k` | uint16 | Active round ticks; stays at zero during the countdown. |
+| `f` | uint8 | Ready countdown ticks remaining. |
+| `b` | uint8 | Completed broadcasts. |
+| `aim`, `next` | uint16 | Current and next target, in degrees clockwise from twelve o'clock. |
+| `over` | bool | The round has ended. |
+| `ang` | fixed, tenths of a degree, per player | Antenna angle. Not interpolated, because it wraps at 360. |
+| `vel` | fixed, hundredths, per player | Angular velocity in degrees per tick. |
+| `pts` | uint8, per player | Points this round. |
+| `on` | bool, per player | False once the player has disconnected. |
+| `last` | int8, per player | Last broadcast award, -1 before the first broadcast. |
+| `q` | uint16, per player | Match totals. |
+| `d` | player list | Antennas a broadcast scored on this tick, misses included; the award is in `last`. |
+
+A broadcast occurs every 75 active ticks, ten per round. Target angles change on the tick after a broadcast, so the scoring snapshot shows the window that was scored. Every frame redraws from the snapshot alone.
+
+### Round lifecycle
+`startRound()` increments `round`, clears round points, velocity, tick and pulse counters, resets angles to 270°, and gives a 30-tick ready countdown. Totals and disconnected-player flags persist. After ten pulses the round ends and the engine's `over` message carries the unique match winner or -1. The match target is 60; a tie continues into another round. The host advances with Space or the Next round button. Disconnects remove that antenna from scoring and winner eligibility. The simulation draws no randomness, so a replay needs only the input log.
 
 ## Local checks
 
-From this directory:
-
 ```bash
-node test/run.mjs
-node --check public/client.js
-PORT=8765 node src/server.js
+cd daily-2026-10-05
+npm test
 ```
 
-Check `/healthz`, `/`, `/ws` (426), and `/../etc/passwd` (404 using curl `--path-as-is`). Browser checklist: create and join in two tabs, confirm connected/open, start, steer from guest, observe scores, advance with Space, and verify the create/invite/auto-join flow. Touch controls and narrow-screen layout also need browser verification.
+From the repository root, run the game against the engine in the checkout:
 
-### Check notebook
+```bash
+node scripts/dev.mjs daily-2026-10-05 8765
+```
 
-- Contract and reference/catalog review: complete.
-- **PASS:** `node test/run.mjs` — interface check plus three exported scenarios: scoring/wraparound, momentum/braking/disconnect, and complete round/tie/reset/snapshot budget. Eight-player snapshots stay below 900 bytes including fixed overhead.
-- **PASS:** `node --check public/client.js`, `node --check public/game.js`, and `node --check test/scenarios.js`.
-- **PASS:** `/tmp/relay-protected.mjs` compares the entire protected client prefix and `src/server.js` directly with Achtung; both are identical. Required invite/header element IDs are present.
-- **PASS (mocked, not browser):** `/tmp/relay-client-check.mjs` executes the client against a mock DOM/canvas: create/invite, two local players, steering, blur release, all round snapshots, next-round button, match restart, and change-only guest intent.
-- **BLOCKED / pending:** attempted `PORT=8765 node src/server.js`; the supplied environment has no resolvable `ws` dependency (`ERR_MODULE_NOT_FOUND`). The requested HTTP probes could not run; `curl` is also absent. No dependency files or protected files were changed to work around this. Coordinator must prepare `ws`, start the server, and verify health/CORS, root 200, `/ws` 426, and traversal 404.
-- Local two-tab WebRTC, visual/touch checks and automatic invite flow: **pending**.
-- Production, deployment and online superapp card: **pending**.
+`npm test` runs the three rule scenarios in `test/scenarios.js`, the engine shape check, an exact codec round trip over a whole round, the eight-player snapshot budget, and the replay of the committed fixture `test/replay.ndjson` (four players, three rounds).
 
 ## Registration / coordinator handoff
 

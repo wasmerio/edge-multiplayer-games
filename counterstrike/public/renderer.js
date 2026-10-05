@@ -118,11 +118,11 @@ export class FirstPersonView {
       this.box(group,0.22,1.19,-0.4,0.12,0.14,0.72,'#26332e');
       this.scene.add(group); return group;
     });
-    this.mine=mine; this.latest=null; this.previous=null; this.cameraReady=false; this.clearEffects();
+    this.mine=mine; this.clearEffects();
   }
   clearEffects() {
     for(const t of this.tracers) { this.scene.remove(t.line); t.line.geometry.dispose(); t.line.material.dispose(); }
-    this.tracers=[]; this.recoil=0; this.latest=null; this.previous=null; this.cameraReady=false;
+    this.tracers=[]; this.recoil=0; this.latest=null; this.previous=null; this.raw=null; this.cameraReady=false;
   }
   makeGun(id) {
     if(this.flash) this.flash.material.dispose();
@@ -140,15 +140,22 @@ export class FirstPersonView {
     this.flash.material=new THREE.MeshBasicMaterial({color:'#ffe6a0'}); this.flash.visible=false;
     this.weaponId=id;
   }
-  update(snapshot) {
-    const previous=this.latest;
-    this.previous=previous; this.latest=snapshot; this.receivedAt=performance.now();
-    if(!previous || previous.k!==snapshot.k) for(const [who,x1,y1,x2,y2,hit,z2] of snapshot.e) {
-      const points=[new THREE.Vector3(x1/SCALE,RULES.eye/SCALE,y1/SCALE),new THREE.Vector3(x2/SCALE,z2/SCALE,y2/SCALE)];
+  // Every authoritative snapshot, once: tracers and hit feedback come from here, never from an interpolated sample.
+  tick(snapshot) {
+    this.raw=snapshot; this.receivedAt=performance.now();
+    snapshot.shot.forEach((fired,who)=>{
+      if(!fired) return;
+      const hit=snapshot.sh[who];
+      const points=[new THREE.Vector3(snapshot.x[who]/SCALE,RULES.eye/SCALE,snapshot.y[who]/SCALE),new THREE.Vector3(snapshot.sx[who]/SCALE,snapshot.sz[who]/SCALE,snapshot.sy[who]/SCALE)];
       const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineBasicMaterial({color:COLORS[who%2],transparent:true,opacity:0.8}));
       this.scene.add(line); this.tracers.push({line,until:performance.now()+85});
       if(who===this.mine) { this.recoil=1; this.shotUntil=performance.now()+70; if(hit>=0 && hit%2!==this.mine%2) this.hitUntil=performance.now()+140; }
-    }
+    });
+  }
+  // The snapshot to draw: the engine's interpolated sample on a guest, the host's own state on the host.
+  update(snapshot,smooth=false) {
+    if(this.latest && this.latest.k!==snapshot.k) { this.previous=this.latest; this.steppedAt=performance.now(); }
+    this.latest=snapshot; this.smooth=smooth;
   }
   resize() {
     const width=this.canvas.clientWidth, height=this.canvas.clientHeight;
@@ -161,38 +168,39 @@ export class FirstPersonView {
     const s=this.latest; if(!s) return;
     const dt=Math.min(0.1,(now-this.lastTime)/1000 || 0.033); this.lastTime=now;
     let target=this.mine;
-    if(target<0 || s.p[target][3]<=0) target=s.p.findIndex((p,i)=>p[3]>0 && (this.mine<0 || i%2===this.mine%2));
-    if(target<0) target=s.p.findIndex(p=>p[3]>0);
+    if(target<0 || s.hp[target]<=0) target=s.hp.findIndex((hp,i)=>hp>0 && (this.mine<0 || i%2===this.mine%2));
+    if(target<0) target=s.hp.findIndex(hp=>hp>0);
     if(target<0) target=0;
-    const local=target===this.mine && s.p[target][3]>0, p=s.p[target];
-    this.predicted.x=p[0]; this.predicted.y=p[1];
-    const age=Math.max(0,now-this.receivedAt), extrapolation=Math.min(1,age*TICK_HZ/1000);
-    if(local && !s.freeze && !s.over) movePlayer(this.predicted,look[0],look[1],p[8],extrapolation);
+    // The local player reads the newest authoritative state, so the camera does not trail the interpolation delay.
+    const local=target===this.mine && s.hp[target]>0, own=local && this.raw ? this.raw : s;
+    const weapon=own.w[target], reloading=own.rl[target];
+    this.predicted.x=own.x[target]; this.predicted.y=own.y[target];
+    const age=Math.max(0,now-(this.receivedAt||now)), extrapolation=Math.min(1,age*TICK_HZ/1000);
+    if(local && !own.freeze && !own.over) movePlayer(this.predicted,look[0],look[1],weapon,extrapolation);
     const point=this.cameraPoint.set(this.predicted.x/SCALE,RULES.eye/SCALE,this.predicted.y/SCALE);
     if(local || !this.cameraReady || this.lastTarget!==target) this.camera.position.copy(point);
     else this.camera.position.lerp(point,1-Math.exp(-22*dt));
     this.cameraReady=true; this.lastTarget=target;
-    this.camera.rotation.set((local?look[2]:p[12])*Math.PI/180,-(local?look[1]:p[2])*Math.PI/180-Math.PI/2,0,'YXZ');
+    this.camera.rotation.set((local?look[2]:s.pitch[target])*Math.PI/180,-(local?look[1]:s.a[target])*Math.PI/180-Math.PI/2,0,'YXZ');
+    const before=this.smooth?this.previous:null, blend=Math.min(1,Math.max(0,now-(this.steppedAt||now))*TICK_HZ/1000);
     this.avatars.forEach((avatar,i)=>{
-      const q=s.p[i]; avatar.visible=i!==target && q[3]>0;
-      const before=this.previous?.p[i];
-      const blend=Math.min(1,age*TICK_HZ/1000);
-      const smooth=before && Math.hypot(q[0]-before[0],q[1]-before[1])<30 && !s.over;
-      const x=smooth?before[0]+(q[0]-before[0])*blend:q[0], y=smooth?before[1]+(q[1]-before[1])*blend:q[1];
-      avatar.position.set(x/SCALE,0,y/SCALE); avatar.rotation.y=-q[2]*Math.PI/180-Math.PI/2;
+      avatar.visible=i!==target && s.hp[i]>0;
+      const smooth=before && Math.hypot(s.x[i]-before.x[i],s.y[i]-before.y[i])<30 && !s.over;
+      const x=smooth?before.x[i]+(s.x[i]-before.x[i])*blend:s.x[i], y=smooth?before.y[i]+(s.y[i]-before.y[i])*blend:s.y[i];
+      avatar.position.set(x/SCALE,0,y/SCALE); avatar.rotation.y=-s.a[i]*Math.PI/180-Math.PI/2;
     });
-    const weapon=p[8]; if(weapon!==this.weaponId) this.makeGun(weapon);
+    if(weapon!==this.weaponId) this.makeGun(weapon);
     const zoom=ads && local; const fov=zoom?(weapon===3?27:55):80;
     if(this.camera.fov!==fov) { this.camera.fov=fov; this.camera.updateProjectionMatrix(); }
-    this.gun.visible=local && p[3]>0;
+    this.gun.visible=local;
     const bob=(look[0]&15)&&!s.freeze?Math.sin(now*0.012)*0.009:0;
     this.recoil=Math.max(0,this.recoil-dt*7);
-    this.gun.position.set(zoom?0:0.24,-0.24+bob-(p[5]?0.16:0),-0.43+this.recoil*0.075);
-    this.gun.rotation.set(this.recoil*0.07,p[5]?-0.3:0,p[5]?-0.35:0);
+    this.gun.position.set(zoom?0:0.24,-0.24+bob-(reloading?0.16:0),-0.43+this.recoil*0.075);
+    this.gun.rotation.set(this.recoil*0.07,reloading?-0.3:0,reloading?-0.35:0);
     this.flash.visible=now<(this.shotUntil||0);
-    this.bomb.visible=s.b[0]===1 || s.b[0]===0 && s.b[1]<0;
-    this.bomb.position.set(s.b[2]/SCALE,0,s.b[3]/SCALE);
-    this.bombLight.visible=s.b[0]!==1 || s.k%15<8;
+    this.bomb.visible=s.bm===1 || s.bm===0 && s.bc<0;
+    this.bomb.position.set(s.bx/SCALE,0,s.by/SCALE);
+    this.bombLight.visible=s.bm!==1 || s.k%15<8;
     this.tracers=this.tracers.filter(t=>{
       if(now<t.until) return true;
       this.scene.remove(t.line); t.line.geometry.dispose(); t.line.material.dispose(); return false;

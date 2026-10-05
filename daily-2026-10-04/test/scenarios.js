@@ -12,7 +12,7 @@ export const scenarios = [
       assert(b.checkpoint === 0, "Cannot skip the first ring");
       [b.x, b.y] = g.gates[0];
       let snap = g.step([0, 0]);
-      assert(b.checkpoint === 1 && snap.d.some(([i, e]) => i === 0 && e === 1), "First ring emits checkpoint event");
+      assert(b.checkpoint === 1 && snap.gate.includes(0), "First ring emits checkpoint event");
       g.step([0, 0]);
       assert(b.checkpoint === 1, "Remaining inside a ring must not count twice");
       [b.x, b.y] = g.gates[1];
@@ -30,7 +30,7 @@ export const scenarios = [
       const s = g.step([0, 0]);
       assert(b.x === 0.975 && b.stun === 24, "Shore clamps boat and applies slowdown");
       assert(Math.cos(b.a) < 0 && b.active, "Boat reflects away from shore and remains active");
-      assert(s.d.some(([i, e]) => i === 0 && e === 2), "Collision event is sent");
+      assert(s.hit.includes(0), "Collision event is sent");
       const [x, y, r] = g.reefs[0]; b.x = x; b.y = y; b.a = 0;
       g.step([0, 0]);
       assert(Math.hypot(b.x - x, b.y - y) >= r + 0.012, "Boat is pushed outside reef");
@@ -55,7 +55,7 @@ export const scenarios = [
       assert(g.roundOver && snap.over, "Race must terminate");
       assert(g.scores[0] === 3 && g.scores[1] === 0, "First finisher earns three points");
       assert(g.winner(3) === 0, "Unique match leader wins");
-      assert(snap.d.some(([i, e]) => i === 0 && e === 4), "End snapshot contains award event");
+      assert(snap.award.includes(0), "End snapshot contains award event");
       for (let i = 0; i < 10; i++) g.step([0, 0]);
       assert(g.scores[0] === 3, "Repeated post-round steps cannot award again");
       g.startRound();
@@ -71,8 +71,8 @@ export const scenarios = [
       const snap = g.step(Array(8).fill(0));
       assert(g.roundOver && g.scores.slice(0, 7).every((s) => s === 3), "Exact timeout ties share the award");
       assert(g.scores[7] === 0 && g.winner(3) === -1, "Disconnected boats cannot score; tied match continues");
-      assert(JSON.stringify(snap).length < 2000 && JSON.stringify(snap.p).length < 800, "Snapshot meets bandwidth budget at eight players");
-      assert(snap.gates.length === 6 && snap.reefs.length === 3 && snap.scores.length === 8, "Snapshot carries geometry, progress and scores");
+      assert(JSON.stringify(snap).length < 2000 && snap.x.length === 8, "Snapshot meets bandwidth budget at eight players");
+      assert(g.gates.length === 6 && g.reefs.length === 3 && snap.scores.length === 8, "Snapshot carries geometry, progress and scores");
       g.startRound();
       assert(!g.boats[7].active, "Disconnected player stays out of later races");
       g.freeze = 0; g.deadline = 1;

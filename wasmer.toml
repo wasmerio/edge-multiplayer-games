@@ -18,7 +18,7 @@ module = "wasmer/static-web-server:webserver"
 runner = "wasi"
 
 [command.annotations.wasi]
-env = ["SERVER_ROOT=/public", "SERVER_HOST=0.0.0.0", "SERVER_PORT=8080"]
+env = ["SERVER_ROOT=/public", "SERVER_HOST=0.0.0.0", "SERVER_PORT=8080", "SERVER_CORS_ALLOW_ORIGINS=*", "SERVER_CACHE_CONTROL_HEADERS=true", "SERVER_CONFIG_FILE=/config/static-web-server.toml"]
 
 [[command]]
 name = "probe"
@@ -40,5 +40,6 @@ env = ["PYTHONEXECUTABLE=/nix/store/j58ck1sbhdkvx61mkm2dbrcidgi3msaj-python3-sta
 
 [fs]
 "/public" = "./public"
+"/config" = "./config"
 "/app" = "./automation/daily-game/runtime"
 "/pi" = "./automation/daily-game/pi"

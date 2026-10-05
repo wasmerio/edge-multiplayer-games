@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import tempfile
@@ -12,8 +13,11 @@ import unittest
 from unittest.mock import patch
 import urllib.error
 
-from fixtures import ROOT, DAY, BASE, REPORT, candidate
+from fixtures import ROOT, DAY, BASE, REPORT, candidate, engine_version, game_js, repository_files, copy_binary_tooling, write_candidate
 import daily_game as job
+import game_contract
+
+SLUG = 'daily-' + DAY
 
 
 class FakeGitHub:
@@ -48,14 +52,16 @@ class FakeCommands:
         self.calls = []
         self.published = None
         self.reject_push = False
-        self.base = {p: (ROOT / p).read_text() for p in (*job.REFERENCE, '.wasmerignore')}
+        self.base = repository_files()
+        self.binary = set()
         self.node = shutil.which('node')
 
     def files(self):
         return {str(p.relative_to(self.work)): p.read_text() for p in self.work.rglob('*')
-                if p.is_file() and '.git' not in p.relative_to(self.work).parts}
+                if p.is_file() and '.git' not in p.relative_to(self.work).parts
+                and str(p.relative_to(self.work)) not in self.binary}
 
-    def __call__(self, args, cwd, env, timeout=60, strip=True):
+    def __call__(self, args, cwd, env, timeout=60, strip=True, failure_output=False):
         if args[0] == '/bin/node':
             if args[1].endswith('/capture.mjs') and not os.environ.get('WASMER_GIT_TESTS'):
                 args = args[4:]
@@ -63,11 +69,11 @@ class FakeCommands:
             try:
                 os.chdir(cwd)
                 result = subprocess.run([self.node if arg == '/bin/node' else arg for arg in args], env=env,
-                                        capture_output=True, text=True, timeout=30)
+                                        capture_output=True, text=True, timeout=120)
             finally:
                 os.chdir(previous)
             if result.returncode:
-                raise RuntimeError(result.stderr)
+                raise RuntimeError((result.stdout + result.stderr) if failure_output else result.stderr)
             return result.stdout.strip()
         words = args[3:]
         self.calls.append((words, dict(env)))
@@ -80,6 +86,7 @@ class FakeCommands:
                 p = self.work / name
                 p.parent.mkdir(parents=True, exist_ok=True)
                 p.write_text(text)
+            self.binary = copy_binary_tooling(self.work)
             (self.work / '.git').mkdir()
             (self.work / '.git/config').write_text('[core]\n')
         elif cmd == 'rev-parse':
@@ -93,7 +100,8 @@ class FakeCommands:
                 return json.dumps(self.files())
             if self.gh.has_branch or '--cached' in words:
                 return '\n'.join(p for p, text in self.files().items() if self.base.get(p) != text)
-            return '\n'.join(p for p, text in self.base.items() if self.files().get(p) != text)
+            files = self.files()
+            return '\n'.join(p for p, text in self.base.items() if files.get(p) != text)
         elif cmd == 'ls-files':
             if '--stage' in words:
                 result = []
@@ -128,15 +136,31 @@ class DailyGameTests(unittest.TestCase):
         self.args = argparse.Namespace(date=DAY, repository='wasmerio/edge-multiplayer-games',
                                        publish=True, output=None, model='fixture')
 
-    def agent(self, work, env, system, prompt, model):
+    def agent(self, work, env, system, prompt, model, **overrides):
         self.agent_env = env
         self.agent_input = json.loads(prompt.removeprefix('INPUT\n'))
-        c = candidate()
-        game = work / ('daily-' + DAY)
-        (game / 'README.md').write_text(c['readme'])
-        (game / 'test/scenarios.js').write_text(c['scenarios_js'])
-        (game / 'game-entry.json').write_text(json.dumps({'name': c['name'], 'description': c['description']}))
+        self.scaffold = {str(p.relative_to(work / SLUG)): p.read_bytes()
+                         for p in (work / SLUG).rglob('*') if p.is_file()}
+        write_candidate(work, SLUG, **overrides)
         return {'ok': True, 'bashCalls': 1}
+
+    def rejects(self, pattern, agent=None, error=ValueError):
+        """A rejected candidate publishes nothing and registers nothing."""
+        with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as output:
+            self.args.work_root, self.args.output = root, output
+            with self.assertRaisesRegex(error, pattern):
+                self.invoke(agent=agent)
+            self.assertFalse(any(a[0] in {'push', 'commit', 'add'} for a, _ in self.commands.calls))
+            self.assertFalse(any(p == '/pulls' for p, _ in self.gh.calls))
+            self.assertEqual(list(Path(output).iterdir()), [])
+            attempt, = Path(root).iterdir()
+            work = attempt / 'repository'
+            if work.is_dir():
+                for name in ('public/games.json', '.wasmerignore'):
+                    self.assertEqual((work / name).read_text(), self.commands.base[name])
+                self.assertFalse((work / game_contract.CATALOG).exists())
+                self.assertFalse((work / 'automation/daily-game/runs').exists())
+            return work
 
     def invoke(self, agent=None):
         with patch.dict(os.environ, {'GH_TOKEN': 'fixture-gh', 'OPENAI_API_KEY': 'fixture-model'}), \
@@ -194,16 +218,180 @@ class DailyGameTests(unittest.TestCase):
         self.assertEqual(self.agent_input['repository_instructions'], (ROOT / 'AGENTS.md').read_text())
         self.assertEqual(self.agent_input['registration_contract']['catalog'], 'public/games.json')
         self.assertEqual(self.agent_input['registration_contract']['upload_filter'], '.wasmerignore')
+        self.assertEqual(self.agent_input['engine']['version'], engine_version())
+        self.assertIn(SLUG + '/public/game.js', self.agent_input['editable_paths'])
+        self.assertIn(SLUG + '/src/server.js', self.agent_input['coordinator_owned_paths'])
+        self.assertIn(f'node scripts/conformance.mjs {SLUG} --static', self.agent_input['checks'])
         self.assertNotIn('.ignore', self.commands.published)
         original = json.loads(self.commands.base['public/games.json'])
         published = json.loads(self.commands.published['public/games.json'])
         self.assertEqual(published[:-1], original)
         self.assertEqual(published[-1], {
-            'slug': 'daily-' + DAY, 'name': candidate()['name'],
+            'slug': SLUG, 'name': candidate()['name'],
             'description': candidate()['description'], 'players': '2 to 8',
-            'source': 'daily-' + DAY + '/', 'url': None,
+            'source': SLUG + '/', 'url': None,
         })
-        self.assertIn('/daily-' + DAY + '/\n', self.commands.published['.wasmerignore'])
+        self.assertEqual(json.loads(self.commands.published[SLUG + '/game-entry.json']),
+                         {key: value for key, value in published[-1].items() if key != 'url'})
+        self.assertIn('/' + SLUG + '/\n', self.commands.published['.wasmerignore'])
+
+    def test_dry_run_produces_a_complete_game_that_passes_static_conformance(self):
+        self.args.publish = False
+        with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as output:
+            self.args.work_root, self.args.output = root, output
+            self.invoke()
+            attempt, = Path(root).iterdir()
+            work = attempt / 'repository'
+            game = work / SLUG
+            written = {str(p.relative_to(game)) for p in game.rglob('*') if p.is_file()}
+            self.assertEqual(written, set(self.scaffold))
+            for path, content in self.scaffold.items():
+                if not game_contract.editable(path):
+                    self.assertEqual((game / path).read_bytes(), content, path)
+            self.assertTrue({'src/server.js', 'package.json', 'app.yaml', '.gitignore', 'public/index.html',
+                             'public/client.js', 'public/game.js', 'test/replay.ndjson', 'README.md',
+                             'game-entry.json'} <= written)
+            self.assertTrue((game / 'README.md').read_text().endswith(game_contract.PENDING))
+            # WASIX subprocesses take no cwd, so the script and the game are named absolutely.
+            result = subprocess.run([self.commands.node, str(work / 'scripts/conformance.mjs'), str(game), '--static'],
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            report = json.loads((Path(output) / (SLUG + '.json')).read_text())
+            self.assertEqual(report['checks']['conformance']['tier'], 'static')
+            self.assertIn('fixture', report['checks']['conformance']['rows'])
+            self.assertEqual(report['checks']['engine'], engine_version())
+            self.assertGreaterEqual(report['checks']['scenarios'], 2)
+            self.assertEqual(report['browser_checks'], 'pending')
+            self.assertTrue((Path(output) / (SLUG + '.patch')).is_file())
+        self.assertFalse(any(a[0] in {'push', 'commit'} for a, _ in self.commands.calls))
+        self.assertFalse(self.gh.calls)
+        self.assertEqual(self.commands.base, repository_files())
+
+    def test_generated_game_pins_the_engine_version_the_generator_ran_against(self):
+        self.invoke()
+        pin = f'"@engine/": "https://edge-multiplayer-games.wasmer.app/engine/{engine_version()}/"'
+        self.assertIn(pin, self.commands.published[SLUG + '/public/index.html'])
+        self.assertEqual(self.agent_input['engine']['pin'], game_contract.engine_pin(engine_version()))
+        record = json.loads(self.commands.published['automation/daily-game/runs/' + DAY + '.json'])
+        self.assertEqual(record['checks']['engine'], engine_version())
+
+    def test_repointed_engine_pin_is_rejected(self):
+        def repin(work, *args):
+            self.agent(work, *args)
+            page = work / SLUG / 'public/index.html'
+            page.write_text(page.read_text().replace(f'/engine/{engine_version()}/', '/engine/0.9.0/'))
+        self.rejects('Engine import map differs from the scaffold', repin)
+
+    def test_scaffold_pinned_to_another_engine_version_is_rejected(self):
+        page = b'<script type="importmap">{ "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/0.9.0/" } }</script>'
+        files = {'public/index.html': page, 'README.md': b'', 'public/game.js': b'', 'public/client.js': b'',
+                 'game-entry.json': b'{}', 'test/replay.ndjson': b''}
+        with self.assertRaisesRegex(ValueError, r'Engine pin is not .*/engine/1\.0\.0/; the generator ran against engine 1\.0\.0'):
+            game_contract.verify(files, files, {'slug': SLUG, 'engine_version': '1.0.0', 'existing_games': []})
+
+    def test_missing_simulation_method_names_the_method(self):
+        self.rejects(r'Game rejected: .*missing method winner\(\)',
+                     lambda *args: self.agent(*args, game_js=game_js(winner='champion')))
+
+    def test_snapshot_over_budget_names_the_budget(self):
+        self.rejects(r'Snapshot exceeds its budget: .*SNAPSHOT_BUDGET_BYTES \(100 bytes per player per tick',
+                     lambda *args: self.agent(*args, game_js=game_js(fat=True)))
+
+    def test_fixture_that_does_not_replay_names_the_divergence(self):
+        def tamper(work, *args):
+            self.agent(work, *args)
+            fixture = work / SLUG / 'test/replay.ndjson'
+            header, rest = fixture.read_text().split('\n', 1)
+            header = json.loads(header)
+            header['final']['scores'][0] += 7
+            fixture.write_text(json.dumps(header) + '\n' + rest)
+        self.rejects(r'Fixture does not replay: replay: diverged recorded \{.*\} reached \{.*\}', tamper)
+
+    def test_missing_fixture_is_rejected(self):
+        def forget(work, *args):
+            self.agent(work, *args)
+            (work / SLUG / 'test/replay.ndjson').unlink()
+        self.rejects('Scaffold file is missing: test/replay.ndjson', forget)
+
+    def test_unpublished_engine_version_names_the_version_before_authoring(self):
+        self.commands.base['engine/params.js'] = self.commands.base['engine/params.js'].replace(
+            f'"{engine_version()}"', '"9.9.9"')
+        self.rejects(r'Engine version 9\.9\.9 is not published: public/engine/9\.9\.9/ is missing',
+                     lambda *args: self.fail('Pi must not run against an unpublished engine'))
+
+    def test_published_engine_copy_that_drifted_is_rejected_before_authoring(self):
+        self.commands.base[f'public/engine/{engine_version()}/sim.js'] += '// drift\n'
+        self.rejects(rf'Engine version {re.escape(engine_version())} is not published: .*sim\.js differs',
+                     lambda *args: self.fail('Pi must not run against a drifted engine'))
+
+    def test_absent_scaffold_command_names_the_command(self):
+        del self.commands.base['scripts/new-game.mjs']
+        self.rejects('Scaffold command is missing: node scripts/new-game.mjs',
+                     lambda *args: self.fail('Pi must not run without a scaffold'))
+
+    def test_absent_conformance_fails_generation_instead_of_skipping_the_gate(self):
+        del self.commands.base['scripts/conformance.mjs']
+        self.rejects('Conformance command is missing: node scripts/conformance.mjs; the gate is never skipped',
+                     lambda *args: self.fail('Pi must not run without the gate'))
+
+    def test_conformance_that_cannot_run_fails_generation(self):
+        self.commands.base['scripts/conformance.mjs'] = 'throw new Error("no browser in this environment");\n'
+        self.rejects('(?s)Conformance failed: .*no browser in this environment')
+
+    def test_silent_conformance_is_not_a_pass(self):
+        self.commands.base['scripts/conformance.mjs'] = '\n'
+        self.rejects('Conformance produced no report; the gate is never skipped')
+
+    def test_failed_conformance_row_is_named(self):
+        self.rejects('Conformance failed: readme: README.md has no heading for: snapshot',
+                     lambda *args: self.agent(*args, readme='# Sprint\n\n## Input\nMove.\n\n## Round lifecycle\nSnapshot prose only.\n'))
+
+    def test_coordinator_owned_file_must_match_the_scaffold(self):
+        for path in ('src/server.js', 'package.json', 'app.yaml', '.gitignore'):
+            with self.subTest(path=path):
+                self.setUp()
+                def edit(work, *args, path=path):
+                    self.agent(work, *args)
+                    with (work / SLUG / path).open('a') as file:
+                        file.write('\n')
+                self.rejects('Coordinator-owned file differs from the scaffold: ' + re.escape(path), edit)
+
+    def test_unmodified_scaffold_is_not_a_game(self):
+        def idle(work, *args):
+            scaffold = {p: p.read_bytes() for p in (work / SLUG / 'public').glob('*.js')}
+            self.agent(work, *args)
+            for path, content in scaffold.items():
+                path.write_bytes(content)
+        self.rejects('Scaffold placeholder was not replaced: public/game.js', idle)
+
+    def test_duplicate_game_name_is_rejected(self):
+        taken = json.loads(self.commands.base['public/games.json'])[0]['name']
+        self.rejects('Game name already exists', lambda *args: self.agent(*args, name=taken.upper()))
+
+    def test_oversized_game_file_is_rejected(self):
+        self.rejects('Game file exceeds size limit: public/game.js',
+                     lambda *args: self.agent(*args, game_js=game_js() + '//' + 'x' * 500000 + '\n'))
+
+    def test_stray_game_file_is_rejected(self):
+        def stray(work, *args):
+            self.agent(work, *args)
+            (work / SLUG / 'public/style.css').write_text('body{}')
+        self.rejects('Unexpected changed paths: ' + SLUG + '/public/style.css', stray)
+
+    def test_runtime_references_no_deleted_template_file_or_split_string(self):
+        runtime = Path(game_contract.__file__).resolve().parent
+        banned = ('applyMessage', 'SPLIT', 'REFERENCE', 'style.css', 'package-lock', 'client_tail',
+                  'client_boundary', 'transport prefix', 'run.mjs', 'scenarios.js', 'scenario_contract')
+        sources = [p for p in runtime.iterdir() if p.is_file()]
+        self.assertGreater(len(sources), 10)
+        self.assertFalse((runtime / 'run.mjs').exists())
+        for source in sources:
+            text = source.read_text()
+            for word in banned:
+                self.assertNotIn(word, text, f'{source.name} still references {word}')
+            for copied in ('achtung/public', 'achtung/src', 'achtung/package'):
+                self.assertNotIn(copied, text.replace('achtung/public/game.js, achtung/public/client.js', ''),
+                                 f'{source.name} copies from the reference game')
 
     def test_saved_preview_rejects_root_catalog_replacement(self):
         with tempfile.TemporaryDirectory() as output:
@@ -275,14 +463,6 @@ class DailyGameTests(unittest.TestCase):
         self.assertFalse(any(a[0] in {'push', 'commit'} for a, _ in self.commands.calls))
         self.assertFalse(self.gh.calls)
 
-    def test_missing_page_contract_never_pushes(self):
-        def broken(*args):
-            self.agent(*args)
-            (args[0] / ('daily-' + DAY) / 'public/index.html').write_text('<html></html>')
-        with self.assertRaisesRegex(ValueError, 'Missing client element IDs'):
-            self.invoke(agent=broken)
-        self.assertFalse(any(a[0] == 'push' for a, _ in self.commands.calls))
-
     def test_publishes_saved_preview_without_model(self):
         with tempfile.TemporaryDirectory() as output:
             self.args.publish = False
@@ -336,10 +516,8 @@ class DailyGameTests(unittest.TestCase):
     def test_broken_simulation_never_pushes(self):
         def broken(*args):
             self.agent(*args)
-            (args[0] / ('daily-' + DAY) / 'public/game.js').write_text('export class Game { broken syntax')
-        with self.assertRaises(RuntimeError):
-            self.invoke(agent=broken)
-        self.assertFalse(any(a[0] == 'push' for a, _ in self.commands.calls))
+            (args[0] / SLUG / 'public/game.js').write_text('export class Simulation { broken syntax')
+        self.rejects('JavaScript syntax check failed: public/game.js', broken)
 
     def test_concurrent_branch_update_is_not_forced(self):
         self.commands.reject_push = True

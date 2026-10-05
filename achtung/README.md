@@ -124,6 +124,28 @@ wasmer app logs baalimago/achtung-webrtc --from 10m --streams stdout --streams s
 wasmer app deployment list baalimago/achtung-webrtc
 ```
 
+## Contract
+
+### Input
+
+One field per player per tick, sent only when it changes:
+`{ turn: -1 | 0 | 1 }` (`INTENT` in `public/game.js`). Arrow keys, the two
+touch buttons and gamepad axis 0 feed it.
+
+### Snapshot
+
+Declared once as `SNAPSHOT` in `public/game.js`; the engine derives the binary
+codec and the deltas. `k` tick, `over`, per-player `x` and `y` (one decimal,
+interpolated on guests), per-player `alive` and `gap`, and the event list `d`
+with the players who died this tick.
+
+### Round lifecycle
+
+`startRound()` clears the grid, spawns every curve from the seeded generator
+and freezes play briefly. Survivors score one point per death; the round is
+over when at most one curve is alive. The host starts the next round with
+Space; the match ends when one player holds the target with a clear lead.
+
 ## Sub-app contract (used by the superapp)
 
 | Entry | Behaviour |

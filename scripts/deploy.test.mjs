@@ -7,8 +7,14 @@ import { spawnSync } from 'node:child_process';
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'deploy-check-'));
 try {
   for (const dir of ['bin', 'public', 'scripts', 'fixture-game']) fs.mkdirSync(path.join(root, dir));
-  for (const file of ['deploy.sh', 'scripts/register-game.mjs']) {
+  for (const file of ['deploy.sh', 'scripts/register-game.mjs', 'scripts/sync-engine.mjs']) {
     fs.copyFileSync(new URL(`../${file}`, import.meta.url), path.join(root, file));
+  }
+  const published = path.join(root, 'public/engine/9.9.9');
+  const modules = { 'params.js': 'export const ENGINE_VERSION = "9.9.9";\n', 'rng.js': '// rng\n', 'rooms.js': '// rooms\n', 'server.js': '// server\n' };
+  for (const dir of [path.join(root, 'engine'), published]) {
+    fs.mkdirSync(dir, { recursive: true });
+    for (const [name, body] of Object.entries(modules)) fs.writeFileSync(path.join(dir, name), body);
   }
   fs.writeFileSync(path.join(root, 'app.yaml'), 'name: fixture\n');
   fs.writeFileSync(path.join(root, 'fixture-game/app.yaml'), 'name: fixture-game\n');
@@ -20,7 +26,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 const tool = path.basename(process.argv[1]);
 const args = process.argv.slice(2);
-fs.appendFileSync(process.env.CHECK_LOG, JSON.stringify({tool,args}) + '\\n');
+const uploaded = tool === 'wasmer' && args[0] === 'deploy'
+  ? {ignore: fs.existsSync('.ignore') ? fs.readFileSync('.ignore', 'utf8') : null, engine: fs.existsSync('engine/server.js')} : {};
+fs.appendFileSync(process.env.CHECK_LOG, JSON.stringify({tool,args,...uploaded}) + '\\n');
 const out = text => fs.writeSync(1, text + '\\n');
 if (tool === 'wasmer') {
   if (args[0] === 'whoami') out('Logged into registry wasmer.io as user fixture');
@@ -80,6 +88,42 @@ if (tool === 'wasmer') {
   const remote = run('remote', 'fixture-game');
   assert.equal(remote.status, 0, remote.stdout + remote.stderr);
   assert.ok(remote.deploys.every(call => call.args.includes('--build-remote') && !call.args.includes('--bump')));
+  assert.ok(remote.deploys.every(call => call.engine === false && call.ignore === null), 'a game without the engine is uploaded as it is');
+
+  // An engine game: the server half is copied in, and whitelisted past .gitignore only for the upload.
+  const game = path.join(root, 'fixture-game');
+  fs.mkdirSync(path.join(game, 'src'));
+  fs.writeFileSync(path.join(game, 'src/server.js'), 'import { serveGame } from "../engine/server.js";\n');
+  fs.writeFileSync(path.join(game, '.gitignore'), 'engine/\n');
+  const engineGame = run('engine-game', 'fixture-game');
+  assert.equal(engineGame.status, 0, engineGame.stdout + engineGame.stderr);
+  assert.ok(engineGame.deploys.length > 0);
+  assert.ok(engineGame.deploys.every(call => call.engine === true && call.ignore === '!/engine/\n'), JSON.stringify(engineGame.deploys));
+  assert.equal(fs.readFileSync(path.join(game, 'engine/server.js'), 'utf8'), modules['server.js']);
+  assert.equal(fs.existsSync(path.join(game, '.ignore')), false, 'the upload whitelist is removed after the deploy');
+  fs.writeFileSync(path.join(game, '.ignore'), 'notes/\n');
+  const hidden = run('engine-hidden', 'fixture-game');
+  assert.equal(hidden.status, 1);
+  assert.equal(hidden.deploys.length, 0);
+  assert.match(hidden.stderr, /\.ignore must contain '!\/engine\/'/);
+  fs.writeFileSync(path.join(game, '.ignore'), 'notes/\n!/engine/\n');
+  const kept = run('engine-kept', 'fixture-game');
+  assert.equal(kept.status, 0, kept.stdout + kept.stderr);
+  assert.equal(fs.readFileSync(path.join(game, '.ignore'), 'utf8'), 'notes/\n!/engine/\n');
+
+  // The superapp upload stops when the published engine is absent or has drifted.
+  fs.appendFileSync(path.join(published, 'rng.js'), '// drift\n');
+  const drifted = run('drifted');
+  assert.equal(drifted.status, 1);
+  assert.equal(drifted.deploys.length, 0);
+  assert.match(drifted.stderr, /rng\.js differs from engine\/rng\.js/);
+  fs.rmSync(published, { recursive: true });
+  const absent = run('absent');
+  assert.equal(absent.status, 1);
+  assert.equal(absent.deploys.length, 0);
+  assert.equal(absent.calls.filter(call => call.tool === 'wasmer' && call.args[0] === 'package').length, 0);
+  assert.match(absent.stderr, /public\/engine\/9\.9\.9 is missing/);
+  console.log('PASS engine server half travels with a game, upload whitelist, and published-engine guard');
   console.log('PASS package version bumps, remote build flags, gateway retries, retry limit, permanent failures, preparation once, and package size guard');
 } finally {
   fs.rmSync(root, { recursive: true, force: true });

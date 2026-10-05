@@ -12,12 +12,12 @@ export const scenarios = [
       assert(s.d.length === 0 && g.scores.every(v => v === 0), "No points before the pulse");
       s = g.step([0, 0, 0, 0]);
       assert(JSON.stringify(g.scores) === '[3,1,0,1]', "Center across zero, outer arc, miss and inclusive edge score correctly");
-      assert(s.a[0] === 359 && s.b === 1, "Scoring snapshot retains the scored target");
-      assert(JSON.stringify(s.d) === '[[0,3],[1,1],[2,0],[3,1]]', "Events include misses and all simultaneous awards");
-      assert(s.p[0][2] === 3 && s.q[0] === 3, "Snapshot carries round and match totals");
-      const next = s.a[1];
+      assert(s.aim === 359 && s.b === 1, "Scoring snapshot retains the scored target");
+      assert(JSON.stringify(s.d) === '[0,1,2,3]' && JSON.stringify(s.last) === '[3,1,0,1]', "Events include misses and all simultaneous awards");
+      assert(s.pts[0] === 3 && s.q[0] === 3, "Snapshot carries round and match totals");
+      const next = s.next;
       s = g.step([0, 0, 0, 0]);
-      assert(s.a[0] === next && s.d.length === 0 && g.scores[0] === 3, "Next tick hops target without duplicate scoring");
+      assert(s.aim === next && s.d.length === 0 && g.scores[0] === 3, "Next tick hops target without duplicate scoring");
     },
   },
   {
@@ -36,7 +36,7 @@ export const scenarios = [
       g.tick = 74;
       g.players.forEach(p => { p.angle = g.aim; p.velocity = 0; });
       const s = g.step([0, 0]);
-      assert(s.q[0] === 3 && s.q[1] === 0 && s.p[1][3] === 0, "Disconnected antennas cannot score");
+      assert(s.q[0] === 3 && s.q[1] === 0 && s.on[1] === false, "Disconnected antennas cannot score");
       g.scores[1] = 99;
       assert(g.winner(3) === 0, "Disconnected player is ineligible to win");
       g.startRound();

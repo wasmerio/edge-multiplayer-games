@@ -9,7 +9,7 @@ export const scenarios = [
       g.parcels = [{ id: 99, lane: 1, y: 0.875, type: 1, mask: 0 }];
       const catchFrame = g.step([0, 0]);
       assert(g.scores[0] === 1 && g.scores[1] === 1, 'Both centered players must catch the same delivery');
-      assert(catchFrame.d.length === 2 && catchFrame.b[0][4] === 3, 'Catch events and resolved mask must include both players');
+      assert(catchFrame.d.length === 2 && catchFrame.bm[0] === 3, 'Catch events and resolved mask must include both players');
       g.step([0, 0]);
       assert(g.scores[0] === 1 && g.scores[1] === 1, 'Parcel may never pay twice');
       g.scores = [5, 1];
@@ -17,7 +17,7 @@ export const scenarios = [
       g.parcels = [{ id: 100, lane: 1, y: 0.875, type: -1, mask: 0 }];
       const hit = g.step([0, 0]);
       assert(g.scores[0] === 3 && g.scores[1] === 1, 'Glitch subtracts two only in the aligned bay');
-      assert(hit.p[0][3] < 0 && hit.d.length === 1, 'Glitch feedback and score event must render');
+      assert(hit.flash[0] < 0 && hit.d.length === 1, 'Glitch feedback and score event must render');
       g.scores[0] = 1;
       g.parcels = [{ id: 101, lane: 1, y: 0.875, type: -1, mask: 0 }];
       g.step([0, 0]);
@@ -50,7 +50,7 @@ export const scenarios = [
       for (let k = 0; k < 944; k++) g.step([0, 0]);
       assert(!g.roundOver && g.tick === 899, 'Round must last all 900 active ticks');
       const end = g.step([0, 0]);
-      assert(end.over && end.left === 0 && end.b.length === 0, 'Final deliveries drain before round ends');
+      assert(end.over && end.left === 0 && end.bt.every((t) => t === 0), 'Final deliveries drain before round ends');
       const stable = JSON.stringify(end);
       assert(JSON.stringify(g.step([1, -1])) === stable, 'Finished simulation is inert');
       g.scores = [20, 20];
@@ -75,8 +75,8 @@ export const scenarios = [
       for (let k = 0; k < 945; k++) {
         const s = JSON.parse(JSON.stringify(g.step(Array(8).fill(0))));
         largest = Math.max(largest, JSON.stringify(s).length);
-        assert(s.p.length === 8 && s.p.every((p) => p.length === 4), 'All carts are renderable from one frame');
-        assert(s.b.every((b) => b.length === 5) && s.b.length <= 3, 'Shared delivery list stays bounded');
+        assert([s.x, s.score, s.active, s.flash].every((f) => f.length === 8), 'All carts are renderable from one frame');
+        assert([s.bl, s.by, s.bt, s.bm].every((f) => f.length === 3), 'Shared delivery list stays bounded');
       }
       assert(largest < 800, 'Snapshot must average less than 100 bytes per player');
       assert(g.roundOver, 'Full population finishes normally');

@@ -6,17 +6,17 @@ export const scenarios = [
       g.startRound();
       let s;
       for (let i = 0; i < 50; i++) s = g.step([1, 0]);
-      assert(s.p[0][0] === 50 && s.p[0][1] === 5, "Fifty drilling ticks yield five ore and fifty heat");
+      assert(s.heat[0] === 50 && s.haul[0] === 5, "Fifty drilling ticks yield five ore and fifty heat");
       for (let i = 0; i < 12; i++) s = g.step([-1, 0]);
-      assert(s.p[0][2] === 12 && g.scores[0] === 0, "Partial deposit must not score");
+      assert(s.bank[0] === 12 && g.scores[0] === 0, "Partial deposit must not score");
       s = g.step([0, 0]);
-      assert(s.p[0][2] === 0 && s.p[0][0] === 36, "Cooling resets banking and removes two heat");
+      assert(s.bank[0] === 0 && s.heat[0] === 36, "Cooling resets banking and removes two heat");
       for (let i = 0; i < 23; i++) s = g.step([-1, 0]);
       assert(g.scores[0] === 0, "Bank cannot complete early");
       s = g.step([-1, 0]);
-      assert(g.scores[0] === 5 && s.p[0][1] === 0, "Bank transfers the whole haul");
-      assert(JSON.stringify(s.d) === "[[0,1,5]]", "Bank event contains player and amount");
-      assert(g.scores[1] === 0 && s.p[1][0] === 0, "Idle opponent is unaffected");
+      assert(g.scores[0] === 5 && s.haul[0] === 0, "Bank transfers the whole haul");
+      assert(JSON.stringify([s.ev, s.amt]) === "[[1,0],[5,0]]", "Bank event contains player and amount");
+      assert(g.scores[1] === 0 && s.heat[1] === 0, "Idle opponent is unaffected");
     },
   },
   {
@@ -26,14 +26,14 @@ export const scenarios = [
       g.startRound();
       let s;
       for (let i = 0; i < 89; i++) s = g.step([1, 0]);
-      assert(s.p[0][0] === 89 && s.p[0][1] === 8 && s.p[0][3] === 0, "Survive through tick 89");
+      assert(s.heat[0] === 89 && s.haul[0] === 8 && s.lock[0] === 0, "Survive through tick 89");
       s = g.step([1, 0]);
-      assert(s.p[0][3] === 45 && s.p[0][1] === 0, "Tick 90 melts the haul");
-      assert(JSON.stringify(s.d) === "[[0,2,8]]", "Meltdown reports eight lost ore");
+      assert(s.lock[0] === 45 && s.haul[0] === 0, "Tick 90 melts the haul");
+      assert(JSON.stringify([s.ev, s.amt]) === "[[2,0],[8,0]]", "Meltdown reports eight lost ore");
       for (let i = 0; i < 45; i++) s = g.step([1, 0]);
-      assert(s.p[0][0] === 0 && s.p[0][1] === 0 && s.p[0][3] === 0, "Lockout cools fully and ignores drilling");
+      assert(s.heat[0] === 0 && s.haul[0] === 0 && s.lock[0] === 0, "Lockout cools fully and ignores drilling");
       for (let i = 0; i < 10; i++) s = g.step([1, 0]);
-      assert(s.p[0][0] === 20 && s.p[0][1] === 3, "Rich vein doubles heat and triples ore");
+      assert(s.heat[0] === 20 && s.haul[0] === 3, "Rich vein doubles heat and triples ore");
       assert(g.scores[0] === 0, "Lost and unbanked ore never scores");
     },
   },
@@ -51,16 +51,16 @@ export const scenarios = [
       while (g.tick < 890) g.step([0, 0]);
       let s;
       for (let i = 0; i < 10; i++) s = g.step([1, 0]);
-      assert(s.over && s.k === 900 && s.p[0][1] === 0, "Closing discards unbanked haul at exactly 900");
-      assert(s.d.some(e => e[1] === 3 && e[2] === 3), "Closing emits rich ore loss");
+      assert(s.over && s.k === 900 && s.haul[0] === 0, "Closing discards unbanked haul at exactly 900");
+      assert(s.ev.some((e, i) => e === 3 && s.amt[i] === 3), "Closing emits rich ore loss");
       const scores = JSON.stringify(g.scores);
       s = g.step([1, 1]);
-      assert(s.k === 900 && s.d.length === 0 && JSON.stringify(g.scores) === scores, "Finished rounds are inert");
+      assert(s.k === 900 && s.ev.every(e => e === 0) && JSON.stringify(g.scores) === scores, "Finished rounds are inert");
       g.disconnect(0);
       g.startRound();
       s = g.step([1, 1]);
       assert(g.round === 2 && s.k === 1 && !s.over, "Next round restarts the clock");
-      assert(JSON.stringify(g.scores) === scores && s.p[0][5] === 0 && s.p[0][0] === 0, "Scores persist; disconnected rigs stay inactive");
+      assert(JSON.stringify(g.scores) === scores && s.active[0] === false && s.heat[0] === 0, "Scores persist; disconnected rigs stay inactive");
       assert(g.winner(1) === 1, "Departed leader cannot win");
     },
   },
@@ -76,7 +76,8 @@ export const scenarios = [
         const encoded = JSON.stringify(s);
         largest = Math.max(largest, encoded.length);
         assert(encoded === JSON.stringify(b.step(inputs)), "Same intent sequence must replay exactly");
-        assert(s.p.every(p => p.length === 7 && p.every(Number.isInteger) && p[0] >= 0 && p[0] <= 90), "Snapshot arrays contain bounded integer state");
+        const numeric = [s.heat, s.haul, s.bank, s.lock, s.mode, s.score, s.ev, s.amt];
+        assert(numeric.every(f => f.length === 8 && f.every(Number.isInteger)) && s.active.length === 8 && s.heat.every(h => h >= 0 && h <= 90), "Snapshot arrays contain bounded integer state");
       }
       assert(largest < 800, `Eight-player snapshot exceeds bandwidth budget: ${largest}`);
       assert(a.roundOver, "Full multiplayer replay reaches closing");

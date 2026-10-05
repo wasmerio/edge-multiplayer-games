@@ -1,6 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Game, RULES, WEAPONS, cleanInput, blocked} from '../public/game.js';
+import fs from 'node:fs';
+import {Game, RULES, WEAPONS, REASONS, SNAPSHOT, INTENT, BINDINGS, cleanInput, inputOf, blocked} from '../public/game.js';
+import {validateSimulation} from '../../engine/sim.js';
+import {defineSnapshot} from '../../engine/schema.js';
+import {seededRng} from '../../engine/rng.js';
+import {record, replay} from '../../engine/replay.js';
+import {inputSource} from '../../engine/input.js';
+const schema = defineSnapshot(SNAPSHOT);
+// The per-player row and bomb tuple the scenarios were written against, read from the declared fields.
+const rows = s => s.x.map((_,i)=>[s.x[i],s.y[i],s.a[i],s.hp[i],s.ammo[i],s.rl[i],s.act[i],s.kills[i],s.w[i],s.money[i],s.armor[i],Number(s.kit[i]),s.pitch[i]]);
+const bombOf = s => [s.bm,s.bc,s.bx,s.by,s.bt,s.bs];
 const game = (n=2) => { const g=new Game(n); g.startRound(); g.freeze=0; return g; };
 const ticks = (g,n,inputs=[]) => { for(let i=0;i<n;i++) g.step(inputs); };
 const duel = () => { const g=game(); Object.assign(g.players[0],{x:100,y:100}); Object.assign(g.players[1],{x:300,y:100}); return g; };
@@ -101,7 +111,73 @@ test('timeout, bomb pickup, disconnect, and match winner remain correct',()=>{
 test('input checks bound pitch and full snapshots remain finite and compact',()=>{
   assert.deepEqual(cleanInput(null),[0,0,0]); assert.deepEqual(cleanInput([Infinity,NaN]),[0,0,0]);
   assert.deepEqual(cleanInput([255,-1,500]),[127,359,75]); assert.deepEqual(cleanInput([0,0,-500]),[0,0,-75]);
-  const g=game(8), s=g.step(); assert.equal(s.p.length,8); assert.ok(JSON.stringify(s.p).length/8<100);
-  for(const p of s.p) assert.ok(p.every(Number.isFinite));
-  assert.equal(s.p[0].length,13); assert.equal(s.b.length,6); assert.equal(s.over,false);
+  const g=game(8), s=g.step(), p=rows(s); assert.equal(p.length,8); assert.ok(schema.encode(s,8).byteLength/8<100);
+  for(const row of p) assert.ok(row.every(Number.isFinite));
+  assert.equal(p[0].length,13); assert.equal(bombOf(s).length,6); assert.equal(s.over,false);
+});
+
+test('the simulation satisfies the engine shape',()=>{
+  assert.equal(validateSimulation(Game,{arena:{w:1200,h:760}}),true);
+});
+test('an intent object and its button array drive the same match',()=>{
+  assert.deepEqual(inputOf({strafe:-1,forward:1,fire:1,reload:0,use:0,aim:90,pitch:-5}),[1|4|16,90,-5]);
+  assert.deepEqual(inputOf({strafe:1,forward:-1,fire:0,reload:1,use:1,aim:0,pitch:0}),[2|8|32|64,0,0]);
+  const a=duel(), b=duel();
+  for(let i=0;i<40;i++) { a.step([{strafe:0,forward:1,fire:1,reload:0,use:0,aim:0,pitch:0},0]); b.step([[4|16,0,0],0]); }
+  assert.deepEqual(a.snapshot(),b.snapshot());
+  const g=new Game(2); g.startRound(); g.step([0,0]); assert.equal(g.players[1].a,180,'a seat with no input keeps its spawn facing');
+});
+test('the bindings keep the keyboard layout; mouse fields are analogue',()=>{
+  assert.deepEqual(Object.keys(INTENT),['strafe','forward','fire','reload','use','aim','pitch']);
+  const listeners={}, sent=[];
+  const target={addEventListener:(name,fn)=>{listeners[name]=fn;},removeEventListener(){}};
+  const source=inputSource({intent:INTENT,bindings:BINDINGS,onChange:v=>sent.push(cleanInput(inputOf(v))),deps:{target,gamepads:()=>[],hasTouch:()=>false}});
+  for(const [code,bit] of [['KeyA',1],['ArrowLeft',1],['KeyD',2],['ArrowRight',2],['KeyW',4],['ArrowUp',4],['KeyS',8],['ArrowDown',8],['KeyR',32],['KeyE',64]]) {
+    listeners.keydown({code,preventDefault(){}}); assert.equal(sent.at(-1)[0],bit,code);
+    listeners.keyup({code}); assert.equal(sent.at(-1)[0],0,code);
+  }
+  source.touch('aim',194.5); source.touch('pitch',-7.5); source.touch('fire',1);
+  assert.deepEqual(sent.at(-1),[16,194.5,-7.5]);
+});
+test('a full firefight fits the budget at the player cap and round-trips through the codec',()=>{
+  const g=game(8); let worst=0, s;
+  g.players.forEach((p,i)=>Object.assign(p,{x:100+(i%2)*200,y:100+Math.floor(i/2)*40,money:16000}));
+  for(let i=0;i<60;i++) {
+    s=g.step(g.players.map((_,j)=>[16,j%2?180:0,0]));
+    worst=Math.max(worst,schema.encode(s,8).byteLength);
+    assert.deepEqual(schema.decode(schema.encode(s,8),8),s);
+  }
+  assert.ok(g.players.some(p=>p.hp<100),'shots landed');
+  assert.ok(worst<=schema.budgetBytes*8,`${worst} bytes`); assert.ok(worst/8<32,`${worst/8} bytes per player`);
+});
+test('a shot is carried per shooter and the result as a team and a reason code',()=>{
+  const g=duel(), s=g.step([[16,0,0]]);
+  assert.deepEqual(s.shot,[true,false]); assert.equal(s.sh[0],1); assert.equal(s.sh[1],-1);
+  assert.equal(s.sx[0],g.events[0][3]); assert.equal(s.sz[0],g.events[0][6]);
+  ticks(g,28,[[16,0,0]]); const end=g.snapshot();
+  assert.equal(end.rt,0); assert.equal(REASONS[end.rr],'Defenders eliminated'); assert.deepEqual(g.result,[0,'Defenders eliminated']);
+});
+const build=(n,opts,rng)=>new Game(n,opts,rng);
+// A scripted match: both sides advance and shoot; the fixture stores the compact input form.
+export function script(g,i,tick) {
+  const p=g.players[i]; if(!p || p.hp<=0) return [0,i%2?180:0,0];
+  const foe=g.players.find((q,j)=>j%2!==i%2 && q.hp>0);
+  const aim=foe ? Math.round((Math.atan2(foe.y-p.y,foe.x-p.x)*180/Math.PI+360)%360*10)/10 : (i%2?180:0);
+  return [(tick%40<25?4:0)|(tick%7<4?16:0)|(tick%90===0?32:0)|((tick+i*13)%50<12?(i%2?1:2):0),aim,0];
+}
+test('the committed fixture replays to its recorded state',()=>{
+  const reached=replay(fs.readFileSync(new URL('./replay.ndjson',import.meta.url),'utf8'),build);
+  assert.ok(reached.round>=3,`played ${reached.round} rounds`);
+  assert.ok(reached.scores[0]+reached.scores[1]>=3);
+});
+test('two runs from one seed reach the same state',()=>{
+  const play=()=>{
+    const g=build(4,{},seededRng(77)), rec=record({seed:77,tickHz:30,players:4});
+    for(let r=0;r<2;r++) {
+      rec.round(); g.startRound(); g.freeze=0;
+      for(let i=0;i<600 && !g.roundOver;i++) { const inputs=g.players.map((_,j)=>script(g,j,i)); rec.tick(inputs); g.step(inputs); }
+    }
+    return rec.finish(g);
+  };
+  assert.equal(play(),play());
 });

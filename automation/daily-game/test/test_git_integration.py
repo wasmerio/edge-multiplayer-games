@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from fixtures import ROOT, DAY
+from fixtures import ROOT, DAY, copy_binary_tooling, repository_files
 import test_daily_game as fixtures
 import daily_game as job
 from processes import execute
@@ -25,10 +25,11 @@ class GitIntegrationTests(unittest.TestCase):
         self.env = job.environment(self.root)
         self.seed = self.root / 'seed'
         self.seed.mkdir()
-        for name in (*job.REFERENCE, '.wasmerignore'):
+        for name, text in repository_files().items():
             dest = self.seed / name
             dest.parent.mkdir(parents=True, exist_ok=True)
-            dest.write_bytes((ROOT / name).read_bytes())
+            dest.write_text(text)
+        copy_binary_tooling(self.seed)
         self.git('init', '--initial-branch=main')
         self.git('add', '.')
         self.git('commit', '-m', 'Seed integration fixture')
@@ -42,11 +43,11 @@ class GitIntegrationTests(unittest.TestCase):
     def git(self, *args, cwd=None):
         return execute(['/bin/git', '-c', 'core.hooksPath=/dev/null', *args], cwd or self.seed, self.env)
 
-    def command(self, args, cwd, env, timeout=60, strip=True):
+    def command(self, args, cwd, env, timeout=60, strip=True, failure_output=False):
         args = list(args)
         if args[0] == '/bin/git' and args[3] == 'clone':
             args[-2] = str(self.remote)
-        result = execute(args, cwd, env, timeout=timeout, strip=strip)
+        result = execute(args, cwd, env, timeout=timeout, strip=strip, failure_output=failure_output)
         if args[0] == '/bin/git' and args[3] == 'push':
             self.pushed = self.gh.has_branch = True
         return result
@@ -65,12 +66,11 @@ class GitIntegrationTests(unittest.TestCase):
     def test_generated_scenario_cannot_publish_unchecked_source(self):
         def mutator(*args):
             self.agent(*args)
-            scenario = args[0] / ('daily-' + DAY) / 'test/scenarios.js'
+            scenario = args[0] / ('daily-' + DAY) / 'test/game.test.mjs'
             scenario.write_text(scenario.read_text() + '''
-import fs from 'node:fs';
-scenarios.push({name: 'source mutation', run(Game, assert) {
-  fs.writeFileSync('public/client.js', 'unchecked source'); assert(true);
-}});
+test("source mutation", () => {
+  fs.appendFileSync(new URL("../public/client.js", import.meta.url), "// unchecked source\\n");
+});
 ''')
         with self.assertRaisesRegex(ValueError, 'Game checks changed repository files'):
             self.invoke(mutator)

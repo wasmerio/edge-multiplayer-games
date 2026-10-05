@@ -31,7 +31,7 @@ export class ArenaView {
     this.preview = true;
     this.latest = null;
     this.setup({ radius: 5.8 }, [
-      { color: "#b3ff70", name: "YOU" }, { color: "#ad94ff", name: "RIVAL" }
+      { colour: "#b3ff70", name: "YOU" }, { colour: "#ad94ff", name: "RIVAL" }
     ], null);
     this.preview = true;
     this.resize = () => { this.layout(); this.render(); };
@@ -53,7 +53,8 @@ export class ArenaView {
     return object;
   }
 
-  setup(map, players, myId) {
+  // `seat` is this browser's fighter index, -1 for a spectator and null for the lobby preview.
+  setup(map, players, seat) {
     const materials = new Set(), geometries = new Set(), textures = new Set();
     this.world.traverse(object => {
       if (object.geometry) geometries.add(object.geometry);
@@ -66,7 +67,7 @@ export class ArenaView {
     materials.forEach(m => m.dispose());
     textures.forEach(t => t.dispose());
     this.world.clear();
-    this.preview = myId == null;
+    this.preview = seat == null;
     this.latest = null;
     this.baseRadius = map.radius;
     this.platform = new THREE.Group();
@@ -89,10 +90,11 @@ export class ArenaView {
     const cross2 = cross.clone(); cross2.rotation.y = Math.PI / 2; this.platform.add(cross2);
     const underside = this.mesh(new THREE.TorusGeometry(r * 0.88, 0.035, 6, 64), this.material(0xb3ff70, { emissive: 0x89da42, emissiveIntensity: 1 }), this.platform, 0, -0.9);
     underside.rotation.x = Math.PI / 2;
-    this.fighters = players.map((player, i) => this.makeFighter(player, player.owner === myId && myId != null, i));
+    this.fighters = players.map((player, i) => this.makeFighter(player, i === seat, i));
     if (this.preview) {
-      this.pose(this.fighters[0], [-1.4, 0.9, 1.7, 0, 1, 7, 0, 0, 0], 12);
-      this.pose(this.fighters[1], [1.0, 0.4, -1.1, 0, 1, 0, 0, 0, 0], 0);
+      const still = { alive: [true, true], atk: [7, 0], dash: [0, 0], stun: [0, 0], x: [-1.4, 1.0], z: [0.9, 0.4], a: [1.7, -1.1] };
+      this.pose(this.fighters[0], still, 0, 12);
+      this.pose(this.fighters[1], still, 1, 0);
     }
     this.layout();
     this.render();
@@ -102,9 +104,10 @@ export class ArenaView {
     const root = new THREE.Group(), body = new THREE.Group();
     root.add(body);
     this.world.add(root);
-    const suit = this.material(player.color);
+    const colour = player.colour;
+    const suit = this.material(colour);
     const dark = this.material(0x222b24);
-    const glove = this.material(player.color, { roughness: 0.38 });
+    const glove = this.material(colour, { roughness: 0.38 });
     this.mesh(new THREE.CapsuleGeometry(0.36, 0.5, 4, 12), suit, body, 0, 0.93);
     this.mesh(new THREE.SphereGeometry(0.4, 16, 12), suit, body, 0, 1.63);
     const visor = this.mesh(new THREE.SphereGeometry(0.32, 12, 8), dark, body, 0, 1.65, 0.22);
@@ -125,25 +128,26 @@ export class ArenaView {
       cuff.rotation.x = Math.PI / 2;
       return arm;
     });
-    const indicator = this.mesh(new THREE.RingGeometry(0.52, own ? 0.62 : 0.55, 40), new THREE.MeshBasicMaterial({ color: player.color, transparent: true, opacity: own ? 0.95 : 0.45, side: THREE.DoubleSide }), root, 0, 0.035);
+    const indicator = this.mesh(new THREE.RingGeometry(0.52, own ? 0.62 : 0.55, 40), new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: own ? 0.95 : 0.45, side: THREE.DoubleSide }), root, 0, 0.035);
     indicator.rotation.x = -Math.PI / 2;
     const labelCanvas = document.createElement("canvas");
     labelCanvas.width = 256; labelCanvas.height = 64;
     const ctx = labelCanvas.getContext("2d");
     ctx.font = "bold 25px Arial"; ctx.textAlign = "center";
     ctx.fillStyle = "#172014"; ctx.fillRect(10, 8, 236, 46);
-    ctx.fillStyle = player.color; ctx.fillText(`${own ? "▼ " : ""}${player.name.slice(0, 16)}`, 128, 40);
+    ctx.fillStyle = colour; ctx.fillText(`${own ? "▼ " : ""}${player.name.slice(0, 16)}`, 128, 40);
     const texture = new THREE.CanvasTexture(labelCanvas);
     texture.colorSpace = THREE.SRGBColorSpace;
     const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthTest: false }));
     label.position.set(0, 2.4, 0); label.scale.set(1.9, 0.475, 1); root.add(label);
     const hit = this.mesh(new THREE.IcosahedronGeometry(0.35, 0), new THREE.MeshBasicMaterial({ color: 0xfff9ce, wireframe: true }), root, 0, 1.3, 0);
     hit.visible = false;
-    return { root, body, legs, arms, suit, hit, indicator, label, color: player.color, i };
+    return { root, body, legs, arms, suit, hit, indicator, label, i };
   }
 
-  pose(fighter, p, tick) {
-    const [x, z, angle, damage, alive, attack, dash, , stun] = p;
+  // Reads one fighter from a snapshot; x and z arrive interpolated on a guest.
+  pose(fighter, s, i, tick) {
+    const x = s.x[i], z = s.z[i], angle = s.a[i], alive = s.alive[i], attack = s.atk[i], dash = s.dash[i], stun = s.stun[i];
     fighter.root.visible = !!alive;
     fighter.root.position.set(x, 0, z);
     fighter.body.rotation.y = angle;
@@ -164,8 +168,8 @@ export class ArenaView {
   draw(snapshot) {
     this.latest = snapshot;
     this.platform.scale.set(snapshot.r / this.baseRadius, 1, snapshot.r / this.baseRadius);
-    snapshot.p.forEach((p, i) => this.pose(this.fighters[i], p, snapshot.k));
-    this.requestRender();
+    this.fighters.forEach((fighter, i) => this.pose(fighter, snapshot, i, snapshot.n));
+    this.render();
   }
 
   layout() {
@@ -188,8 +192,4 @@ export class ArenaView {
 
   render() { this.renderer.render(this.scene, this.camera); }
 
-  requestRender() {
-    if (this.frame) return;
-    this.frame = requestAnimationFrame(() => { this.frame = null; this.render(); });
-  }
 }

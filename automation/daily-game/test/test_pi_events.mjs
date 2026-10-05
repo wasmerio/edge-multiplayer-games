@@ -7,7 +7,7 @@ reporter.event({ type: 'message_end', message: { role: 'assistant', stopReason: 
   { type: 'thinking', thinking: 'internal text must not be printed' },
   { type: 'text', text: 'Fixture: I will run the simulation checks.' },
 ] } });
-reporter.event({ type: 'tool_execution_start', toolName: 'bash', args: { command: 'node test/run.mjs' } });
+reporter.event({ type: 'tool_execution_start', toolName: 'bash', args: { command: 'node test/game.test.mjs' } });
 assert.equal(lines.length, 3, 'Print tool activity before completion');
 reporter.event({ type: 'tool_execution_end', isError: false, result: { content: [
   { type: 'text', text: 'Fixture checks passed; fixture-secret' },

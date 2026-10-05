@@ -2,7 +2,8 @@
 
 The root `wasmer/edge-multiplayer-games` app owns the daily Edge job.
 Its package serves the website and contains the `daily-game` command.
-The job clones this repository, runs Pi, checks the generated game,
+The job clones this repository, scaffolds an engine game with
+`node scripts/new-game.mjs`, runs Pi on it, checks the generated game,
 and pushes a dated branch. It opens a draft pull request against `main`.
 The same `daily-game` command runs locally with Wasmer.
 
@@ -97,7 +98,7 @@ Daily game 2026-09-10: publish draft PR
 [pi start]
 [pi message] I will inspect the reference game.
 [pi tool read] {"path":"AGENTS.md"}
-[pi tool bash] {"command":"cd daily-2026-09-10 && node test/run.mjs"}
+[pi tool bash] {"command":"cd daily-2026-09-10 && node test/game.test.mjs"}
 [pi tool done] ...
 [pi done]
 PASS game checks: ...
@@ -145,16 +146,49 @@ See [PROBE.md](PROBE.md) for the test without model access.
 
 ## Checks and publication
 
-The coordinator restricts edits to the new game's source files.
-It preserves the signaling server and client transport prefix.
-It injects the cloned repository's full AGENTS.md and registration contract into Pi's input.
-It constructs the app manifest, package files, test runner, both catalog entries,
-and root upload exclusion itself.
+The job authors games on the repository's engine (`engine/README.md`).
+Before Pi starts, the coordinator requires three things in the clone.
+A missing one fails the run; the gate is never skipped.
 
-Before publication, it checks JavaScript syntax, the Game interface,
-and at least two simulation scenarios. The draft PR lists browser gameplay,
-invite flow, and deployment as pending.
-Complete the repository AGENTS.md checklist before publishing the game.
+| Requirement | Failure message |
+|---|---|
+| `scripts/new-game.mjs` | `Scaffold command is missing: node scripts/new-game.mjs` |
+| `scripts/conformance.mjs` | `Conformance command is missing: node scripts/conformance.mjs; the gate is never skipped` |
+| `public/engine/<ENGINE_VERSION>/` equal to `engine/` (`node scripts/sync-engine.mjs verify`) | `Engine version <version> is not published: …` |
+
+The coordinator runs the scaffold in a scratch checkout and copies the result
+into the clone as `daily-YYYY-MM-DD/`. Pi edits only these files:
+`public/game.js`, `public/client.js`, `public/index.html` (title and description),
+`README.md`, `game-entry.json`, and the files under `test/`.
+The scaffold's `src/server.js`, `package.json`, `app.yaml`, `.gitignore`, and import map
+must stay byte-identical. The coordinator injects the cloned repository's full AGENTS.md,
+the engine version, and the registration contract into Pi's input.
+It writes both catalog entries and the root upload exclusion itself.
+
+Before publication, the coordinator rejects a candidate under a named reason.
+No catalog entry, run record, patch, branch, or PR is written for a rejected candidate.
+
+| Check | Rejection |
+|---|---|
+| Scaffold-owned file or import map changed | `Coordinator-owned file differs from the scaffold: <path>`, `Engine import map differs from the scaffold` |
+| Pin is not the engine version of this run | `Engine pin is not <url>; the generator ran against engine <version>` |
+| Rules or drawing are still the scaffold's | `Scaffold placeholder was not replaced: <path>` |
+| Duplicate name, bad metadata, file over 500000 bytes | `Game name already exists`, `Invalid game …`, `Game file exceeds size limit: <path>` |
+| `node --check` on sources and tests | `JavaScript syntax check failed: <path>` |
+| `validateSimulation` | `Game rejected: … Simulation rejected: invalid simulation: missing method winner()` |
+| `defineSnapshot` | `Game rejected: … Snapshot schema does not compile: …` |
+| 600 ticks at 2 and 8 players | `Game rejected: … Snapshot exceeds its budget: … SNAPSHOT_BUDGET_BYTES (100 bytes per player per tick)` |
+| `test/replay.ndjson` replays | `Game rejected: … Fixture does not replay: replay: diverged recorded {…} reached {…}` |
+| Each `test/*.test.mjs`, at least two tests | `Simulation tests failed: <path>` |
+| `node scripts/conformance.mjs <slug> --static --json` | `Conformance failed: <row>: <detail>` |
+
+`runtime/check_game.mjs` holds the simulation, schema, budget, and fixture checks.
+Run it by hand with `node automation/daily-game/runtime/check_game.mjs . <game>`.
+The job has no browser, so the static conformance tier is its gate.
+The draft PR lists the browser tier, gameplay, invite flow, and deployment as pending.
+Run `node scripts/conformance.mjs daily-YYYY-MM-DD` and complete the repository
+AGENTS.md checklist before you merge and publish the game.
+Edge.js 0.2.0 runs `node:test` files directly; the coordinator runs each test file with `node <file>`.
 
 The job compares repository contents before and after the generated tests.
 It rejects file changes, deletions, permission changes, and Git configuration changes.
@@ -177,8 +211,8 @@ The script deploys the game, reads its actual URL from Wasmer, updates the root 
 and deploys the superapp. It also adds missing entries from older generated games.
 If the game is already deployed, `./deploy.sh super` resolves any missing catalog URLs before the root deployment.
 Commit the catalog URL and CLI manifest changes after deployment.
-Saved previews from older versions remain recoverable; deployment adds their missing root entries.
 New runs write upload exclusions to `.wasmerignore`. Saved previews retain their original filter filename during recovery.
+A preview saved before the engine rewrite holds an old-template game and no longer passes validation; generate it again.
 
 ## Reruns and failures
 
@@ -277,10 +311,11 @@ The local Git/Pi startup probe passed in Wasmer 7.3.0 and from a built WebC.
 The new daily command starts in Wasmer. Its event renderer was checked there
 with synthetic events.
 
-Sixteen coordinator tests simulate Git and GitHub while running real JavaScript checks.
-They cover preview export and reuse,
-credential separation, failed validation, protected files, duplicate PRs,
+The coordinator tests simulate Git and GitHub while running the real scaffold, engine checks, and static conformance.
+They cover a dry run that produces a complete conforming game, one test per rejection reason in the table above,
+the engine pin, preview export and reuse, credential separation, protected files, duplicate PRs,
 rejected pushes, recovery after a successful push, injected instructions, and root catalog integrity.
+The fixture publishes `engine/` into its simulated clone, so a stale `public/engine/` in your tree does not fail them.
 
 ```bash
 python3 -m unittest discover -s automation/daily-game/test -v
@@ -296,7 +331,8 @@ wasmer run . -e node --volume .:/repository \
   -- /repository/automation/daily-game/test/wasmer.mjs
 ```
 
-This command runs all 25 Python tests plus the JavaScript runtime checks.
+This command runs all 45 Python tests plus the JavaScript runtime checks. Allow about 15 minutes;
+each generator test starts several Edge.js processes.
 Four integration tests use real Git in disposable guest repositories.
 They cover source mutation, staged-only edits, preview mutation, and Git attribute conversion.
 The suite uses no model API, GitHub token, or external Git remote.
@@ -310,7 +346,8 @@ This check detects missing runtime dependencies in the filtered package.
 | Module | Responsibility |
 |---|---|
 | `daily_game.py` | Generation, preview recovery, and publication sequence |
-| `game_contract.py` | Game layout and preserved multiplayer files |
+| `game_contract.py` | Scaffold ownership, engine pin, and catalog metadata |
+| `check_game.mjs` | Engine gate: simulation shape, schema, budget, fixture replay |
 | `repository.py` | File integrity and checked Git objects |
 | `processes.py` | Shared WASIX subprocess behavior |
 | `pi_entry.mjs`, `run_pi.mjs` | Pi session and event supervision |

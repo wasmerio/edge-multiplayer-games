@@ -2,6 +2,7 @@ export const TICK_HZ = 30;
 export const MAP = { w: 1200, h: 760 };
 export const COLORS = ['#edb35c', '#72c4e8'];
 export const TEAMS = ['Attackers', 'Defenders'];
+export const REASONS = ['', 'Bomb defused', 'Bomb detonated', 'Defenders eliminated', 'Attackers eliminated', 'Time expired'];
 export const RULES = { radius: 13, speed: 4.8, eye: 60, height: 76, wallHeight: 140, plant: 90, defuse: 150, kitDefuse: 75, fuse: 1050, round: 2700, freeze: 450 };
 export const WEAPONS = [
   { id: 'pistol', name: 'P12 Pistol', price: 0, magazine: 12, damage: 26, cooldown: 9, reload: 42, speed: 1, note: 'Light sidearm · 12 rounds' },
@@ -23,6 +24,13 @@ export function cleanInput(input) {
   if (!Array.isArray(input) || !Number.isFinite(input[0]) || !Number.isFinite(input[1])) return [0, 0, 0];
   return [input[0] & 127, ((round(input[1]) % 360) + 360) % 360,
     Number.isFinite(input[2]) ? Math.max(-75, Math.min(75, round(input[2]))) : 0];
+}
+// The engine delivers an intent object; `[buttons, yaw, pitch]` is the compact form the scenarios use.
+export function inputOf(input) {
+  if (Array.isArray(input)) return input;
+  const buttons = (input.strafe < 0 ? 1 : 0) | (input.strafe > 0 ? 2 : 0) | (input.forward > 0 ? 4 : 0) | (input.forward < 0 ? 8 : 0)
+    | (input.fire ? 16 : 0) | (input.reload ? 32 : 0) | (input.use ? 64 : 0);
+  return [buttons, input.aim, input.pitch];
 }
 export function blocked(x, y) {
   const r = RULES.radius;
@@ -59,10 +67,10 @@ function rayBox(origin, direction, min, max) {
 const round = n => Math.round(n * 10) / 10 || 0;
 
 export class Game {
-  constructor(playerCount) {
+  constructor(playerCount, opts, rng) {
     if (!Number.isInteger(playerCount) || playerCount < 2 || playerCount > 8) throw new Error('A match needs 2–8 players.');
-    this.count = playerCount;
-    this.round = 0; this.roundOver = true; this.scores = [0, 0];
+    this.count = playerCount; this.rng = rng;
+    this.round = 0; this.tick = 0; this.roundOver = true; this.scores = [0, 0];
     this.disconnected = new Set(); this.players = []; this.events = []; this.deaths = [];
   }
   startRound() {
@@ -133,7 +141,8 @@ export class Game {
     this.events = []; this.deaths = [];
     if (this.roundOver) return this.snapshot();
     this.tick++;
-    const intents = this.players.map((_, i) => cleanInput(inputs[i]));
+    // A seat with no input yet keeps the facing it spawned with.
+    const intents = this.players.map((p, i) => (inputs[i] && typeof inputs[i] === 'object' ? cleanInput(inputOf(inputs[i])) : [0, p.a, p.pitch]));
     if (this.freeze > 0) {
       this.freeze--;
       this.players.forEach((p, i) => { p.a = intents[i][1]; p.pitch = intents[i][2]; });
@@ -177,9 +186,77 @@ export class Game {
     return this.snapshot();
   }
   snapshot() {
-    return { t: 's', k: this.tick, p: this.players.map(p => [round(p.x), round(p.y), round(p.a), p.hp, p.ammo, p.reload, p.action, p.kills, p.weapon, p.money, p.armor, Number(p.kit), p.pitch]),
-      b: this.bomb.map(roundOrKeep), e: this.events, d: this.deaths, over: this.roundOver,
-      left: this.left, freeze: this.freeze, scores: [...this.scores], result: [...this.result] };
+    const p = this.players, b = this.bomb, of = key => p.map(player => player[key]);
+    const shots = p.map(() => null);
+    for (const event of this.events) shots[event[0]] = event;
+    return { k: this.tick, over: this.roundOver, left: this.left, freeze: this.freeze,
+      rt: this.result[0], rr: Math.max(0, REASONS.indexOf(this.result[1])),
+      bm: b[0], bc: b[1], bx: round(b[2]), by: round(b[3]), bt: Math.max(0, b[4]), bs: b[5],
+      x: p.map(q => round(q.x)), y: p.map(q => round(q.y)), a: p.map(q => round(q.a)), pitch: of('pitch'),
+      hp: of('hp'), ammo: of('ammo'), rl: of('reload'), act: of('action'), kills: of('kills'), w: of('weapon'),
+      money: of('money'), armor: of('armor'), kit: of('kit'),
+      shot: shots.map(Boolean), sx: shots.map(e => e ? e[3] : 0), sy: shots.map(e => e ? e[4] : 0),
+      sz: shots.map(e => e ? e[6] : 0), sh: shots.map(e => e ? e[5] : -1),
+      d: [...this.deaths] };
   }
 }
-const roundOrKeep = n => typeof n === 'number' ? round(n) : n;
+
+// A shot starts at its shooter's position in the same snapshot, at eye height.
+export const SNAPSHOT = {
+  tickField: 'k',
+  interpolate: ['x', 'y', 'bx', 'by', 'a'],
+  fields: {
+    k: { type: 'uint', bits: 16 },
+    over: { type: 'bool' },
+    left: { type: 'uint', bits: 16 },
+    freeze: { type: 'uint', bits: 16 },
+    rt: { type: 'int', bits: 8 },
+    rr: { type: 'uint', bits: 8 },
+    bm: { type: 'uint', bits: 8 },
+    bc: { type: 'int', bits: 8 },
+    bx: { type: 'fixed', scale: 10, bits: 16 },
+    by: { type: 'fixed', scale: 10, bits: 16 },
+    bt: { type: 'uint', bits: 16 },
+    bs: { type: 'int', bits: 8 },
+    x: { type: 'fixed', scale: 10, bits: 16, per: 'player' },
+    y: { type: 'fixed', scale: 10, bits: 16, per: 'player' },
+    a: { type: 'fixed', scale: 10, bits: 16, per: 'player', wrap: 360 },
+    pitch: { type: 'fixed', scale: 10, bits: 16, per: 'player' },
+    hp: { type: 'uint', bits: 8, per: 'player' },
+    ammo: { type: 'uint', bits: 8, per: 'player' },
+    rl: { type: 'uint', bits: 8, per: 'player' },
+    act: { type: 'uint', bits: 8, per: 'player' },
+    kills: { type: 'uint', bits: 8, per: 'player' },
+    w: { type: 'uint', bits: 8, per: 'player' },
+    money: { type: 'uint', bits: 16, per: 'player' },
+    armor: { type: 'uint', bits: 8, per: 'player' },
+    kit: { type: 'bool', per: 'player' },
+    shot: { type: 'bool', per: 'player' },
+    sx: { type: 'fixed', scale: 10, bits: 16, per: 'player' },
+    sy: { type: 'fixed', scale: 10, bits: 16, per: 'player' },
+    sz: { type: 'fixed', scale: 10, bits: 16, per: 'player' },
+    sh: { type: 'int', bits: 8, per: 'player' },
+    d: { type: 'players' },
+  },
+};
+
+export const INTENT = {
+  strafe: { min: -1, max: 1, neutral: 0 },
+  forward: { min: -1, max: 1, neutral: 0 },
+  fire: { values: [0, 1], neutral: 0 },
+  reload: { values: [0, 1], neutral: 0 },
+  use: { values: [0, 1], neutral: 0 },
+  aim: { min: 0, max: 360, neutral: 0 },
+  pitch: { min: -75, max: 75, neutral: 0 },
+};
+
+// Fire, aim and pitch come from the captured mouse, which the client feeds in.
+export const BINDINGS = {
+  strafe: { keys: { KeyA: -1, ArrowLeft: -1, KeyD: 1, ArrowRight: 1 }, axis: 0 },
+  forward: { keys: { KeyW: 1, ArrowUp: 1, KeyS: -1, ArrowDown: -1 } },
+  fire: {},
+  reload: { keys: { KeyR: 1 } },
+  use: { keys: { KeyE: 1 } },
+  aim: { discrete: false },
+  pitch: { discrete: false },
+};
