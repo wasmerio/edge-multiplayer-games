@@ -1,6 +1,6 @@
-# Daily games with Pi on Wasmer
+# Weekly games with Pi on Wasmer
 
-The root `wasmer/edge-multiplayer-games` app owns the daily Edge job.
+The root `wasmer/edge-multiplayer-games` app owns the weekly Edge job.
 Its package serves the website and contains the `daily-game` command.
 The job clones this repository, scaffolds an engine game with
 `node scripts/new-game.mjs`, runs Pi on it, checks the generated game,
@@ -40,7 +40,7 @@ wasmer run . -e daily-game --net \
 ```
 
 This command uses the model API and writes to GitHub.
-It pushes `daily-game/YYYY-MM-DD` and opens a draft PR into `main`.
+It pushes `weekly-game/YYYY-MM-DD` and opens a draft PR into `main`.
 The final line is `PR: https://github.com/...`.
 
 The token needs access to this repository with **Contents: read and write**
@@ -68,7 +68,7 @@ wasmer run . -e daily-game --net --volume automation/daily-game/output:/output \
   -- --output /output
 ```
 
-Read `automation/daily-game/output/daily-YYYY-MM-DD.patch` and its matching JSON report.
+Read `automation/daily-game/output/weekly-YYYY-MM-DD.patch` and its matching JSON report.
 No remote branch or PR is created in this mode.
 You can also use `--output` with `--publish`.
 
@@ -94,7 +94,7 @@ Use `--repository OWNER/REPO` for another compatible game repository,
 A run prints activity such as:
 
 ```text
-Daily game 2026-09-10: publish draft PR
+Weekly game 2026-09-10: publish draft PR
 [pi start]
 [pi message] I will inspect the reference game.
 [pi tool read] {"path":"AGENTS.md"}
@@ -157,11 +157,13 @@ A missing one fails the run; the gate is never skipped.
 | `public/engine/<ENGINE_VERSION>/` equal to `engine/` (`node scripts/sync-engine.mjs verify`) | `Engine version <version> is not published: …` |
 
 The coordinator runs the scaffold in a scratch checkout and copies the result
-into the clone as `daily-YYYY-MM-DD/`. Pi edits only these files:
-`public/game.js`, `public/client.js`, `public/index.html` (title and description),
-`README.md`, `game-entry.json`, and the files under `test/`.
+into the clone as `weekly-YYYY-MM-DD/`. Pi edits only these files:
+`public/game.js`, `public/client.js`, `public/index.html` (markup and copy),
+`public/style.css` (the game's own look), `README.md`, `game-entry.json`, and the files under `test/`.
 The scaffold's `src/server.js`, `package.json`, `app.yaml`, `.gitignore`, and import map
-must stay byte-identical. The coordinator injects the cloned repository's full AGENTS.md,
+must stay byte-identical. The page must keep its one module script, the `/style.css` link,
+a link to the superapp, and each required `data-engine` role exactly once.
+A `style.css` that is byte-identical to the scaffold's is rejected: every game has its own visual identity. The coordinator injects the cloned repository's full AGENTS.md,
 the engine version, and the registration contract into Pi's input.
 It writes both catalog entries and the root upload exclusion itself.
 
@@ -173,6 +175,8 @@ No catalog entry, run record, patch, branch, or PR is written for a rejected can
 | Scaffold-owned file or import map changed | `Coordinator-owned file differs from the scaffold: <path>`, `Engine import map differs from the scaffold` |
 | Pin is not the engine version of this run | `Engine pin is not <url>; the generator ran against engine <version>` |
 | Rules or drawing are still the scaffold's | `Scaffold placeholder was not replaced: <path>` |
+| Page lost what the engine binds to | `Page does not load /client.js as its one module script`, `Page has a script besides the import map and /client.js`, `Page does not link /style.css`, `Page has no link back to <superapp>`, `Page is missing data-engine role: <roles>`, `Page repeats data-engine role: <roles>` |
+| Page or look is still the scaffold's | `Page still carries the scaffold's placeholder copy`, `Stylesheet is the scaffold's default theme: public/style.css; the game needs its own visual identity`, `Stylesheet is missing or empty: public/style.css` |
 | Duplicate name, bad metadata, file over 500000 bytes | `Game name already exists`, `Invalid game …`, `Game file exceeds size limit: <path>` |
 | `node --check` on sources and tests | `JavaScript syntax check failed: <path>` |
 | `validateSimulation` | `Game rejected: … Simulation rejected: invalid simulation: missing method winner()` |
@@ -186,7 +190,7 @@ No catalog entry, run record, patch, branch, or PR is written for a rejected can
 Run it by hand with `node automation/daily-game/runtime/check_game.mjs . <game>`.
 The job has no browser, so the static conformance tier is its gate.
 The draft PR lists the browser tier, gameplay, invite flow, and deployment as pending.
-Run `node scripts/conformance.mjs daily-YYYY-MM-DD` and complete the repository
+Run `node scripts/conformance.mjs weekly-YYYY-MM-DD` and complete the repository
 AGENTS.md checklist before you merge and publish the game.
 Edge.js 0.2.0 runs `node:test` files directly; the coordinator runs each test file with `node <file>`.
 
@@ -204,7 +208,7 @@ The internal `automation/daily-game/catalog.json` is a generation record; the su
 After merging the PR, run this command from the repository root:
 
 ```bash
-./deploy.sh daily-YYYY-MM-DD super
+./deploy.sh weekly-YYYY-MM-DD super
 ```
 
 The script deploys the game, reads its actual URL from Wasmer, updates the root catalog,
@@ -230,10 +234,11 @@ The job does not overwrite another candidate with a forced push.
 
 ## Edge schedule
 
-The root [`app.yaml`](../../app.yaml) configures `daily-game --publish` at `45 14 * * *`, or 14:45 UTC.
-This is 17:45 in Helsinki during summer time.
-The configuration requests a 50-minute timeout and no automatic retries.
-The deployed cron currently reports 180 seconds because the backend reads timeout fields from a different location than the CLI writes.
+The job is weekly. Its schedule is set on the root app in the Wasmer dashboard, not in `app.yaml`:
+`daily-game --publish` at `0 6 * * 1`, Mondays 06:00 UTC, with a 50-minute timeout and no automatic retries.
+The command and this directory keep the name `daily-game` so the configured job keeps working.
+A run names its game `weekly-YYYY-MM-DD` and its branch `weekly-game/YYYY-MM-DD` from the run date.
+Games generated before the change keep their `daily-` names.
 Pi has a 30-minute limit within that invocation.
 
 The root [`wasmer.toml`](../../wasmer.toml) defines the website and job commands in one package.
@@ -264,7 +269,7 @@ The former standalone app manifests are removed. If you deployed that app separa
 ## Persistent run files
 
 The `daily-game-runs` volume mounts at `/data`.
-`DAILY_GAME_WORK_ROOT=/data` keeps each attempt in a separate `daily-YYYY-MM-DD-*` directory.
+`DAILY_GAME_WORK_ROOT=/data` keeps each attempt in a separate `weekly-YYYY-MM-DD-*` directory.
 The checkout, temporary files, and agent home use that directory.
 Failed attempts remain available. Retries create new directories.
 

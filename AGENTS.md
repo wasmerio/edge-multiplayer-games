@@ -35,8 +35,8 @@ player, and broadcasts one binary snapshot per tick over one ordered,
 reliable `RTCDataChannel` per guest (star topology). Guests send intent
 only when it changes, and draw an interpolated stream. State is never
 agreed upon; one writer owns it. A game is a simulation, a snapshot
-schema, an intent, and a draw function. Everything else belongs to the
-engine.
+schema, an intent, a draw function, and its own page and stylesheet.
+The engine owns behaviour; the game owns its look and feel.
 
 Why: Edge exposes HTTPS and WebSocket but no UDP, so TURN or an SFU
 cannot live there, and instances are ephemeral (about one hour, stop when
@@ -52,7 +52,8 @@ before you write code. A game touches only this much:
 | `class Game` in `public/game.js` | `constructor(playerCount, opts, rng)`, `startRound()`, `step(intents)`, `winner(target)`; fields `round`, `tick`, `roundOver`, `scores` | The fixed-tick loop, the host, seeded randomness, record and replay |
 | `SNAPSHOT` in `public/game.js` | Field names and types for `defineSnapshot` | The binary codec, deltas, the byte budget, guest interpolation |
 | `INTENT` in `public/game.js` | One entry per input field: `{ min, max, neutral }` | Keyboard, touch, and gamepad sources; resend on loss |
-| One `startGame({...})` call in `public/client.js` | `title`, `Simulation`, `schema`, `intent`, `bindings`, `touchControls`, `draw`, `audioMap` | Lobby, invite panel, `?create=1`, `?room=CODE`, scoreboard, banner, superapp link, WebRTC, audio mixer, diagnostics |
+| One `startGame({...})` call in `public/client.js` | `title`, `Simulation`, `schema`, `intent`, `bindings`, `draw`, `audioMap`, `palette`, `labels` | Lobby logic, invite link, `?create=1`, `?room=CODE`, scoreboard rows, banner text, WebRTC, audio mixer, diagnostics |
+| `public/index.html` and `public/style.css` | Your markup, copy, and theme; elements carry `data-engine="<role>"` | Binding behaviour to those roles; showing and hiding them with the `hidden` attribute. It injects no theme |
 | `draw(surface, snapshot, ctx)` | The 2D surface: `clear`, `disc`, `box`, `trail`, `poly`, `ellipse`, `arc`, `text` | Canvas layers, arena scaling |
 | `src/server.js` (scaffolded, never edited) | One `serveGame` call | Static files, `/healthz`, `/ws` signaling, room lifecycle |
 
@@ -79,14 +80,15 @@ It writes a complete game that already passes its tests and conformance:
 |---|---|---|
 | `public/game.js` | You | Simulation, `SNAPSHOT`, `INTENT` |
 | `public/client.js` | You | The `startGame` call |
-| `public/index.html` | You: title and description only | Container and the pinned import map |
+| `public/index.html` | You: markup and copy | The page. Keep the pinned import map, the one module script, the superapp link, and the `data-engine` roles |
+| `public/style.css` | You | The game's look. The scaffold's theme is a placeholder to replace |
 | `test/game.test.mjs`, `test/reference.mjs`, `test/replay.ndjson` | You | Scenarios, the reference match, its recorded fixture |
 | `README.md`, `game-entry.json` | You | The contract; the catalog metadata |
 | `src/server.js`, `package.json`, `app.yaml`, `.gitignore` | Scaffold | Do not edit |
 
-Do not copy another game's directory. Do not add a stylesheet, a lobby,
-a WebSocket, an `RTCPeerConnection`, a timer loop, or a second engine
-import; conformance fails each of them by name.
+Do not copy another game's directory, page, or stylesheet. Do not add
+lobby code, a WebSocket, an `RTCPeerConnection`, a timer loop, or a
+second engine import; conformance fails each of them by name.
 
 ### 3.2 Design the contract in the README first
 
@@ -131,15 +133,39 @@ top level.
 
 - `bindings`: one entry per `INTENT` field, for example
   `{ turn: { keys: { ArrowLeft: -1, ArrowRight: 1 }, axis: 0 } }`.
-- `touchControls`: one button per direction or action,
-  `{ field, value, label }`. A phone has no keyboard.
 - `draw(surface, snapshot, ctx)`: draw only through `surface`. `ctx`
   gives `players()`, `colourFor(i)`, `seat()`, `isHost()`, `target()`,
   and `hud(text)`. Draw from the snapshot alone.
+- `palette`: the game's own player colours, by seat. `labels`: the
+  game's own banner and next-round copy.
 - `audioMap`: snapshot event field to a shared sound name. See
   `engine/README.md` for the sound set.
 
-### 3.5 Tests and the fixture
+### 3.5 Write the page and the stylesheet
+
+The engine owns behaviour. The game owns its page and stylesheet. Each
+game has its own style, look, and feel: its own palette, typography,
+layout, lobby copy, and canvas art direction. The scaffold's theme is a
+starting point; a game that ships it unchanged is not finished.
+
+- `public/index.html` is yours. Mark each element the engine drives with
+  `data-engine="<role>"`; the table of roles is in `engine/README.md`,
+  "Page slots". Required: `arena`, `name`, `create`, `code`, `join`,
+  `start`. Without `invite-link` the host cannot share the room.
+- Use each role once. The engine sets text, reads values, and toggles
+  the `hidden` attribute; it adds no class and no theme.
+- A phone has no keyboard. Give each touch control a button in the page:
+  `<button data-engine-touch="turn=-1">`. The field must be in `INTENT`.
+  Show the buttons under `[data-touch="on"]`, which the engine sets on a
+  touch device.
+- Keep the import map, the one `<script type="module" src="/client.js">`,
+  the `<link rel="stylesheet" href="/style.css">`, and a link to the
+  superapp. Add no other script.
+- `public/style.css` is yours. Keep `[hidden] { display: none !important; }`.
+  Leave the width and aspect ratio of the arena to the engine. Check the
+  page at 360 px wide.
+
+### 3.6 Tests and the fixture
 
 Edit `test/game.test.mjs`. Keep its engine checks (shape, budget,
 fixture replay, same-seed equality) and replace the scaffold's rule
@@ -158,7 +184,7 @@ Without npm, run `RECORD=1 node test/game.test.mjs` and
 `node test/game.test.mjs`. From the repository root, the test command is
 `node --test scripts/*.test.mjs`; the glob form is required.
 
-### 3.6 Run it locally
+### 3.7 Run it locally
 
 ```bash
 node scripts/dev.mjs <slug> 8765
@@ -170,7 +196,7 @@ and serves the game with the pinned import redirected to this checkout.
 Open `http://localhost:8765/?create=1` in one tab and the invite link in
 a second. Loopback ICE works without STUN.
 
-### 3.7 Conformance and soak
+### 3.8 Conformance and soak
 
 ```bash
 node scripts/conformance.mjs <slug> --static   # source rows; no browser, no server
@@ -180,12 +206,19 @@ node scripts/soak.mjs <slug> --duration 60     # host and guests play; diagnosti
 
 Every row prints `PASS` or `FAIL` with its reason, and any failed row
 makes the exit status non-zero. Fix the named row; do not skip the
-command. The static tier is the gate of the daily generator, which has
+command. The static tier is the gate of the weekly generator, which has
 no browser. The full tier and the soak run are required before a deploy.
 
 | Failed row or error | Cause | Fix |
 |---|---|---|
 | `pinned` | The import map changed, or a module imports the engine by another path | Restore the scaffold's import map; import only `@engine/engine.js` |
+| `slots` naming `missing required slot(s)` | The page has an arena slot but lacks a required role | Add the element with that `data-engine` role |
+| `slots` naming `unknown data-engine role` or `used more than once` | A misspelt or repeated role | Use each role from "Page slots" once |
+| `slots` naming `unknown intent field` | A `data-engine-touch` button names a field outside `INTENT` | Use `<field>=<number>` with an `INTENT` field |
+| `slots` naming `predates page slots` | The import map pins an engine version older than page slots | Pin the current `ENGINE_VERSION` |
+| `stylesheet` | A linked stylesheet is missing or empty, or the page brings none | Write `public/style.css` and link it |
+| `link` | The page has no link to the superapp | Add `<a href="https://edge-multiplayer-games.wasmer.app">` |
+| `create` naming `no invite-link slot` | The page cannot show the invite | Add an element with `data-engine="invite-link"` |
 | `published` | `public/engine/<version>/` is missing or stale | `node scripts/sync-engine.mjs publish`, then `node scripts/sync-engine.mjs verify` |
 | `server`, `netcode`, `accumulator` | The game has its own server, socket, or loop | Delete it; the engine owns these |
 | `simulation` naming `missing method …` | The class does not match the shape in section 2 | Add the method or field it names |
@@ -194,7 +227,7 @@ no browser. The full tier and the soak run are required before a deploy.
 | `budget` | A snapshot is larger than the budget | Fewer fields, narrower `bits`, coarser `scale` |
 | `readme` | A contract heading is missing | Section 3.2 |
 
-### 3.8 Deploy and verify
+### 3.9 Deploy and verify
 
 ```bash
 ./deploy.sh <slug>
@@ -226,7 +259,7 @@ a wrong detection, delete the annotations. Keep
 `locality.regions: [fr-roub1]`; one region keeps the per-instance room
 registry mostly coherent.
 
-### 3.9 Register in the superapp
+### 3.10 Register in the superapp
 
 Deployment is complete only when the root catalog contains the game and
 the superapp deployment serves that entry.
@@ -245,20 +278,21 @@ Do not guess a Wasmer URL; an entry without a deployment has `url: null`
 and shows as coming soon.
 
 The root app serves `public/` (the index, the published engine, the
-shared assets) and owns the daily generation cron job. Its `wasmer.toml`
+shared assets) and owns the weekly generation cron job. Its `wasmer.toml`
 bundles `public/`, the generation runtime, and prepared Pi dependencies.
 Do not add a root `package.json`, a second automation app, or a second
 cron schedule. The root `.wasmerignore` is the upload filter for the
 root package; do not use `.ignore` there, because search tools read that
 filename. It excludes `CLAUDE.md`, a symlink the packager refuses.
 
-Daily games reach this point through the generator
+Weekly games reach this point through the generator
 ([`automation/daily-game/README.md`](automation/daily-game/README.md)):
 it scaffolds, lets the model author the files in section 3.1, rejects a
-candidate that fails any static check, and opens a draft pull request
+candidate that fails any static check or keeps the scaffold's theme, and
+opens a draft pull request
 with `url: null`. A person runs the full tier, merges, and deploys.
 
-### 3.10 Vendoring escape hatch
+### 3.11 Vendoring escape hatch
 
 A game that must stay frozen on one engine build can carry its own copy:
 
@@ -303,6 +337,8 @@ receives engine fixes. Use it only for a game that is deliberately frozen.
 - [ ] `node scripts/conformance.mjs <slug>` passes every row (full tier)
 - [ ] `node scripts/soak.mjs <slug>` passes
 - [ ] Scaffold-owned files are unchanged; the import map pins the current engine version
+- [ ] The page and `public/style.css` are the game's own: its palette, typography, layout, and copy, not the scaffold's theme
+- [ ] Lobby and game are usable at 360 px wide, and the touch buttons appear on a phone
 - [ ] Two-tab local game: join, steer from the guest, round advance
 - [ ] Deploy log: `Packaging project directory (N files…)` with a sane `N`, `Detected Node.js provider`
 - [ ] `node scripts/conformance.mjs https://<app>` passes
@@ -312,13 +348,19 @@ receives engine fixes. Use it only for a game that is deliberately frozen.
 ## 6. Conventions
 
 - One directory per game, self-contained, own `app.yaml`.
+- The engine owns behaviour, the game owns its page and stylesheet.
+  Shared code never carries a theme into a game, and no two games share
+  a look.
 - One copy of the engine: `engine/`. `public/engine/<version>/` is its
   published copy, written only by `node scripts/sync-engine.mjs publish`.
   `engine/` inside a game is a deploy-time copy and is ignored by git.
 - A game never restates an engine tunable; import it from `params`.
 - Comments: one short line for the non-obvious only. Rationale goes in
   the README.
-- Browsers cache a version path for a year. An engine change that must
-  reach players needs a new `ENGINE_VERSION` and a new published directory.
+- Browsers cache a version path for a year. After a version has been
+  deployed, its directory under `public/engine/` is frozen: never edit
+  or delete it. An engine change ships as a new `ENGINE_VERSION` in
+  `engine/params.js`, `node scripts/sync-engine.mjs publish` into a new
+  directory beside the old ones, and a new pin in each game that wants it.
 - Keep this file current. If a step here is wrong for the platform as it
   exists today, fix the step, do not work around it silently.

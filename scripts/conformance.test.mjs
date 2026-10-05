@@ -12,6 +12,9 @@ import { scaffold } from './new-game.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const VERSION = engineVersion(REPO);
+const ORIGIN = fs.readFileSync(path.join(REPO, 'engine/params.js'), 'utf8').match(/SUPERAPP_ORIGIN *= *"([^"]+)"/)[1];
+// A version published earlier and frozen beside the current one (D-24).
+const FROZEN = fs.readdirSync(path.join(REPO, 'public/engine')).filter((name) => name !== VERSION).sort()[0] ?? null;
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'conformance-'));
 after(() => fs.rmSync(scratch, { recursive: true, force: true }));
 
@@ -35,7 +38,7 @@ const edit = (file, from, to) => {
   assert.ok(before.includes(from), `${file} no longer contains ${from}`);
   fs.writeFileSync(file, before.replace(from, to));
 };
-const ROWS = ['healthz', 'create', 'join', 'link', 'pinned', 'published', 'server', 'accumulator', 'netcode',
+const ROWS = ['healthz', 'create', 'join', 'link', 'slots', 'stylesheet', 'pinned', 'published', 'server', 'accumulator', 'netcode',
   'simulation', 'schema', 'fixture', 'budget', 'readme', 'ledger'];
 
 test('the reference game passes every row against its own server and a headless browser', async () => {
@@ -47,6 +50,109 @@ test('the reference game passes every row against its own server and a headless 
   assert.deepEqual(result.rows.map((row) => row.id), ROWS);
   assert.match(byId(result).create.detail, /\?room=[A-Z0-9]{4}/);
   assert.equal(fs.readdirSync(path.join(root, 'achtung/public')).join(','), tracked, 'the run wrote into public/');
+});
+
+// The page of a game that leaves its chrome to the kit.
+const barePage = (version) => `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Bare</title>
+<script type="importmap">{ "imports": { "@engine/": "${ORIGIN}/engine/${version}/" } }</script>
+</head><body><div id="game"></div><script type="module" src="/client.js"></script></body></html>
+`;
+
+test('a page that owns its chrome passes with its slots, its stylesheet and its own superapp link', async () => {
+  const root = checkout('owned');
+  const rows = byId(await runConformance(path.join(root, 'achtung'), { static: true }));
+  assert.match(rows.slots.detail, /the page owns its chrome: \d+ slots, 2 touch button/);
+  assert.match(rows.stylesheet.detail, /\/style\.css present/);
+  assert.equal(rows.link.detail, 'index.html links to the superapp');
+});
+
+test('a bare container page passes every row with the kit\'s default chrome', async () => {
+  const root = checkout('bare');
+  const dir = path.join(root, 'achtung');
+  fs.writeFileSync(path.join(dir, 'public/index.html'), barePage(VERSION));
+  fs.rmSync(path.join(dir, 'public/style.css'));
+  const result = await runConformance(dir, { port: 8830 });
+  assert.deepEqual(failed(result), []);
+  const rows = byId(result);
+  assert.match(rows.slots.detail, /bare #game container/);
+  assert.match(rows.stylesheet.detail, /no stylesheet linked/);
+  assert.match(rows.create.detail, /\?room=[A-Z0-9]{4}/);
+  assert.match(rows.link.detail, /the rendered page links to/);
+  assert.match(byId(await runConformance(dir, { static: true })).link.detail, /the kit header carries the link/);
+});
+
+test('missing, misspelt and repeated slots, and a touch button for an unknown field, fail the slots row by name', async () => {
+  const root = checkout('slots');
+  const dir = path.join(root, 'achtung');
+  const page = path.join(dir, 'public/index.html');
+  const original = fs.readFileSync(page, 'utf8');
+  const slots = async (from, to) => {
+    assert.ok(original.includes(from), `the reference page no longer contains ${from}`);
+    fs.writeFileSync(page, original.replace(from, to));
+    return byId(await runConformance(dir, { static: true }));
+  };
+  let rows = await slots('data-engine="start"', 'data-role="start"');
+  assert.equal(rows.slots.status, 'fail');
+  assert.match(rows.slots.detail, /missing required slot\(s\): start/);
+  rows = await slots('data-engine="peers"', 'data-engine="peer-list"');
+  assert.match(rows.slots.detail, /unknown data-engine role\(s\): peer-list/);
+  rows = await slots('data-engine="hud"', 'data-engine="status"');
+  assert.match(rows.slots.detail, /used more than once: status/);
+  rows = await slots('data-engine-touch="turn=1"', 'data-engine-touch="jump=1"');
+  assert.match(rows.slots.detail, /unknown intent field jump/);
+  rows = await slots('data-engine-touch="turn=1"', 'data-engine-touch="turn"');
+  assert.match(rows.slots.detail, /is not <field>=<number>/);
+  rows = await slots('data-engine="arena"', 'data-area="arena"');
+  assert.match(rows.slots.detail, /roles without an arena slot are ignored/);
+
+  fs.writeFileSync(page, '<!doctype html><script type="module" src="/client.js"></script>');
+  rows = byId(await runConformance(dir, { static: true }));
+  assert.match(rows.slots.detail, /neither a data-engine="arena" slot nor an element with id "game"/);
+});
+
+test('a page that owns its chrome needs its own invite link, superapp link and stylesheet', async () => {
+  const root = checkout('owned-gaps');
+  const dir = path.join(root, 'achtung');
+  const page = path.join(dir, 'public/index.html');
+  const original = fs.readFileSync(page, 'utf8');
+  fs.writeFileSync(page, original.replace('data-engine="invite-link"', 'data-was="invite-link"'));
+  let rows = byId(await runConformance(dir, { static: true }));
+  assert.match(rows.create.detail, /no invite-link slot/);
+  assert.equal(rows.join.status, 'pass');
+
+  fs.writeFileSync(page, original.replace(`href="${ORIGIN}"`, 'href="https://elsewhere.example"'));
+  rows = byId(await runConformance(dir, { static: true }));
+  assert.equal(rows.link.status, 'fail');
+  assert.match(rows.link.detail, /owns its chrome and has no link/);
+
+  fs.writeFileSync(page, original);
+  fs.rmSync(path.join(dir, 'public/style.css'));
+  rows = byId(await runConformance(dir, { static: true }));
+  assert.equal(rows.stylesheet.status, 'fail');
+  assert.match(rows.stylesheet.detail, /missing or empty: public\/style\.css/);
+
+  fs.writeFileSync(page, original.replace(/<link rel="stylesheet"[^>]*>/, ''));
+  rows = byId(await runConformance(dir, { static: true }));
+  assert.match(rows.stylesheet.detail, /brings no stylesheet/);
+});
+
+test('a frozen earlier engine version stays usable by a bare page and is refused for page slots', { skip: FROZEN ? false : 'no earlier engine version is published' }, async () => {
+  const root = checkout('frozen');
+  const dir = path.join(root, 'achtung');
+  const page = path.join(dir, 'public/index.html');
+  edit(page, `/engine/${VERSION}/`, `/engine/${FROZEN}/`);
+  let rows = byId(await runConformance(dir, { static: true }));
+  assert.equal(rows.pinned.detail, `pinned to ${FROZEN}`);
+  assert.equal(rows.published.status, 'pass', rows.published.detail);
+  assert.equal(rows.slots.status, 'fail');
+  assert.match(rows.slots.detail, /the pinned engine predates page slots/);
+
+  fs.writeFileSync(page, barePage(FROZEN));
+  rows = byId(await runConformance(dir, { static: true }));
+  assert.equal(rows.slots.status, 'pass', rows.slots.detail);
+  assert.equal(rows.published.status, 'pass');
+  assert.equal(rows.link.status, 'pass', rows.link.detail);
 });
 
 test('the static tier passes the reference game from source alone and prints JSON', () => {
@@ -212,7 +318,7 @@ test('a vendored game passes conformance offline from its own copy of the engine
 test('a scaffolded game passes its own tests and conformance out of the box', async () => {
   const root = checkout('scaffold', { game: null });
   const made = await scaffold({ slug: 'pellet-chase', name: 'Pellet Chase', root });
-  for (const file of ['src/server.js', 'public/index.html', 'public/client.js', 'public/game.js', 'test/game.test.mjs',
+  for (const file of ['src/server.js', 'public/index.html', 'public/style.css', 'public/client.js', 'public/game.js', 'test/game.test.mjs',
     'test/replay.ndjson', 'package.json', '.gitignore', 'app.yaml', 'game-entry.json', 'README.md']) {
     assert.ok(fs.existsSync(path.join(made.dir, file)), file);
   }
@@ -220,7 +326,21 @@ test('a scaffolded game passes its own tests and conformance out of the box', as
   assert.match(app, /^name: pellet-chase$/m);
   assert.doesNotMatch(app, /app_id|annotations/);
   assert.equal(JSON.parse(fs.readFileSync(path.join(made.dir, 'game-entry.json'), 'utf8')).source, 'pellet-chase/');
-  assert.ok(fs.readFileSync(path.join(made.dir, 'public/index.html'), 'utf8').includes(`/engine/${VERSION}/`));
+  const page = fs.readFileSync(path.join(made.dir, 'public/index.html'), 'utf8');
+  assert.ok(page.includes(`/engine/${VERSION}/`));
+  assert.ok(page.includes('<link rel="stylesheet" href="/style.css">'));
+  assert.ok(page.includes(`href="${ORIGIN}"`), 'the scaffolded page links back to the superapp');
+  for (const role of ['arena', 'name', 'create', 'code', 'join', 'start', 'status', 'mute', 'lobby', 'room-info', 'room-code', 'invite',
+    'invite-link', 'copy', 'peers', 'host-controls', 'wait', 'game', 'banner', 'scores', 'next', 'hud']) {
+    assert.ok(page.includes(`data-engine="${role}"`), `the scaffolded page has no ${role} slot`);
+  }
+  assert.match(page, /data-engine-touch="turn=-1"[\s\S]*data-engine-touch="turn=1"/);
+  const css = fs.readFileSync(path.join(made.dir, 'public/style.css'), 'utf8');
+  assert.match(css, /:root \{[^}]*--bg:[^}]*--accent:/, 'theme properties sit at the top');
+  assert.match(css, /\[hidden\] \{ display: none !important; \}/);
+  assert.match(css, /@media \(max-width: \d+px\)/);
+  assert.doesNotMatch(css, /\{\{|engine-root/);
+  assert.doesNotMatch(fs.readFileSync(path.join(made.dir, 'public/client.js'), 'utf8'), /touchControls/);
 
   const tests = spawnSync('npm', ['test'], { cwd: made.dir, encoding: 'utf8' });
   assert.equal(tests.status, 0, tests.stdout + tests.stderr);
@@ -228,6 +348,7 @@ test('a scaffolded game passes its own tests and conformance out of the box', as
   const statics = await runConformance(made.dir, { static: true });
   assert.deepEqual(failed(statics), []);
   linkModules(made.dir);
+  assert.match(byId(statics).slots.detail, /the page owns its chrome/);
   const full = await runConformance(made.dir, { port: 8845 });
   assert.deepEqual(failed(full), []);
 

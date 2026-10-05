@@ -1,5 +1,5 @@
 import { defineSnapshot, startGame } from "@engine/engine.js";
-import { Game, INTENT, SNAPSHOT, ARENA, TARGET, TICK_HZ, GATES, REEFS, GATE_RADIUS, LAP_GATES } from "/game.js";
+import { COLORS, Game, INTENT, SNAPSHOT, ARENA, TARGET, TICK_HZ, GATES, REEFS, GATE_RADIUS, LAP_GATES } from "/game.js";
 
 const schema = defineSnapshot(SNAPSHOT);
 const LAP = GATES.length;
@@ -13,10 +13,18 @@ const turned = (shape, angle, ox, oy) => {
 
 function drawCourse(surface, snap, own) {
   const { w, h } = surface.arena();
-  surface.box("world", { x: 0, y: 0, w, h, colour: "#0e2f42" });
+  // The water gradient and the wave curves have no surface primitive.
+  const c = surface.canvas("world").getContext("2d");
+  const water = c.createLinearGradient(0, 0, w, h);
+  water.addColorStop(0, "#123e51");
+  water.addColorStop(1, "#081f32");
+  c.fillStyle = water;
+  c.fillRect(0, 0, w, h);
+  c.strokeStyle = "#286074";
+  c.lineWidth = 1;
   for (let y = 35; y < h; y += 38) {
     for (let x = 20; x < w; x += 55) {
-      surface.poly("world", { points: [{ x, y }, { x: x + 10.5, y: y + 2.5 }, { x: x + 22, y }], colour: "#286074", stroke: 1, closed: false });
+      c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + 10, y + 5, x + 22, y); c.stroke();
     }
   }
   surface.box("world", { x: w * 0.015, y: h * 0.02, w: w * 0.97, h: h * 0.96, colour: "#d0b67b", stroke: 6 });
@@ -46,6 +54,36 @@ const progress = (snap, i) => {
   return `lap ${Math.floor(snap.cp[i] / LAP) + 1}/2 · next ${(snap.cp[i] % LAP) + 1} · ${snap.cp[i]}/${LAP_GATES}`;
 };
 
+// The standings carry each boat's race progress, so the page's own list is drawn here.
+let shown = "";
+function standings(snap, players, own, target) {
+  const list = document.getElementById("scores");
+  if (!list) return;
+  const rows = snap.cp.map((_, i) => ({
+    name: `${players[i]?.name ?? `boat ${i + 1}`}${i === own ? " (you)" : ""}`,
+    colour: players[i]?.colour ?? COLORS[i % COLORS.length],
+    score: snap.scores[i], on: snap.on[i], progress: progress(snap, i),
+  }));
+  const key = JSON.stringify([rows, target]);
+  if (key === shown) return;
+  shown = key;
+  const node = (tag, text, className) => {
+    const made = document.createElement(tag);
+    if (text !== undefined) made.textContent = text;
+    if (className) made.className = className;
+    return made;
+  };
+  const goal = node("li", `first to ${target}`, "muted");
+  goal.style.listStyle = "none";
+  list.replaceChildren(...rows.map((row) => {
+    const li = node("li", undefined, row.on ? "" : "dead");
+    const swatch = node("span", undefined, "swatch");
+    swatch.style.background = row.colour;
+    li.append(swatch, `${row.name} `, node("strong", `${row.score} pts`), node("small", row.progress));
+    return li;
+  }), goal);
+}
+
 startGame({
   title: "Switchback Regatta",
   Simulation: Game,
@@ -55,10 +93,12 @@ startGame({
   arena: () => ARENA,
   target: () => TARGET,
   bindings: { turn: { keys: { ArrowLeft: -1, ArrowRight: 1 }, axis: 0 } },
-  touchControls: [
-    { field: "turn", value: -1, label: "↶ Port" },
-    { field: "turn", value: 1, label: "Starboard ↷" },
-  ],
+  palette: COLORS,
+  labels: {
+    round: (n) => `Race ${n} · ready at the helm`,
+    over: (winner) => (winner ? `${winner} wins the regatta!` : "Race complete · compare your points below"),
+    next: (matchOver) => (matchOver ? "New match" : "Next race · Space"),
+  },
   draw(surface, snap, ctx) {
     const { w, h } = surface.arena();
     const own = ctx.seat();
@@ -78,7 +118,8 @@ startGame({
     const clock = snap.f ? `Cast off in ${Math.ceil(snap.f / TICK_HZ)}…`
       : snap.over ? "Race complete"
         : `${Math.ceil(snap.left / TICK_HZ)}s remaining · pass rings in order`;
-    const fleet = snap.cp.map((_, i) => `${players[i]?.name ?? i + 1}: ${progress(snap, i)}`).join("  |  ");
-    ctx.hud(`${clock}  —  ${fleet}`);
+    const clockNode = document.getElementById("race-clock");
+    if (clockNode && clockNode.textContent !== clock) clockNode.textContent = clock;
+    standings(snap, players, own, ctx.target());
   },
 });

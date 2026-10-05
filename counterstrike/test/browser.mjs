@@ -46,20 +46,21 @@ try {
 
   const host = await page('Viper');
   await host.goto(`${base}/?create=1`);
-  await host.locator('.engine-invite').waitFor({ state: 'visible' });
-  const invite = await host.locator('.engine-invite').getAttribute('href');
+  await host.locator('#invite-link').waitFor({ state: 'visible' });
+  const invite = await host.locator('#invite-link').getAttribute('href');
   assert.match(invite, /\?room=[A-Z2-9]{4}$/);
   const guest = await page('Ghost');
   await guest.goto(invite);
   await wait(host, () => window.breach.peers().some(p => p.channel === 'open' && p.connection === 'connected'));
-  await host.getByRole('button', { name: 'Start' }).click();
+  await host.locator('#start').click();
   await guest.locator('#buy-menu').waitFor({ state: 'visible' });
   assert.equal(await guest.evaluate(() => window.breach.view.renderer().camera.isPerspectiveCamera), true);
   assert.ok(await colours(host) > 10, 'the host scene renders');
   assert.ok(await colours(guest) > 10, 'the guest scene renders');
   assert.ok(await guest.evaluate(() => window.breach.state.client.stats().pushed > 5), 'the guest buffers the snapshot stream');
   assert.ok(await sim(host, () => window.breach.state.sim.freeze > 0 && window.breach.state.sim.freeze <= 450));
-  assert.deepEqual(await host.locator('.engine-scores li').allInnerTexts().then(rows => rows.filter(row => /Attackers|Defenders/.test(row))), ['Attackers: 0', 'Defenders: 0']);
+  assert.deepEqual([await host.locator('#attack-score').innerText(), await host.locator('#defend-score').innerText()], ['0', '0']);
+  assert.match(await host.locator('#scores').innerText(), /Viper \(you\)/);
   console.log('PASS ?create=1 invite with no click, ?room=CODE join, DataChannel open, 3D scene on both, team scoreboard');
 
   // Extend only this run's buy period to inspect every purchase path.
@@ -151,11 +152,11 @@ try {
   await guest.mouse.down();
   await wait(host, () => window.breach.state.sim.roundOver);
   await guest.mouse.up();
-  await wait(guest, () => /Defenders win the round/.test(document.querySelector('.engine-banner').textContent));
-  assert.match(await guest.locator('#objective').innerText(), /Attackers eliminated/);
+  await wait(guest, () => /Defenders win the round/.test(document.querySelector('#banner-title').textContent) && !document.querySelector('#banner').hidden);
+  assert.match(await guest.locator('#banner-subtitle').innerText(), /Attackers eliminated/);
   assert.deepEqual(await sim(host, () => window.breach.state.sim.scores), [0, 1]);
   assert.equal(await sim(host, () => window.breach.state.sim.players[1].money), 6200);
-  await wait(guest, () => [...document.querySelectorAll('.engine-scores li')].some(li => li.textContent === 'Defenders: 1'));
+  await wait(guest, () => document.querySelector('#defend-score').textContent === '1');
   await host.bringToFront();
   await host.keyboard.press('Space');
   await wait(guest, () => window.breach.view.local().round === 2 && window.breach.view.local().raw?.freeze > 0);

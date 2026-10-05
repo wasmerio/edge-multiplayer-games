@@ -17,7 +17,7 @@ from fixtures import ROOT, DAY, BASE, REPORT, candidate, engine_version, game_js
 import daily_game as job
 import game_contract
 
-SLUG = 'daily-' + DAY
+SLUG = 'weekly-' + DAY
 
 
 class FakeGitHub:
@@ -173,7 +173,7 @@ class DailyGameTests(unittest.TestCase):
     def test_branch_push_draft_pr_and_credential_separation(self):
         self.invoke()
         push, env = next((a, e) for a, e in self.commands.calls if a[0] == 'push')
-        self.assertEqual(push, ['push', 'origin', 'HEAD:refs/heads/daily-game/' + DAY])
+        self.assertEqual(push, ['push', 'origin', 'HEAD:refs/heads/weekly-game/' + DAY])
         self.assertNotIn('GH_TOKEN', self.agent_env)
         self.assertNotIn('GIT_CONFIG_VALUE_0', self.agent_env)
         self.assertNotIn('OPENAI_API_KEY', env)
@@ -193,8 +193,8 @@ class DailyGameTests(unittest.TestCase):
             self.args.work_root = root
             self.invoke()
             attempt, = Path(root).iterdir()
-            self.assertTrue((attempt / 'repository' / ('daily-' + DAY) / 'public/game.js').is_file())
-            self.assertTrue((attempt / 'artifacts' / ('daily-' + DAY + '.patch')).is_file())
+            self.assertTrue((attempt / 'repository' / ('weekly-' + DAY) / 'public/game.js').is_file())
+            self.assertTrue((attempt / 'artifacts' / ('weekly-' + DAY + '.patch')).is_file())
             self.assertEqual(json.loads((attempt / 'pr.json').read_text())['url'], self.gh.pull['html_url'])
             self.assertEqual(json.loads((attempt / 'status.json').read_text())['status'], 'completed')
             self.assertEqual(Path(self.agent_env['TMPDIR']), attempt)
@@ -204,12 +204,12 @@ class DailyGameTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             self.args.work_root = root
             def fail(work, *args):
-                (work / ('daily-' + DAY) / 'public/game.js').write_text('partial candidate')
+                (work / ('weekly-' + DAY) / 'public/game.js').write_text('partial candidate')
                 raise RuntimeError('Pi stopped')
             with self.assertRaisesRegex(RuntimeError, 'Pi stopped'):
                 self.invoke(agent=fail)
             attempt, = Path(root).iterdir()
-            self.assertEqual((attempt / 'repository' / ('daily-' + DAY) / 'public/game.js').read_text(), 'partial candidate')
+            self.assertEqual((attempt / 'repository' / ('weekly-' + DAY) / 'public/game.js').read_text(), 'partial candidate')
             self.assertEqual(json.loads((attempt / 'status.json').read_text())['status'], 'failed')
             self.assertFalse(any(args[0] == 'push' for args, env in self.commands.calls))
 
@@ -375,12 +375,74 @@ class DailyGameTests(unittest.TestCase):
     def test_stray_game_file_is_rejected(self):
         def stray(work, *args):
             self.agent(work, *args)
-            (work / SLUG / 'public/style.css').write_text('body{}')
-        self.rejects('Unexpected changed paths: ' + SLUG + '/public/style.css', stray)
+            (work / SLUG / 'public/extra.css').write_text('body{}')
+        self.rejects('Unexpected changed paths: ' + SLUG + '/public/extra.css', stray)
+
+    def test_scaffold_default_theme_is_not_a_visual_identity(self):
+        def default_theme(work, *args):
+            self.agent(work, *args, style_css=(work / SLUG / 'public/style.css').read_text())
+        self.rejects("Stylesheet is the scaffold's default theme: public/style.css; the game needs its own visual identity",
+                     default_theme)
+        self.rejects('Stylesheet is missing or empty: public/style.css', lambda *args: self.agent(*args, style_css='\n'))
+
+    def test_generated_game_ships_its_own_page_and_stylesheet(self):
+        self.invoke()
+        page = self.commands.published[SLUG + '/public/index.html']
+        style = self.commands.published[SLUG + '/public/style.css']
+        self.assertEqual(style, candidate()['style_css'])
+        self.assertNotEqual(style.encode(), self.scaffold['public/style.css'])
+        self.assertIn('Open a lane', page)
+        self.assertIn('data-engine-touch="move=-1"', page)
+        self.assertNotIn(game_contract.PLACEHOLDER, page)
+        for role in game_contract.REQUIRED_ROLES:
+            self.assertIn(f'data-engine="{role}"', page)
+        self.assertIn(SLUG + '/public/style.css', self.agent_input['editable_paths'])
+        self.assertIn(SLUG + '/public/index.html', self.agent_input['editable_paths'])
+        self.assertIn('visual_identity', self.agent_input)
+
+    def test_page_must_keep_what_the_engine_binds_to(self):
+        def page_with(change):
+            def author(work, *args):
+                self.agent(work, *args)
+                page = work / SLUG / 'public/index.html'
+                before = page.read_text()
+                after = change(before)
+                self.assertNotEqual(before, after)
+                page.write_text(after)
+            return author
+        cases = [
+            ('Page is missing data-engine role: start', lambda page: page.replace('data-engine="start"', 'data-role="start"')),
+            ('Page is missing data-engine role: arena, invite-link',
+             lambda page: page.replace('data-engine="arena"', '').replace('data-engine="invite-link"', '')),
+            ('Page repeats data-engine role: status', lambda page: page.replace('data-engine="hud"', 'data-engine="status"')),
+            ('Page has no link back to https://edge-multiplayer-games.wasmer.app',
+             lambda page: page.replace('href="https://edge-multiplayer-games.wasmer.app"', 'href="https://example.com"')),
+            ('Page does not load /client.js as its one module script',
+             lambda page: page.replace('<script type="module" src="/client.js"></script>', '')),
+            ('Page has a script besides the import map and /client.js',
+             lambda page: page.replace('</body>', '<script>new WebSocket("wss://x")</script></body>')),
+            ('Page does not link /style.css', lambda page: page.replace('<link rel="stylesheet" href="/style.css">', '')),
+        ]
+        for message, change in cases:
+            with self.subTest(message):
+                self.rejects(re.escape(message), page_with(change))
+
+    def test_page_left_as_the_scaffold_is_rejected(self):
+        def untouched(work, *args):
+            page = (work / SLUG / 'public/index.html').read_text()
+            self.agent(work, *args, page_html=page)
+        self.rejects("Page still carries the scaffold's placeholder copy", untouched)
+
+    def test_touch_button_for_an_unknown_intent_field_fails_the_slots_row(self):
+        def stale_touch(work, *args):
+            page = (work / SLUG / 'public/index.html').read_text()
+            self.agent(work, *args, page_html=page.replace(game_contract.PLACEHOLDER_DESCRIPTION, 'Reach the wall.')
+                       .replace(game_contract.PLACEHOLDER, 'Fixture sprint'))
+        self.rejects('Conformance failed: slots: data-engine-touch names unknown intent field turn', stale_touch)
 
     def test_runtime_references_no_deleted_template_file_or_split_string(self):
         runtime = Path(game_contract.__file__).resolve().parent
-        banned = ('applyMessage', 'SPLIT', 'REFERENCE', 'style.css', 'package-lock', 'client_tail',
+        banned = ('applyMessage', 'SPLIT', 'REFERENCE', 'package-lock', 'client_tail',
                   'client_boundary', 'transport prefix', 'run.mjs', 'scenarios.js', 'scenario_contract')
         sources = [p for p in runtime.iterdir() if p.is_file()]
         self.assertGreater(len(sources), 10)
@@ -398,7 +460,7 @@ class DailyGameTests(unittest.TestCase):
             self.args.publish = False
             self.args.output = output
             self.invoke()
-            patchfile = Path(output) / ('daily-' + DAY + '.patch')
+            patchfile = Path(output) / ('weekly-' + DAY + '.patch')
             files = json.loads(patchfile.read_text())
             files['public/games.json'] = '[]\n'
             patchfile.write_text(json.dumps(files))
@@ -458,8 +520,8 @@ class DailyGameTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as output:
             self.args.output = output
             self.invoke()
-            self.assertTrue((Path(output) / ('daily-' + DAY + '.patch')).is_file())
-            self.assertEqual(json.loads((Path(output) / ('daily-' + DAY + '.json')).read_text())['checks']['ok'], True)
+            self.assertTrue((Path(output) / ('weekly-' + DAY + '.patch')).is_file())
+            self.assertEqual(json.loads((Path(output) / ('weekly-' + DAY + '.json')).read_text())['checks']['ok'], True)
         self.assertFalse(any(a[0] in {'push', 'commit'} for a, _ in self.commands.calls))
         self.assertFalse(self.gh.calls)
 
@@ -483,7 +545,7 @@ class DailyGameTests(unittest.TestCase):
             self.args.publish = False
             self.args.output = output
             self.invoke()
-            patchfile = Path(output) / ('daily-' + DAY + '.patch')
+            patchfile = Path(output) / ('weekly-' + DAY + '.patch')
             files = json.loads(patchfile.read_text())
             files['AGENTS.md'] = 'unexpected change'
             patchfile.write_text(json.dumps(files))
@@ -498,8 +560,8 @@ class DailyGameTests(unittest.TestCase):
             self.args.publish = False
             self.args.output = output
             self.invoke()
-            patchfile = Path(output) / ('daily-' + DAY + '.patch')
-            reportfile = Path(output) / ('daily-' + DAY + '.json')
+            patchfile = Path(output) / ('weekly-' + DAY + '.patch')
+            reportfile = Path(output) / ('weekly-' + DAY + '.json')
             files = json.loads(patchfile.read_text())
             report = json.loads(reportfile.read_text())
             del report['upload_filter']
@@ -525,7 +587,7 @@ class DailyGameTests(unittest.TestCase):
             self.invoke()
         self.assertFalse(any(p == '/pulls' for p, _ in self.gh.calls))
         pushes = [a for a, _ in self.commands.calls if a[0] == 'push']
-        self.assertEqual(pushes, [['push', 'origin', 'HEAD:refs/heads/daily-game/' + DAY]])
+        self.assertEqual(pushes, [['push', 'origin', 'HEAD:refs/heads/weekly-game/' + DAY]])
 
 
 if __name__ == '__main__':

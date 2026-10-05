@@ -157,7 +157,8 @@ export async function runSoak(options) {
       await stage('waiting for every guest channel to open', (left) => host.page.waitFor(
         (n) => globalThis.__engine.state().peers.filter((p) => p.channel === 'open').length === n, { timeout: left, args: [options.guests] },
       ));
-      await host.page.evaluate(() => [...document.querySelectorAll('button')].find((b) => b.textContent === 'Start').click());
+      // By role: the page's own start control, or the one the kit built.
+      await host.page.evaluate(() => (document.querySelector('[data-engine="start"]') ?? [...document.querySelectorAll('button')].find((b) => b.textContent === 'Start')).click());
       for (const entry of pages) {
         await stage(`waiting for ${entry.label} to enter the game`, (left) => entry.page.waitFor(
           () => globalThis.__engine.state().players > 0 && globalThis.__engine.diagnostics.current().ticks > 0, { timeout: left },

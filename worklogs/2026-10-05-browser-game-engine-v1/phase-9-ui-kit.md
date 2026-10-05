@@ -1,6 +1,6 @@
 # Phase 9 — UI kit
 
-**Status:** Complete
+**Status:** Reopened (review 1)
 [README](README.md)
 
 ## Goal
@@ -82,4 +82,4 @@ Session 2026-10-05 (lead agent with subworkers). Deltas only.
 
 ## Review findings
 
-None.
+- Review 1 (2026-10-05, maintainer): the kit owned the markup and the stylesheet, so every game lost its own look and feel. Rejected. Fix under D-23: bind behaviour to `data-engine` roles in the game's own page, inject no theme there, keep the built chrome only as a fallback. The "one stylesheet" acceptance row no longer applies.

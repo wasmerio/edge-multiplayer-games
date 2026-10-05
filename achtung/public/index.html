@@ -1,16 +1,62 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Achtung, die Kurve!</title>
-  <meta name="description" content="Steer a growing curve, avoid every trail, last one alive scores.">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Achtung, die Kurve! (WebRTC)</title>
+  <meta name="description" content="Steer a growing curve, avoid every trail, last one alive scores." />
+  <link rel="stylesheet" href="/style.css" />
   <script type="importmap">
-    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.0/" } }
+    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.1/" } }
   </script>
 </head>
 <body>
-  <div id="game"></div>
+  <header>
+    <h1>Achtung, die Kurve!</h1>
+    <span data-engine="status" class="muted">connecting…</span>
+    <button data-engine="mute" class="small">sound on</button>
+    <a id="all-games" class="muted" href="https://edge-multiplayer-games.wasmer.app">← all games</a>
+  </header>
+
+  <section id="lobby" data-engine="lobby">
+    <label>Name <input data-engine="name" maxlength="16" placeholder="your name" /></label>
+    <div class="row">
+      <button data-engine="create">Create room</button>
+      <span class="muted">or</span>
+      <input id="code" data-engine="code" maxlength="4" placeholder="CODE" />
+      <button data-engine="join">Join</button>
+    </div>
+    <div data-engine="room-info" hidden>
+      <p>Room <strong data-engine="room-code"></strong></p>
+      <div data-engine="invite" class="invite" hidden>
+        <span class="muted">Send this to your friends:</span>
+        <a data-engine="invite-link" href="#"></a>
+        <button data-engine="copy" class="small">copy</button>
+      </div>
+      <ul id="peers" data-engine="peers"></ul>
+      <div id="host-controls" data-engine="host-controls" hidden>
+        <button data-engine="start">Start game</button>
+      </div>
+      <p data-engine="wait" class="muted" hidden>waiting for host to start…</p>
+    </div>
+  </section>
+
+  <section id="game" data-engine="game" hidden>
+    <div id="arena" data-engine="arena">
+      <div id="banner" data-engine="banner" hidden></div>
+      <div class="touch-controls">
+        <button data-engine-touch="turn=-1" aria-label="Turn left">◀</button>
+        <button data-engine-touch="turn=1" aria-label="Turn right">▶</button>
+      </div>
+    </div>
+    <aside>
+      <ol id="scores" data-engine="scores"></ol>
+      <p class="muted">← → to steer. Host: Space starts next round.</p>
+      <button data-engine="next" hidden>Next round · Space</button>
+      <p data-engine="hud" class="muted"></p>
+    </aside>
+  </section>
+
   <script type="module" src="/client.js"></script>
 </body>
 </html>

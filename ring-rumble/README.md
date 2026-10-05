@@ -68,7 +68,7 @@ A fighter whose signaling connection closes leaves the round and stays out until
 ## Multiplayer model
 
 `src/server.js` calls the engine server. `node scripts/sync-engine.mjs game ring-rumble` copies the engine's Node modules into `engine/` before a deploy; git ignores that copy.
-The lobby, invite panel, scoreboard, WebRTC star and fixed-tick loop come from the engine at the pinned import in `public/index.html`.
+The lobby and invite behaviour, the WebRTC star and the fixed-tick loop come from the engine at the pinned import in `public/index.html`.
 The host browser owns all gameplay state. Guests send intent over one ordered, reliable DataChannel each.
 Only public STUN is configured. Some NAT pairs require an external TURN service to connect.
 Combat checks at most eight fighters per attacker. This fixed cap bounds collision and target searches.
@@ -127,3 +127,14 @@ Local checks passed on 2026-10-05 after the move to the engine:
 - No page errors and no console errors.
 
 Production checks are pending. Nothing was deployed.
+
+## Look and feel
+
+The page and the stylesheet are the game's own: `public/index.html` holds the markup and copy, `public/style.css` holds every rule.
+The engine injects no layout or theme. It binds its behaviour to the elements that carry a `data-engine` role (`arena` on `#stage`, `lobby`, `game`, `name`, `code`, `create`, `join`, `start`, `copy`, `room-info`, `room-code`, `invite`, `invite-link`, `peers`, `host-controls`, `wait`, `status`, `banner`, `next`).
+The touch buttons carry `data-engine-touch="<field>=<value>"`; the stylesheet shows them by media query.
+`client.js` draws the match HUD from the mount hooks: `lobby` hides the hero copy and adds `.playing`, `round` sets `#round-number`, `snapshot` sets `#clock`, `#round-hint`, `#dash-status`, the countdown and the damage rows in `#scores`, and `over` sets the result line.
+The score rows are the game's own (`.swatch`, `.fighter-name`, `.damage`, `.wins`), so `#scores` has no engine role; the `scoreboard` option only signals a score change.
+The fighter colours are the game's `palette`. The next-round copy comes from the `labels` option.
+`#mapinfo`, the Start button's disabled state and the connection details follow the engine's peer list.
+The practice bot control is gone because the engine seats only connected browsers.

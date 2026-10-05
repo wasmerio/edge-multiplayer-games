@@ -1,16 +1,69 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Vault Tempo · multiplayer mining race</title>
-  <meta name="description" content="Drill volatile rich veins, manage rising heat, and bank your haul before meltdown in a multiplayer push-your-luck mining race.">
+  <meta name="description" content="Drill volatile rich veins, manage rising heat, and bank your haul before meltdown in a multiplayer push-your-luck mining race." />
+  <link rel="stylesheet" href="/style.css" />
   <script type="importmap">
-    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.0/" } }
+    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.1/" } }
   </script>
 </head>
 <body>
-  <div id="game"></div>
+  <header>
+    <h1>◈ Vault Tempo</h1>
+    <span id="status" data-engine="status" class="muted">connecting…</span>
+    <a id="all-games" class="muted" href="https://edge-multiplayer-games.wasmer.app">← all games</a>
+  </header>
+
+  <section id="lobby" data-engine="lobby">
+    <p class="eyebrow">2–8 MINERS · ONE VOLATILE VAULT</p>
+    <h2>Greed runs hot.<br>Bank before it breaks.</h2>
+    <p>Hold <strong>→ to drill</strong>, release to cool, hold <strong>← to bank</strong>. At 90 heat your haul melts. Rich veins triple ore but double heat. Lead with 60+ banked when a 30-second shift ends to win.</p>
+    <label>Name <input id="name" data-engine="name" maxlength="16" placeholder="your name" /></label>
+    <div class="row">
+      <button id="create" data-engine="create">Create room</button>
+      <span class="muted">or</span>
+      <input id="code" data-engine="code" maxlength="4" placeholder="CODE" />
+      <button id="join" data-engine="join">Join</button>
+    </div>
+    <div id="room-info" data-engine="room-info" hidden>
+      <p>Room <strong id="room-code" data-engine="room-code"></strong></p>
+      <div id="invite" data-engine="invite" class="invite" hidden>
+        <span class="muted">Send this to your friends:</span>
+        <a id="invite-link" data-engine="invite-link" href="#"></a>
+        <button id="copy-link" data-engine="copy" class="small">copy</button>
+      </div>
+      <ul id="peers" data-engine="peers"></ul>
+      <div id="host-controls" data-engine="host-controls" hidden>
+        <button id="start" data-engine="start">Start game</button>
+      </div>
+      <p id="wait" data-engine="wait" class="muted" hidden>waiting for host to start…</p>
+    </div>
+  </section>
+
+  <section id="game" data-engine="game" hidden>
+    <div id="arena" data-engine="arena" role="img" aria-label="Mining rigs showing heat, unbanked haul, deposit progress and banked scores">
+      <div id="banner" data-engine="banner" hidden></div>
+    </div>
+    <aside>
+      <h2 class="score-title">The vault ledger</h2>
+      <p id="clock">30s left</p>
+      <ol id="scores" data-engine="scores"></ol>
+      <p id="target" class="muted">Lead with 60+ banked at shift end</p>
+      <p id="event" aria-live="polite">Bank before the clock runs out.</p>
+      <div class="touch-controls">
+        <button id="bank" data-engine-touch="act=-1">← Hold to bank</button>
+        <button id="drill" data-engine-touch="act=1">Hold to drill →</button>
+      </div>
+      <p class="muted">Release to cool twice as fast. Banking takes 0.8s uninterrupted. Meltdowns lock your rig for 1.5s. Unbanked ore is lost at closing.</p>
+      <p class="muted">Keyboard: ← / →. Host: Space for next shift or new match. Keep the host tab visible.</p>
+      <button id="next" data-engine="next" hidden>Next shift · Space</button>
+      <p id="rtc" data-engine="hud" class="muted"></p>
+    </aside>
+  </section>
+
   <script type="module" src="/client.js"></script>
 </body>
 </html>

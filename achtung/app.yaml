@@ -19,6 +19,7 @@ annotations:
     node_package_name: achtung-webrtc
     node_remove_native_binaries: true
     node_server: node
+    npm_version: '11'
   anybuild.run/provider: node
-  anybuild.run/version: 0.28.4
-  wasmer.io/version: 7.4.1
+  anybuild.run/version: 0.32.2
+  wasmer.io/version: 7.5.0

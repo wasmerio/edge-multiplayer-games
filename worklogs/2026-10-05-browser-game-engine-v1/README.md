@@ -23,9 +23,9 @@ fail loudly, and an executable conformance suite in place of a checklist.
 | 6 | [Rendering and interpolation](phase-6-rendering-and-interpolation.md) | Complete | 2D render layer plus the guest snapshot buffer; the three.js path preserved |
 | 7 | [Asset library](phase-7-asset-library.md) | Complete | Versioned shared assets on the superapp origin with manifest, loader and license ledger |
 | 8 | [Audio](phase-8-audio.md) | Complete | WebAudio mixer driven by the snapshot event list |
-| 9 | [UI kit](phase-9-ui-kit.md) | Complete | Lobby, invite panel, scoreboard and banner with one visual identity |
+| 9 | [UI kit](phase-9-ui-kit.md) | Reopened (review 1) | Lobby, invite, scoreboard and banner behaviour bound to each game's own page; default chrome as a fallback (D-23) |
 | 10 | [Diagnostics](phase-10-diagnostics.md) | Complete | In-page overlay, richer health endpoint, headless soak harness |
-| 11 | [Migrate the games](phase-11-migrate-the-games.md) | In Progress (awaiting deploys and human play) | All seven games run on the engine; one copy of the server remains |
+| 11 | [Migrate the games](phase-11-migrate-the-games.md) | Reopened (review 1) | All seven games run on the engine; one copy of the server remains |
 | 12 | [Generator contract](phase-12-generator-contract.md) | In Progress (awaiting the first generated PR) | The cron emits engine games; AGENTS.md is the engine recipe |
 | 13 | [Quality gate](phase-13-quality-gate.md) | In Progress (awaiting the final deploy) | Formatter, linter, every test level, package and deploy checks green |
 
@@ -163,7 +163,7 @@ replaces with a measurement.
 
 | Parameter | Default | Owner |
 |---|---|---|
-| `ENGINE_VERSION` | `1.0.0` | phase-1 |
+| `ENGINE_VERSION` | `1.0.1` | phase-1 |
 | `PROTOCOL_VERSION` | `1` | phase-4 |
 | `DEFAULT_TICK_HZ` | 30 | phase-1 |
 | `MAX_TICK_HZ` | 60 | phase-1 |
@@ -243,6 +243,9 @@ outcome in the session journal.
 | D-18 | 2026-10-05 | The engine's Node half is copied into each game at deploy time and ignored by git; only the browser half is fetched from the origin | A deployed game's package is uploaded alone, so its server cannot import across the repository, and the origin cannot serve a module to Node before the process starts. One copy still exists in the repository, which is what the invariant protects | Fetching the server half at runtime |
 | D-20 | 2026-10-05 | Conformance has two tiers: `--static` (no browser, no server; runs under EdgeJS) and full (headless browser). The cron gates on the static tier | The generation job runs inside Wasmer, where no browser exists. The kit performs the sub-app contract, so a source proof that a page delegates to the pinned kit, plus the engine's own contract tests, covers the browser rows; a full run stays mandatory locally and before deploy | One tier that the cron cannot run |
 | D-21 | 2026-10-05 | A game pins the engine through an import map entry `@engine/` in its page; local runs keep the pin and the engine server repoints it at `public/` when `SUPERAPP_LOCAL_DIR` is set (`node scripts/dev.mjs <game>`) | The pinned artifact is what gets tested, with no file rewritten for development and no network needed | Editing the page for local runs |
+| D-22 | 2026-10-05 | The generator is weekly. New games are named `weekly-YYYY-MM-DD` on branch `weekly-game/YYYY-MM-DD`; the command and directory keep the name `daily-game`; existing `daily-` games keep their names | Maintainer's call. Keeping the command name leaves the job configured in the Wasmer dashboard working; the schedule itself is a dashboard setting the maintainer changes | A daily cadence |
+| D-23 | 2026-10-05 | The engine owns behaviour; each game owns its page markup and its stylesheet. The kit binds to elements the page marks with `data-engine="<role>"` (and `data-engine-touch`), shows and hides them with the `hidden` attribute, and injects no theme; without an arena slot it still builds its default chrome. This replaces the "one stylesheet / one visual identity" reading of phase 9 and the "delete the game's stylesheet" step of phase 11 | The shared chrome erased every game's identity: seven games with seven looks became one look, and the maintainer rejected it. Behaviour is what was duplicated and broken across games; appearance was never the defect | One engine stylesheet themed by custom properties; per-game theme overrides on kit classes |
+| D-24 | 2026-10-05 | An engine fix after a deploy ships as a new version directory. `1.0.0` stays frozen in `public/engine/1.0.0/`; `1.0.1` is published beside it and games move their pin | A version path is cached for a year (D-10), so an edit in place reaches some players and not others, and pages already deployed still pin the old path | Editing the published version in place; deleting the old directory |
 
 ## Definition of success
 
@@ -272,9 +275,42 @@ production URL, and the two-device phone check for touch input. Both are
 
 ## Feedback index
 
-None yet.
+| Review | Phase | Finding | Status |
+|---|---|---|---|
+| 1 | [9](phase-9-ui-kit.md) | The kit imposed one look on every game | Open: fix in progress under D-23 |
+| 1 | [11](phase-11-migrate-the-games.md) | The migration deleted each game's page and stylesheet | Open: pages being restored under D-23 |
 
 ## Session journal
+
+**2026-10-05, engine 1.0.1 live** — The maintainer deployed the superapp and
+all seven games. Conformance against each production origin passes: the
+superapp's seven header rows, and for every game the health, create, join,
+link, slots and stylesheet rows, with each game reporting engine 1.0.1 and
+pinning it. Two deploys of one game failed on backend storage errors and
+passed on a rerun; `deploy.sh` now retries those. Still open for a person:
+two-browser play per production URL, the phone check, the weekly schedule
+in the dashboard, the first generated pull request.
+
+**2026-10-05, review 1** — The maintainer rejected the migrated games: the
+shared chrome had replaced every game's page, copy and stylesheet with one
+look. Recorded D-23 (the engine owns behaviour, the game owns its page and
+stylesheet) and D-24 (a fix after a deploy is a new version directory;
+`1.0.0` is frozen), and reopened phases 9 and 11. `mountUi` now binds to a
+page's own elements by `data-engine` role and injects no theme when the page
+has an arena slot; the engine is `1.0.1`, published beside the frozen
+`1.0.0`. The scaffold writes a page with slots and a default `style.css` to
+restyle. Conformance gained the `slots` and `stylesheet` rows and tests both
+page modes. The generator has the model author the page and the stylesheet,
+and rejects the scaffold's theme. `achtung` is the restored reference; the
+other six pages are being restored. Nothing is committed or deployed.
+
+**2026-10-05, handoff** — Final serial gate run green: engine suite, script
+suite, generator suite, each game's suite, full-tier conformance for all
+seven games, published copy matches `engine/`. The maintainer chose to
+commit and deploy personally; the agent ran nothing against the cloud or
+git. Deploy order that the cache findings require: superapp first, then the
+games, then the superapp again. Resume after the deploy with conformance
+against each production origin and the human-required checks.
 
 **2026-10-05, phases 2 through 12 implemented, deploys pending** — Found the
 tree with engine modules and a half-migrated reference game but a status

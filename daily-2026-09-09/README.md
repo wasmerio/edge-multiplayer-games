@@ -2,7 +2,7 @@
 
 A 2–8 player push-your-luck drilling race (solo practice also works). Drill a volatile vault, cool your tool, and bank your haul before it melts. Everyone shares the same rich-vein timing, but chooses their own risk. No falling objects, trails, or combat.
 
-The game runs on the repository engine (`engine/`, pinned at `1.0.0` in `public/index.html`). The engine owns the lobby, signaling, WebRTC star, tick loop, snapshot codec, guest interpolation, input sources and chrome. This directory holds the simulation, the snapshot schema, the intent and the renderer.
+The game runs on the repository engine (`engine/`, pinned at `1.0.1` in `public/index.html`). The engine owns the lobby, signaling, WebRTC star, tick loop, snapshot codec, guest interpolation, input sources and lobby behaviour. This directory holds the simulation, the snapshot schema, the intent and the renderer.
 
 ## Contract
 
@@ -13,7 +13,7 @@ One intent field, `act`, declared as `INTENT` in `public/game.js`: `-1` bank, `0
 | Source | Mapping |
 |---|---|
 | Keyboard | `ArrowLeft` banks, `ArrowRight` drills. Both together cancel to cool. |
-| Touch | `← bank` and `drill →` buttons on coarse-pointer devices. |
+| Touch | The page's `← Hold to bank` and `Hold to drill →` buttons (`data-engine-touch`), also usable with a mouse. |
 | Gamepad | Axis 0. |
 
 The engine sends the intent only on change, re-sends it on an interval, and releases it on blur. The simulation treats any other value as cool.
@@ -53,9 +53,13 @@ A rig has at most one event per tick, so the old `[player, type, amount]` event 
 
 The simulation uses no randomness. The injected generator is stored and never read.
 
+## Look and feel
+
+The page (`public/index.html`) and the stylesheet (`public/style.css`) are the game's own: the vault ledger, the shift clock (`#clock`), the event line (`#event`) and the hold-to-bank / hold-to-drill buttons. The engine binds behaviour to the elements marked `data-engine="<role>"` and injects no layout or theme. `client.js` passes the game's player colours (`COLORS` in `game.js`) as `palette` and its banner and next-control copy as `labels`; `draw` paints the canvas with the game's palette and updates the page's own elements by id.
+
 ## Changes from the pre-engine version
 
-The engine lobby replaced the per-game lobby, so the optional second local player (A/D) and the display-size selector are gone. Banner texts are the engine's. After a match win the engine keeps announcing the winner; reload to start a new match.
+The engine lobby replaced the per-game lobby, so the optional second local player (A/D) and the display-size selector are gone. After a match win the host's next control starts a new match.
 
 ## Local checks
 

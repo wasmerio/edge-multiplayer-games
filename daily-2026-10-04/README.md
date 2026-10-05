@@ -4,10 +4,10 @@ A host-authoritative boat race for 2–8 players (or solo practice). Steer an au
 
 ## Contract
 
-The game runs on the repository engine (`engine/`, pinned at `1.0.0` in `public/index.html`). The engine owns the lobby, signaling, WebRTC star, fixed-tick host loop, snapshot codec, guest interpolation and page chrome. This directory holds the simulation (`public/game.js`), the draw function (`public/client.js`) and the tests.
+The game runs on the repository engine (`engine/`, pinned at `1.0.1` in `public/index.html`). The engine owns the lobby, signaling, WebRTC star, fixed-tick host loop, snapshot codec, guest interpolation and lobby behaviour. This directory holds the simulation (`public/game.js`), the draw function (`public/client.js`) and the tests.
 
 ### Input
-The intent is `{ turn }` with `turn` in `-1 | 0 | 1`: port rudder, straight, starboard rudder (`INTENT` in `game.js`). Arrow keys steer; both keys together cancel out. Touch devices get two hold-to-turn buttons, and a gamepad's first axis steers too. The engine sends the intent only when it changes, re-sends it once a second, and clears it on blur. The simulation also accepts a bare number per player, which the scenario tests use. Turning reduces thrust; straight sailing restores speed.
+The intent is `{ turn }` with `turn` in `-1 | 0 | 1`: port rudder, straight, starboard rudder (`INTENT` in `game.js`). Arrow keys steer; both keys together cancel out. The page's two hold-to-turn buttons (`data-engine-touch`) work with touch or mouse, and a gamepad's first axis steers too. The engine sends the intent only when it changes, re-sends it once a second, and clears it on blur. The simulation also accepts a bare number per player, which the scenario tests use. Turning reduces thrust; straight sailing restores speed.
 
 ### Snapshot
 Declared once as `SNAPSHOT` in `game.js` and encoded by the engine's binary codec (143 bytes at eight players, against a budget of 100 bytes per player).
@@ -36,6 +36,10 @@ Ring and reef geometry is constant, so it is exported from `game.js` (`GATES`, `
 
 The engine's `round` message clears the canvases and the snapshot carries the countdown. Its `over` message carries the match winner index, or -1 for a race-only result. The host advances with Space or the Next round button, only after the race ends. The simulation draws no randomness, so a replay needs only the input log.
 
+## Look and feel
+
+The page (`public/index.html`) and the stylesheet (`public/style.css`) are the game's own: the marina lobby, the race clock (`#race-clock`), the helm buttons and the standings list (`#scores`, which `draw` fills itself because each row carries race progress). The engine binds behaviour to the elements marked `data-engine="<role>"` and injects no layout or theme. `client.js` passes the game's player colours (`COLORS` in `game.js`) as `palette` and its banner and next-control copy as `labels`; `draw` paints the canvas with the game's palette and updates the page's own elements by id.
+
 ## Running and controls
 
 ```bash
@@ -49,7 +53,7 @@ From the repository root, run the game against the engine in the checkout:
 node scripts/dev.mjs daily-2026-10-04 8765
 ```
 
-Open `http://localhost:8765/?create=1`, share the invite link, then start. Pass inside the numbered rings in order; the line under the scoreboard shows the race clock and each boat's next ring. Two circuits (12 rings) finish the race. Reefs and shore collisions turn the boat away and slow it briefly. The current arrow shows the drift direction.
+Open `http://localhost:8765/?create=1`, share the invite link, then start. Pass inside the numbered rings in order; the clock above the course and the standings beside it show the time left and each boat's next ring. Two circuits (12 rings) finish the race. Reefs and shore collisions turn the boat away and slow it briefly. The current arrow shows the drift direction.
 
 `npm test` runs the four rule scenarios in `test/scenarios.js`, the engine shape check, the codec round trip, the eight-player snapshot budget, and the replay of the committed fixture `test/replay.ndjson` (three players, three races).
 

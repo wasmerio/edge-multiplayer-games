@@ -57,7 +57,7 @@ A full snapshot is 221 bytes at eight players, 27.6 per player against a budget 
 Guests interpolate `x`, `y`, `bx` and `by`. Yaw is not interpolated because an angle wraps.
 The renderer in `public/renderer.js` draws other players from the interpolated sample and the local player from the newest snapshot, so the camera does not trail the interpolation delay.
 Tracers, recoil and hit markers come from the per-snapshot hook, so no shot is skipped or drawn twice.
-Team scores travel in the engine's `score` and `over` messages. `sim.scores` holds two entries, one per team, and the `scoreboard` option shows them as two rows.
+Team scores travel in the engine's `score` and `over` messages. `sim.scores` holds two entries, one per team, and the `scoreboard` option writes them to `#attack-score` and `#defend-score`.
 
 ### Round lifecycle
 
@@ -120,7 +120,7 @@ Then, in a second shell:
 PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node counterstrike/test/browser.mjs http://localhost:8802
 ```
 
-Open `http://localhost:8802/?create=1` to play by hand. Send the invite link to another player, then select **Start** on the host.
+Open `http://localhost:8802/?create=1` to play by hand. Send the invite link to another player, then select **Start match** on the host.
 `window.breach` is the object `startGame` returns. `window.breach.state.sim` is the host simulation.
 
 ## Deployment
@@ -139,7 +139,7 @@ wasmer whoami
 Only the host owns game state. Each guest has one ordered, reliable WebRTC DataChannel to the host.
 The room registry stays in one Edge instance. Public STUN supports direct connections, but some NAT pairs need an external TURN service.
 `src/server.js` calls the engine server. `node scripts/sync-engine.mjs game counterstrike` copies the engine's Node modules into `engine/` before a deploy; git ignores that copy.
-The lobby, invite panel, scoreboard, WebRTC star and fixed-tick loop come from the engine at the pinned import in `public/index.html`.
+The lobby and invite behaviour, the WebRTC star and the fixed-tick loop come from the engine at the pinned import in `public/index.html`.
 Game simulation has no DOM, network calls, or timers.
 
 ## Test results
@@ -152,3 +152,12 @@ Local checks passed on 2026-10-05 after the move to the engine:
 
 `test/browser.mjs` replaces the earlier browser script and covers the checks of the removed `mouse-buttons.mjs`. The draw-call and input-rate measurements of `performance.mjs` were removed with it.
 Nothing was deployed after the move. https://counterstrike-breach.wasmer.app still serves the previous build until the next deployment.
+
+## Look and feel
+
+The page and the stylesheet are the game's own: `public/index.html` holds the markup and copy, `public/style.css` holds every rule.
+The engine injects no layout or theme. It binds its behaviour to the elements that carry a `data-engine` role (`arena` on `#arena`, `lobby`, `game`, `name`, `code`, `create`, `join`, `start`, `copy`, `room-info`, `room-code`, `invite`, `invite-link`, `peers`, `host-controls`, `wait`, `status`, `next`, and `banner` on `#banner-title`).
+`client.js` drives the rest from the mount hooks: `lobby` sets `#room-tag` and the squad list, `round` sets `#round-label` and hides the result panel, `snapshot` sets the timer, the HUD (`#health`, `#ammo`, `#armor`, `#money`, `#weapon-label`, `#team-label`, `#kit-status`), `#objective`, `#action-progress`, `#killfeed`, the buy menu and the crosshair, `over` shows `#banner` with the reason, and `reply` sets `#buy-feedback`.
+The squad list in `#scores` shows kills per player and is the game's own, so it has no engine role.
+The next-round copy comes from the `labels` option. `#connection-detail` and the Start button's disabled state follow the engine's peer list.
+The lobby rows take the two team colours in join order.

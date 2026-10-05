@@ -76,7 +76,7 @@ constraints and keeps the latency-critical path off the server entirely.
 
 ## The superapp
 
-The root app serves `public/` through its `serve` command and owns the daily game cron job.
+The root app serves `public/` through its `serve` command and owns the weekly game cron job.
 The cron starts the `daily-game` command from the same Wasmer package.
 `index.html` fetches `games.json`, renders one card per game with
 a "Host a game" button that opens `<game>/?create=1`, a "Play a random
@@ -160,7 +160,7 @@ Ring Rumble uses WASD or arrows to move, J to punch, and K or Shift to dash.
 It supports 2 to 8 browsers, touch controls, and local practice against a bot.
 The publish script discovers its directory automatically.
 After each game publishes, the script updates its registry URL from Wasmer before the superapp publishes.
-For daily games, it inserts missing entries from `game-entry.json` too.
+For generated games, it inserts missing entries from `game-entry.json` too.
 Run `./deploy.sh <game> super` to publish both the game and its card.
 If the game is already deployed, `./deploy.sh super` repairs missing catalog entries before deploying the root.
 New game PRs include a root catalog entry with `url: null`; the page shows these games as coming soon.
@@ -188,10 +188,10 @@ honoured by the packager and `node_modules/` stays out of the upload.
 
 ## Agent skills
 
-The [daily game automation](automation/daily-game/README.md) runs as a cron job on this root app.
+The [weekly game automation](automation/daily-game/README.md) runs as a cron job on this root app.
 It clones this repository, streams Pi activity, checks a new game, and uses Git
 to push a dated branch. It opens a draft PR against `main` for review.
-The root `app.yaml` schedules it daily at 06:00 UTC and selects the coding model with `env.OPENAI_MODEL`.
+The schedule is set in the Wasmer dashboard, not in `app.yaml`: weekly, `0 6 * * 1` (Mondays 06:00 UTC). The root `app.yaml` selects the coding model with `env.OPENAI_MODEL`.
 Set `OPENAI_API_KEY` and `GH_TOKEN` as secrets on `wasmer/edge-multiplayer-games` before deployment.
 Local model generation and remote PR creation passed. The root cron deployment remains pending.
 
@@ -223,7 +223,7 @@ edge-multiplayer-games/
 ├── README.md              this file
 ├── AGENTS.md              how to add a game on the engine
 ├── CLAUDE.md -> AGENTS.md
-├── app.yaml               superapp configuration and daily cron schedule
+├── app.yaml               superapp configuration for the site and the weekly job
 ├── wasmer.toml            static server and generation commands
 ├── automation/daily-game/ Pi implementation, dependencies, and tests
 ├── deploy.sh              root package and remote game builds

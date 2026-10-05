@@ -43,11 +43,12 @@ for (const guide of GUIDES) {
 
 test('AGENTS.md is the engine recipe, not the old template', () => {
   const guide = read('AGENTS.md');
-  for (const gone of ['applyMessage', 'cp -r achtung', 'style.css', 'broadcastGame', 'hostStart', 'transport prefix', 'element id']) {
+  for (const gone of ['applyMessage', 'cp -r achtung', 'broadcastGame', 'hostStart', 'transport prefix', 'element id']) {
     assert.ok(!guide.toLowerCase().includes(gone.toLowerCase()), `AGENTS.md still mentions ${gone}`);
   }
   for (const needed of ['node scripts/new-game.mjs', 'node scripts/conformance.mjs', 'node scripts/dev.mjs',
-    'node scripts/sync-engine.mjs vendor', './deploy.sh', 'engine/README.md', 'startGame', 'RECORD=1']) {
+    'node scripts/sync-engine.mjs vendor', './deploy.sh', 'engine/README.md', 'startGame', 'RECORD=1',
+    'The engine owns behaviour, the game owns its page and stylesheet', 'data-engine', 'public/style.css']) {
     assert.ok(guide.includes(needed), `AGENTS.md does not mention ${needed}`);
   }
   assert.equal(fs.readlinkSync(path.join(ROOT, 'CLAUDE.md')), 'AGENTS.md');
@@ -56,4 +57,19 @@ test('AGENTS.md is the engine recipe, not the old template', () => {
 test('AGENTS.md states the engine version rule without restating the version', () => {
   const version = read('engine/params.js').match(/ENGINE_VERSION *= *"([^"]+)"/)[1];
   assert.ok(!read('AGENTS.md').includes(`/engine/${version}/`), 'AGENTS.md hardcodes the engine version; cite ENGINE_VERSION');
+});
+
+test('the engine guide documents every page slot the kit and the conformance suite know', async () => {
+  const { REQUIRED_SLOTS, OPTIONAL_SLOTS } = await import('./conformance.mjs');
+  const guide = read('engine/README.md');
+  const section = guide.slice(guide.indexOf('## Page slots'));
+  assert.ok(guide.includes('## Page slots'), 'engine/README.md has no "Page slots" section');
+  const kit = read('engine/ui.js');
+  for (const role of [...REQUIRED_SLOTS, ...OPTIONAL_SLOTS]) {
+    assert.ok(section.includes(`\`${role}\``), `engine/README.md does not document the ${role} slot`);
+    assert.ok(new RegExp(`(?:slot|make)\\("${role}"`).test(kit), `engine/ui.js binds no ${role} slot`);
+  }
+  const bound = [...kit.matchAll(/(?:slot|make)\("([\w-]+)"/g)].map((found) => found[1]);
+  for (const role of bound) assert.ok([...REQUIRED_SLOTS, ...OPTIONAL_SLOTS].includes(role), `conformance does not know the ${role} slot`);
+  assert.ok(section.includes('data-engine-touch'));
 });

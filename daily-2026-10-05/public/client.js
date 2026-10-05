@@ -1,5 +1,5 @@
 import { defineSnapshot, startGame } from "@engine/engine.js";
-import { Game, INTENT, SNAPSHOT, ARENA, TARGET, TICK_HZ, PULSE_TICKS, PULSES } from "/game.js";
+import { COLORS, Game, INTENT, SNAPSHOT, ARENA, TARGET, TICK_HZ, PULSE_TICKS, PULSES } from "/game.js";
 
 const schema = defineSnapshot(SNAPSHOT);
 // Degrees clockwise from twelve o'clock, as the simulation counts them.
@@ -39,10 +39,12 @@ startGame({
   arena: () => ARENA,
   target: () => TARGET,
   bindings: { turn: { keys: { ArrowLeft: -1, ArrowRight: 1 }, axis: 0 } },
-  touchControls: [
-    { field: "turn", value: -1, label: "↺" },
-    { field: "turn", value: 1, label: "↻" },
-  ],
+  palette: COLORS,
+  labels: {
+    round: (n) => `Round ${n} · ready`,
+    over: (winner) => (winner ? `${winner} wins the relay!` : "Round complete · ready for another?"),
+    next: (matchOver) => (matchOver ? "New match · Space" : "Next round · Space"),
+  },
   draw(surface, snap, ctx) {
     const { w, h } = surface.arena();
     const count = snap.ang.length;
@@ -52,8 +54,6 @@ startGame({
     const ch = h / rows;
     const phase = snap.k > 0 && snap.k % PULSE_TICKS === 0 ? PULSE_TICKS : snap.k % PULSE_TICKS;
     surface.clear("actors");
-    surface.box("actors", { x: 0, y: 0, w, h: 6, colour: "#25394d" });
-    surface.box("actors", { x: 0, y: 0, w: (w * phase) / PULSE_TICKS, h: 6, colour: "#ffdc79" });
     for (let i = 0; i < count; i++) {
       drawDial(surface, snap, i, {
         x: ((i % columns) + 0.5) * cw,
@@ -64,8 +64,15 @@ startGame({
     }
     const seconds = ((PULSE_TICKS - phase) / TICK_HZ).toFixed(1);
     const firing = phase === PULSE_TICKS;
-    ctx.hud(snap.over ? `${PULSES} broadcasts complete · totals above`
+    const telemetry = snap.over ? `${PULSES} broadcasts complete · totals below`
       : snap.f ? "Get ready · release to brake"
-        : `Broadcast ${Math.min(PULSES, snap.b + (firing ? 0 : 1))}/${PULSES} · ${firing ? "TRANSMIT!" : `${seconds}s to transmit`} · gold centre +3, outer window +1, dashed arc is next`);
+        : `Broadcast ${Math.min(PULSES, snap.b + (firing ? 0 : 1))}/${PULSES} · ${firing ? "TRANSMIT!" : `${seconds}s to transmit`}`;
+    const line = document.getElementById("telemetry");
+    if (line && line.textContent !== telemetry) line.textContent = telemetry;
+    const fill = document.getElementById("pulse-fill");
+    if (fill) fill.style.width = `${(phase / PULSE_TICKS) * 100}%`;
+    const goal = document.getElementById("target");
+    const aim = `Goal ${ctx.target()} · unique leader at round end`;
+    if (goal && goal.textContent !== aim) goal.textContent = aim;
   },
 });

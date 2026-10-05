@@ -1,6 +1,6 @@
 # Phase 11 — Migrate the games
 
-**Status:** In Progress (awaiting deploys and human play)
+**Status:** Reopened (review 1)
 [README](README.md)
 
 ## Goal
@@ -94,4 +94,4 @@ Session 2026-10-05 (lead agent with subworkers). Deltas only.
 
 ## Review findings
 
-None.
+- Review 1 (2026-10-05, maintainer): the migration replaced each game's page, copy and stylesheet with the generic chrome. Rejected. Fix under D-23: restore each game's own `public/index.html` and `public/style.css` on engine `1.0.1` (D-24). The "delete the game's stylesheet" step is withdrawn.

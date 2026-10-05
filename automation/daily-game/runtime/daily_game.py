@@ -12,8 +12,8 @@ import urllib.error
 from urllib.parse import urlencode, quote
 
 from game_contract import (verify, editable, engine_version, engine_pin, json_text, AUTHORED, CATALOG,
-                           CONFORMANCE, CONTEXT, ENGINE_PARAMS, FIXTURE, PLACEHOLDER,
-                           PLACEHOLDER_DESCRIPTION, SCAFFOLD, SYNC)
+                           CONFORMANCE, CONTEXT, ENGINE_PARAMS, FIXTURE, MODULE_SCRIPT, PLACEHOLDER,
+                           PLACEHOLDER_DESCRIPTION, REQUIRED_ROLES, SCAFFOLD, STYLE_LINK, SUPERAPP, SYNC)
 from github import GitHub, require
 from processes import execute
 from pi_runner import run_pi
@@ -206,7 +206,7 @@ def run(args):
     preview = getattr(args, "from_preview", None)
     token = os.environ.get("GH_TOKEN", "")
     require(not args.publish or token, "--publish requires GH_TOKEN")
-    slug, branch = "daily-" + day, "daily-game/" + day
+    slug, branch = "weekly-" + day, "weekly-game/" + day
     record_path = f"automation/daily-game/runs/{day}.json"
     gh = GitHub(args.repository, token) if args.publish else None
     recovery = False
@@ -218,7 +218,7 @@ def run(args):
         recovery = branch_exists(gh, branch)
     reuse = recovery or bool(preview)
     require(reuse or os.environ.get("OPENAI_API_KEY"), "OPENAI_API_KEY is missing")
-    print(f"Daily game {day}: {'publish draft PR' if args.publish else 'preview'}", flush=True)
+    print(f"Weekly game {day}: {'publish draft PR' if args.publish else 'preview'}", flush=True)
     work_root = getattr(args, "work_root", None)
     with run_workspace(work_root, day) as temp:
         work = temp / "repository"
@@ -234,7 +234,7 @@ def run(args):
         config = (work / ".git/config").read_bytes()
         if reuse:
             record = json.loads((work / record_path if recovery else Path(preview) / f"{slug}.json").read_text())
-            require(record["date"] == day and record["slug"] == slug, "Existing branch is not a matching daily game")
+            require(record["date"] == day and record["slug"] == slug, "Existing branch is not a matching weekly game")
             base = record["base_sha"]
             require(re.fullmatch(r"[0-9a-f]{40}", base), "Invalid base commit")
             if base != head:
@@ -273,6 +273,12 @@ def run(args):
                     "catalog": "public/games.json", "upload_filter": upload_filter,
                     "metadata": "Edit name, description, and players in game-entry.json. The coordinator adds url: null to the root catalog and excludes the game directory from the root upload.",
                     "deployment": f"After merge, ./deploy.sh {slug} super deploys the game, records its actual Wasmer URL, and redeploys the superapp. Document this command in the game README; leave browser and deployment checks pending."},
+                "visual_identity": {
+                    "page": f"{slug}/public/index.html", "stylesheet": f"{slug}/public/style.css",
+                    "rule": "The engine owns behaviour; the game owns its page and stylesheet. The scaffold's theme is a placeholder: a candidate whose style.css is byte-identical to it is rejected.",
+                    "keep": ["the import map, byte for byte", MODULE_SCRIPT, STYLE_LINK,
+                             f'a link to {SUPERAPP}', *(f'data-engine="{role}"' for role in REQUIRED_ROLES)],
+                    "touch": 'One button per touch control: data-engine-touch="<INTENT field>=<number>".'},
                 "editable_paths": [slug + "/" + path for path in AUTHORED] + [slug + "/test/*"],
                 "coordinator_owned_paths": sorted(slug + "/" + path for path in scaffold if not editable(path)),
                 "existing_games": context["existing_games"],
@@ -389,4 +395,4 @@ if __name__ == "__main__":
     except urllib.error.HTTPError as error:
         raise SystemExit(f"GitHub API failed: HTTP {error.code}. The branch may exist; rerun to recover its PR.") from None
     except (ValueError, RuntimeError, OSError, KeyError, subprocess.TimeoutExpired) as error:
-        raise SystemExit(f"Daily game failed: {error}") from None
+        raise SystemExit(f"Weekly game failed: {error}") from None

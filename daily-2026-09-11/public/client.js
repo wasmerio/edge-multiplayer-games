@@ -1,5 +1,5 @@
 import { defineSnapshot, startGame } from "@engine/engine.js";
-import { Game, INTENT, LANES, SNAPSHOT, TARGET, TICK_HZ, mapSize } from "/game.js";
+import { COLORS, Game, INTENT, LANES, SNAPSHOT, TARGET, TICK_HZ, mapSize } from "/game.js";
 
 const MINT = "#6cf2bc";
 const CORAL = "#ff7289";
@@ -9,6 +9,7 @@ const BAY_ODD = "#142c39";
 const LANE = "#294754";
 const LAYER = "actors";
 const TOP = 65;
+const say = (id, value) => { const node = document.getElementById(id); if (node && node.textContent !== value) node.textContent = value; };
 
 startGame({
   title: "Prism Post",
@@ -16,10 +17,12 @@ startGame({
   schema: defineSnapshot(SNAPSHOT),
   intent: INTENT,
   bindings: { move: { keys: { ArrowLeft: -1, ArrowRight: 1 }, axis: 0 } },
-  touchControls: [
-    { field: "move", value: -1, label: "←" },
-    { field: "move", value: 1, label: "→" },
-  ],
+  palette: COLORS,
+  labels: {
+    round: (n) => `Shift ${n} · get ready`,
+    over: (winner) => (winner ? `${winner} wins!` : "Shift complete · next round?"),
+    next: (matchOver) => (matchOver ? "New match (Space)" : "Next round (Space)"),
+  },
   tickHz: TICK_HZ,
   target: () => TARGET,
   arena: (players) => mapSize(players),
@@ -65,6 +68,7 @@ startGame({
       surface.box(LAYER, { x: px(x) + width * 0.13 - 4, y: cy - 8, w: 4, h: 10, colour: cart });
     });
     const clock = snap.f ? `Ready in ${Math.ceil(snap.f / TICK_HZ)}` : `${Math.ceil(snap.left / TICK_HZ)}s left`;
-    ctx.hud(`${clock} · first to ${ctx.target()} at shift end · + catch: +1 · × glitch: −2 · ← → slide, release to stop`);
+    say("clock", clock);
+    say("target", `first to ${ctx.target()}`);
   },
 });

@@ -4,10 +4,10 @@ A precision broadcast race for 2–8 players (or solo practice). Turn a momentum
 
 ## Contract
 
-The game runs on the repository engine (`engine/`, pinned at `1.0.0` in `public/index.html`). The engine owns the lobby, signaling, WebRTC star, fixed-tick host loop, snapshot codec and page chrome. This directory holds the simulation (`public/game.js`), the draw function (`public/client.js`) and the tests.
+The game runs on the repository engine (`engine/`, pinned at `1.0.1` in `public/index.html`). The engine owns the lobby, signaling, WebRTC star, fixed-tick host loop, snapshot codec and lobby behaviour. This directory holds the simulation (`public/game.js`), the draw function (`public/client.js`) and the tests.
 
 ### Input
-The intent is `{ turn }` with `turn` in `-1 | 0 | 1`: counterclockwise, brake, clockwise (`INTENT` in `game.js`). Arrow keys rotate; both keys together brake. Touch devices get two hold-to-rotate buttons, and a gamepad's first axis rotates too. The engine sends the intent only when it changes, re-sends it once a second, and clears it on blur. The simulation also accepts a bare number per player, which the scenario tests use. Guests run no simulation.
+The intent is `{ turn }` with `turn` in `-1 | 0 | 1`: counterclockwise, brake, clockwise (`INTENT` in `game.js`). Arrow keys rotate; both keys together brake. The page's two hold-to-rotate buttons (`data-engine-touch`) work with touch or mouse, and a gamepad's first axis rotates too. The engine sends the intent only when it changes, re-sends it once a second, and clears it on blur. The simulation also accepts a bare number per player, which the scenario tests use. Guests run no simulation.
 
 ### Snapshot
 Declared once as `SNAPSHOT` in `game.js` and encoded by the engine's binary codec (85 bytes at eight players, against a budget of 100 bytes per player), at 30 Hz.
@@ -32,6 +32,10 @@ A broadcast occurs every 75 active ticks, ten per round. Target angles change on
 
 ### Round lifecycle
 `startRound()` increments `round`, clears round points, velocity, tick and pulse counters, resets angles to 270°, and gives a 30-tick ready countdown. Totals and disconnected-player flags persist. After ten pulses the round ends and the engine's `over` message carries the unique match winner or -1. The match target is 60; a tie continues into another round. The host advances with Space or the Next round button. Disconnects remove that antenna from scoring and winner eligibility. The simulation draws no randomness, so a replay needs only the input log.
+
+## Look and feel
+
+The page (`public/index.html`) and the stylesheet (`public/style.css`) are the game's own: the telemetry line (`#telemetry`), the pulse bar (`#pulse-fill`), the antenna buttons and the standings panel. The engine binds behaviour to the elements marked `data-engine="<role>"` and injects no layout or theme. `client.js` passes the game's player colours (`COLORS` in `game.js`) as `palette` and its banner and next-control copy as `labels`; `draw` paints the canvas with the game's palette and updates the page's own elements by id.
 
 ## Local checks
 

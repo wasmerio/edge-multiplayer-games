@@ -132,7 +132,7 @@ deploy_dir() {
     if (cd "$dir" && wasmer deploy "${args[@]}") 2>&1 | tee "$log"; then
       break
     fi
-    if [ "$attempt" -eq 3 ] || ! grep -Eq 'Server returned (502|503|504)' "$log"; then
+    if [ "$attempt" -eq 3 ] || ! grep -Eq 'Server returned (502|503|504)|S3 request failed: 5[0-9][0-9]|failed to query autobuild config' "$log"; then
       echo "$name: failure log saved to $log" >&2
       die "$name: deploy failed"
     fi

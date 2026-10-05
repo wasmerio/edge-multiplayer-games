@@ -14,7 +14,7 @@ BASE = "a" * 40
 NODE = '/bin/node' if os.environ.get('WASMER_GIT_TESTS') else shutil.which('node')
 TOOLING = ("engine", "public/assets", "scripts")
 ROOT_FILES = ("AGENTS.md", "public/games.json", ".wasmerignore")
-REPORT = {"ok": True, "engine": "1.0.0", "tests": ["test/game.test.mjs"], "scenarios": 2,
+REPORT = {"ok": True, "engine": "0.0.0", "tests": ["test/game.test.mjs"], "scenarios": 2,
           "conformance": {"tier": "static", "rows": ["pinned"]}}
 
 
@@ -203,6 +203,24 @@ export function playReference() {
 """
 
 
+STYLE_CSS = """/* Fixture sprint: a cinder track under sodium lamps. */
+:root { --track: #2b1d16; --lane: #f4e9d8; --lamp: #ff7a1a; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--track); color: var(--lane); font: 16px/1.5 Georgia, serif; }
+h1 { color: var(--lamp); letter-spacing: 0.2em; text-transform: uppercase; }
+[data-engine="arena"] { position: relative; max-width: 100%; border: 2px dashed var(--lane); }
+[data-touch="on"] .touch { display: flex; }
+"""
+
+
+def page_html(scaffold_page, name="Fixture sprint"):
+    """The scaffold's page as the model would leave it: own copy, touch buttons for its own intent."""
+    return (scaffold_page.replace(cron.PLACEHOLDER_DESCRIPTION, "Hold right and reach the far wall first.")
+            .replace(cron.PLACEHOLDER, name).replace('data-engine-touch="turn=', 'data-engine-touch="move=')
+            .replace("Create room", "Open a lane").replace("Start game", "Fire the pistol"))
+
+
 def game_js(winner="winner", start="this.rng.range(10, 50)", fat=False):
     extra = range(30) if fat else ()
     return (GAME_JS.replace("__WINNER__", winner).replace("__START__", start)
@@ -215,7 +233,7 @@ def candidate():
         "name": "Fixture sprint", "description": "A fixture for the Pi coordinator.", "players": "2 to 8",
         "readme": "# Fixture sprint\n\n## Input\nOne `move` field.\n\n## Snapshot\nTick, over, and x per player.\n\n"
                   "## Round lifecycle\nA round ends at the far wall.\n",
-        "game_js": game_js(), "client_js": CLIENT_JS, "test_mjs": TEST_MJS,
+        "game_js": game_js(), "client_js": CLIENT_JS, "test_mjs": TEST_MJS, "style_css": STYLE_CSS,
         "reference_mjs": REFERENCE_MJS}
 
 
@@ -226,6 +244,8 @@ def write_candidate(work, slug, env=None, **overrides):
     (game / "README.md").write_text(c["readme"])
     (game / "public/game.js").write_text(c["game_js"])
     (game / "public/client.js").write_text(c["client_js"])
+    (game / "public/style.css").write_text(c["style_css"])
+    (game / "public/index.html").write_text(c.get("page_html") or page_html((game / "public/index.html").read_text()))
     (game / "test/game.test.mjs").write_text(c["test_mjs"])
     (game / "test/reference.mjs").write_text(c["reference_mjs"])
     entry = json.loads((game / "game-entry.json").read_text())

@@ -66,7 +66,7 @@ class GitIntegrationTests(unittest.TestCase):
     def test_generated_scenario_cannot_publish_unchecked_source(self):
         def mutator(*args):
             self.agent(*args)
-            scenario = args[0] / ('daily-' + DAY) / 'test/game.test.mjs'
+            scenario = args[0] / ('weekly-' + DAY) / 'test/game.test.mjs'
             scenario.write_text(scenario.read_text() + '''
 test("source mutation", () => {
   fs.appendFileSync(new URL("../public/client.js", import.meta.url), "// unchecked source\\n");
@@ -87,7 +87,7 @@ test("source mutation", () => {
             (work / 'AGENTS.md').write_bytes(original)
         self.invoke(staged_edit)
         self.assertTrue(self.pushed)
-        published = self.git('--git-dir=' + str(self.remote), 'show', 'daily-game/' + DAY + ':AGENTS.md')
+        published = self.git('--git-dir=' + str(self.remote), 'show', 'weekly-game/' + DAY + ':AGENTS.md')
         self.assertEqual(published, (ROOT / 'AGENTS.md').read_text().strip())
 
     def test_saved_preview_rejects_worktree_mutation(self):

@@ -92,8 +92,50 @@ function parsePage(html) {
     .filter((m) => /type=["']module["']/i.test(m[1]))
     .map((m) => ({ src: m[1].match(/\bsrc=["']([^"']+)["']/i)?.[1] ?? null, body: m[2] }));
   const links = [...html.matchAll(/<a\b[^>]*\bhref=["']([^"']+)["']/gi)].map((m) => m[1]);
-  return { importMap, mapError, modules, links };
+  const markup = html.replace(/<!--[\s\S]*?-->/g, '').replace(/<script\b[\s\S]*?<\/script>/gi, '');
+  const tags = [...markup.matchAll(/<([a-z][\w-]*)\b([^>]*)>/gi)].map((m) => ({ tag: m[1].toLowerCase(), attrs: m[2] }));
+  const attr = (attrs, name) => attrs.match(new RegExp(`(?:^|\\s)${name}\\s*=\\s*["']([^"']*)["']`, 'i'))?.[1] ?? null;
+  const roles = tags.map((t) => attr(t.attrs, 'data-engine')).filter((v) => v !== null);
+  const touch = tags.map((t) => attr(t.attrs, 'data-engine-touch')).filter((v) => v !== null);
+  const stylesheets = tags.filter((t) => t.tag === 'link' && /\bstylesheet\b/i.test(attr(t.attrs, 'rel') ?? ''))
+    .map((t) => attr(t.attrs, 'href')).filter(Boolean);
+  const container = tags.some((t) => attr(t.attrs, 'id') === 'game');
+  return { importMap, mapError, modules, links, roles, touch, stylesheets, container, inlineStyle: /<style\b/i.test(markup) };
 }
+
+// The roles the kit binds in a page that owns its chrome; see engine/README.md, "Page slots".
+export const REQUIRED_SLOTS = ['arena', 'name', 'create', 'code', 'join', 'start'];
+export const OPTIONAL_SLOTS = ['copy', 'mute', 'next', 'hud', 'status', 'room-code', 'invite-link', 'peers', 'scores', 'banner',
+  'lobby', 'game', 'room-info', 'invite', 'host-controls', 'wait'];
+
+// A page owns its chrome when it has an arena slot; otherwise the kit builds the chrome into #game.
+function checkSlots(page, { intent = null, kitBindsSlots = true } = {}) {
+  const owned = page.roles.includes('arena');
+  if (!owned) {
+    if (page.roles.length) return { ok: false, detail: `data-engine roles without an arena slot are ignored by the kit: ${[...new Set(page.roles)].join(', ')}` };
+    return page.container
+      ? { ok: true, detail: 'bare #game container; the kit builds its default chrome' }
+      : { ok: false, detail: 'the page has neither a data-engine="arena" slot nor an element with id "game"' };
+  }
+  const problems = [];
+  const missing = REQUIRED_SLOTS.filter((role) => !page.roles.includes(role));
+  if (missing.length) problems.push(`missing required slot(s): ${missing.join(', ')}`);
+  const unknown = [...new Set(page.roles.filter((role) => !REQUIRED_SLOTS.includes(role) && !OPTIONAL_SLOTS.includes(role)))];
+  if (unknown.length) problems.push(`unknown data-engine role(s): ${unknown.join(', ')}`);
+  const twice = [...new Set(page.roles.filter((role, i) => page.roles.indexOf(role) !== i))];
+  if (twice.length) problems.push(`role(s) used more than once: ${twice.join(', ')}`);
+  for (const value of page.touch) {
+    const [field, amount, ...rest] = value.split('=');
+    if (!field || rest.length || amount === undefined || amount.trim() === '' || !Number.isFinite(Number(amount))) problems.push(`data-engine-touch="${value}" is not <field>=<number>`);
+    else if (intent && !(field in intent)) problems.push(`data-engine-touch names unknown intent field ${field}`);
+  }
+  if (!kitBindsSlots) problems.push('the pinned engine predates page slots; pin a version whose kit binds data-engine roles');
+  if (problems.length) return { ok: false, detail: problems.join('; ') };
+  return { ok: true, detail: `the page owns its chrome: ${new Set(page.roles).size} slots, ${page.touch.length} touch button(s)` };
+}
+
+const isLocalHref = (href) => !/^([a-z][a-z0-9+.-]*:)?\/\//i.test(href) && !/^data:/i.test(href);
+const NO_STYLE = 'the page owns its chrome but brings no stylesheet; the kit injects no theme for it';
 
 // Classifies one place the engine is loaded from.
 function classifyEngineUrl(value, superappOrigin) {
@@ -226,6 +268,8 @@ const TITLES = {
   create: 'Root with the create parameter reaches a room without interaction',
   join: 'Root with a room parameter auto-joins',
   link: 'A link back to the superapp exists',
+  slots: 'The page provides the engine\'s required slots, or a bare container',
+  stylesheet: 'Every stylesheet the page links exists',
   pinned: 'The engine import is pinned to a version',
   published: 'The pinned engine version is reachable at its version path',
   server: 'The game has no server of its own',
@@ -328,6 +372,7 @@ async function checkDirectory(dirArg, options) {
   };
   const staticLink = () => {
     if (page.links.some((href) => href.startsWith(superappOrigin))) return { ok: true, detail: 'index.html links to the superapp' };
+    if (page.roles.includes('arena')) return { ok: false, detail: `the page owns its chrome and has no link to ${superappOrigin}; the kit adds none` };
     const handed = delegates();
     if (handed.ok && kitHasLink()) return { ok: true, detail: 'the kit header carries the link and the page delegates to the kit' };
     return { ok: false, detail: `no link to ${superappOrigin} in index.html, and ${handed.ok ? 'the pinned kit has none' : handed.detail}` };
@@ -410,6 +455,23 @@ async function checkDirectory(dirArg, options) {
 
   await r.run(row.ledger, () => auditAssets(engine, root));
 
+  await r.run(row.slots, () => {
+    if (html === null) return { ok: false, detail: 'public/index.html is missing' };
+    const ui = engineDir && readOrNull(path.join(engineDir, 'ui.js'));
+    return checkSlots(page, { intent: mod?.INTENT ?? null, kitBindsSlots: !ui || /data-engine/.test(ui) });
+  });
+  await r.run(row.stylesheet, () => {
+    if (html === null) return { ok: false, detail: 'public/index.html is missing' };
+    const local = page.stylesheets.filter(isLocalHref).map((href) => href.split(/[?#]/)[0]);
+    const absent = local.filter((href) => {
+      const file = path.join(publicDir, href);
+      return !fs.existsSync(file) || fs.readFileSync(file, 'utf8').trim() === '';
+    });
+    if (absent.length) return { ok: false, detail: `linked but missing or empty: ${absent.map((href) => `public/${href.replace(/^\//, '')}`).join(', ')}` };
+    if (page.roles.includes('arena') && !page.stylesheets.length && !page.inlineStyle) return { ok: false, detail: NO_STYLE };
+    return { ok: true, detail: page.stylesheets.length ? `${page.stylesheets.join(', ')} present` : page.inlineStyle ? 'inline style' : 'no stylesheet linked; the kit styles its default chrome' };
+  });
+
   if (options.static) {
     await r.run(row.healthz, () => {
       const served = readOrNull(path.join(root, 'engine/server.js')) ?? '';
@@ -420,7 +482,9 @@ async function checkDirectory(dirArg, options) {
       return { ok: true, detail: 'source proof: src/server.js is the engine call and the engine serves /healthz' };
     });
     const handed = delegates();
-    r.set(row.create, handed.ok, `source proof: ${handed.detail}`);
+    const mute = handed.ok && page.roles.includes('arena') && !page.roles.includes('invite-link');
+    if (mute) r.set(row.create, false, 'source proof failed: the page owns its chrome but has no invite-link slot, so the invite is never shown');
+    else r.set(row.create, handed.ok, `source proof: ${handed.detail}`);
     r.set(row.join, handed.ok, `source proof: ${handed.detail}`);
     await r.run(row.link, staticLink);
     return result;
@@ -506,10 +570,14 @@ async function browserRows({ live, origin, row, r, superappOrigin, offline, stat
     let host = null;
     await r.run(row.create, async () => {
       host = await browser.newPage(`${origin}/?create=1`);
+      // The invite is the invite-link slot, in the page's markup or the kit's; any visible room link also counts.
       const panel = () => {
         const visible = (node) => node.getClientRects().length > 0 && getComputedStyle(node).visibility !== 'hidden';
-        const link = [...document.querySelectorAll('a[href]')].find((a) => /[?&]room=[A-Za-z0-9]+/.test(a.href) && visible(a));
-        return link ? link.href : null;
+        const room = /https?:\/\/\S*[?&]room=[A-Za-z0-9]+/;
+        const shown = (node) => [node.href, node.value, node.textContent].map((text) => (room.exec(String(text ?? '').trim()) || [])[0]).find(Boolean);
+        // The link itself first: a panel's text runs the code into its neighbours.
+        const pick = (selector) => [...document.querySelectorAll(selector)].filter(visible);
+        return [...pick('[data-engine="invite-link"]'), ...pick('a[href]'), ...pick('[data-engine="invite"]')].map(shown).find(Boolean) ?? null;
       };
       invite = await settle(host, panel);
       if (!invite) return { ok: false, detail: `no invite panel with a room link appeared${pageErrors(host) ? `: ${pageErrors(host)}` : ''}` };
@@ -570,11 +638,12 @@ async function checkGameOrigin(origin, options, engine, health) {
   }
 
   let pin = { ok: false, detail: 'index.html is unreachable' };
-  let page = { links: [] };
+  let page = parsePage('');
+  let html = null;
   await r.run(row.pinned, async () => {
     const index = await reachable(`${origin}/`);
     if (!index.ok) return { ok: false, detail: index.detail };
-    const html = await (await fetch(`${origin}/`)).text();
+    html = await (await fetch(`${origin}/`)).text();
     page = parsePage(html);
     const specifiers = [];
     for (const module of page.modules) {
@@ -595,6 +664,19 @@ async function checkGameOrigin(origin, options, engine, health) {
     const allow = reached.res.headers.get('access-control-allow-origin');
     if (!pin.vendored && allow !== '*' && allow !== origin) return { ok: false, detail: `engine ${pin.version} is not readable from ${origin}: access-control-allow-origin ${JSON.stringify(allow)}` };
     return { ok: true, detail: `engine ${pin.version} answered 200 at ${url}` };
+  });
+
+  await r.run(row.slots, () => (html === null ? { ok: false, detail: 'index.html is unreachable' } : checkSlots(page)));
+  await r.run(row.stylesheet, async () => {
+    if (html === null) return { ok: false, detail: 'index.html is unreachable' };
+    const absent = [];
+    for (const href of page.stylesheets) {
+      const reached = await reachable(new URL(href, `${origin}/`).href);
+      if (!reached.ok) absent.push(reached.detail);
+    }
+    if (absent.length) return { ok: false, detail: absent.join('; ') };
+    if (page.roles.includes('arena') && !page.stylesheets.length && !page.inlineStyle) return { ok: false, detail: NO_STYLE };
+    return { ok: true, detail: page.stylesheets.length ? `${page.stylesheets.join(', ')} answered 200` : 'no stylesheet linked' };
   });
 
   const live = await import('./lib/live.mjs');

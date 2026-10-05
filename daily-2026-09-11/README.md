@@ -2,7 +2,7 @@
 
 A competitive sorting arcade for 2–8 players (or solo practice): slide a mail cart across three lanes, catch mint parcels, and dodge coral glitch parcels. Every player has a separate bay receiving the same delivery pattern, so positioning decides the winner.
 
-The game runs on the repository engine (`engine/`, pinned at `1.0.0` in `public/index.html`). The engine owns the lobby, signaling, WebRTC star, tick loop, snapshot codec, guest interpolation, input sources and chrome. This directory holds the simulation, the snapshot schema, the intent and the renderer.
+The game runs on the repository engine (`engine/`, pinned at `1.0.1` in `public/index.html`). The engine owns the lobby, signaling, WebRTC star, tick loop, snapshot codec, guest interpolation, input sources and lobby behaviour. This directory holds the simulation, the snapshot schema, the intent and the renderer.
 
 ## Contract
 
@@ -13,7 +13,7 @@ One intent field, `move`, declared as `INTENT` in `public/game.js`: `-1` slide l
 | Source | Mapping |
 |---|---|
 | Keyboard | `ArrowLeft` and `ArrowRight`. Both together cancel to stop. |
-| Touch | `←` and `→` buttons on coarse-pointer devices. |
+| Touch | The page's `←` and `→` buttons (`data-engine-touch`), also usable with a mouse. |
 | Gamepad | Axis 0. |
 
 The engine sends the intent only on change, re-sends it on an interval, and releases it on blur. The simulation treats any other value as stop.
@@ -51,9 +51,13 @@ The old nested lists became flat fields. The per-cart tuple `[x, score, active, 
 - `winner(20)` is the unique connected leader at or above 20, otherwise `-1`. Tied leaders play on.
 - The host advances with Space or the Next round button. `disconnect(index)` keeps that bay inactive in later rounds.
 
+## Look and feel
+
+The page (`public/index.html`) and the stylesheet (`public/style.css`) are the game's own: the depot panel, the shift clock (`#clock`) and the cart buttons. The engine binds behaviour to the elements marked `data-engine="<role>"` and injects no layout or theme. `client.js` passes the game's player colours (`COLORS` in `game.js`) as `palette` and its banner and next-control copy as `labels`; `draw` paints the canvas with the game's palette and updates the page's own elements by id.
+
 ## Changes from the pre-engine version
 
-The engine lobby replaced the per-game lobby, so the optional second local player (A/D) and the display-size selector are gone. Banner texts are the engine's. After a match win the engine keeps announcing the winner; reload to start a new match. Delivery lanes now come from the seeded generator the engine injects, so a recorded match replays exactly.
+The engine lobby replaced the per-game lobby, so the optional second local player (A/D) and the display-size selector are gone. After a match win the host's next control starts a new match. Delivery lanes now come from the seeded generator the engine injects, so a recorded match replays exactly.
 
 ## Local checks
 

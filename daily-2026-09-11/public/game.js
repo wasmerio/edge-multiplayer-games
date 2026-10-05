@@ -1,5 +1,6 @@
 // Only the host simulates. All positions are normalized within a delivery bay.
 // No DOM, no network, no timers, no global randomness: it runs headless in Node.
+export const COLORS = ["#6cf2bc", "#8fb6ff", "#ffcf70", "#ed9bff", "#6ce3ee", "#ff9f9f", "#c3ed77", "#bca6ff"];
 export const TICK_HZ = 30;
 export const TARGET = 20;
 export const ROUND_TICKS = 900;

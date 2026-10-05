@@ -1,4 +1,5 @@
 // Pure host simulation; coordinates are fractions of the course.
+export const COLORS = ["#ffcf67", "#7ee7db", "#ff8fa3", "#9eafff", "#c5ee82", "#f4a7ee", "#83caff", "#ffac78"];
 export const TICK_HZ = 30;
 export const ARENA = { w: 960, h: 680 };
 export const TARGET = 9;

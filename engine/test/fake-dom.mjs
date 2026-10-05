@@ -26,6 +26,15 @@ export function fakeDocument() {
     head: node("head"), body: node("body"),
     createElement: node,
     getElementById() { throw new Error("the kit must not look an element up by id"); },
+    // Attribute selectors only: [name] and [name="value"], which is all the kit asks for.
+    querySelectorAll(selector) {
+      const [, key, value] = selector.match(/^\[([\w-]+)(?:="([^"]*)")?\]$/) || [];
+      if (!key) throw new Error(`fake document cannot answer ${selector}`);
+      const hits = [];
+      walk(doc.body, (n) => { if (key in n.attributes && (value === undefined || n.attributes[key] === value)) hits.push(n); });
+      return hits;
+    },
+    querySelector: (selector) => doc.querySelectorAll(selector)[0] ?? null,
     addEventListener(type, fn) { listeners.set(type, [...(listeners.get(type) || []), fn]); },
     removeEventListener(type, fn) { listeners.set(type, (listeners.get(type) || []).filter((f) => f !== fn)); },
     dispatch(type, event = {}) { for (const fn of listeners.get(type) || []) fn({ preventDefault() {}, ...event }); },

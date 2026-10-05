@@ -24,12 +24,15 @@ node ../scripts/conformance.mjs .                    # the contract, every row
 ```
 
 The scaffold is a complete, passing game. Replace the rules in
-`public/game.js`, the drawing in `public/client.js`, re-record the fixture with
-`RECORD=1 npm test`, and fill the three README sections.
+`public/game.js`, the drawing in `public/client.js`, the markup and copy in
+`public/index.html` and the theme in `public/style.css`, re-record the fixture
+with `RECORD=1 npm test`, and fill the three README sections. The engine owns
+behaviour; the game owns its page and stylesheet (see "Page slots").
 
 | File | Content |
 |---|---|
-| `public/index.html` | A `#game` container, the pinned import map, one module script |
+| `public/index.html` | The game's own markup with `data-engine` roles, the pinned import map, one module script |
+| `public/style.css` | The game's own look; the scaffold's theme is a placeholder |
 | `public/client.js` | One `startGame({...})` call |
 | `public/game.js` | The simulation class, `SNAPSHOT`, `INTENT` |
 | `src/server.js` | One `serveGame({ publicDir })` call; never edit it |
@@ -38,9 +41,10 @@ The scaffold is a complete, passing game. Replace the rules in
 
 ```html
 <script type="importmap">
-  { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.0/" } }
+  { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/<ENGINE_VERSION>/" } }
 </script>
-<div id="game"></div>
+<link rel="stylesheet" href="/style.css">
+…the game's markup, see "Page slots"…
 <script type="module" src="/client.js"></script>
 ```
 
@@ -162,7 +166,7 @@ startGame({
 
 | Option | Default | Meaning |
 |---|---|---|
-| `title` | — | Header text |
+| `title` | — | Header text of the default chrome; a page with slots writes its own |
 | `Simulation`, `schema`, `intent`, `bindings` | required | As above; `schema` comes from `defineSnapshot` |
 | `draw(surface, snapshot, ctx)` | required unless `mount` | Called every frame with the snapshot to show |
 | `mount(arenaElement, ctx)` | — | Own renderer (three.js): return `{ draw(snapshot, ctx) }` plus optional `lobby`, `round`, `over`, `snapshot`, `reply` hooks |
@@ -171,7 +175,9 @@ startGame({
 | `target(players)` | `max(5, 10 × (players − 1))` | Score passed to `winner(target)` |
 | `tickHz` | `params.DEFAULT_TICK_HZ` (30) | Simulation rate, at most `MAX_TICK_HZ` |
 | `minPlayers` | 1 | Start is refused below this many connected players |
-| `touchControls` | `[]` | `{ field, value, label }` buttons |
+| `touchControls` | `[]` | `{ field, value, label }` buttons for the default chrome; a page with slots declares `data-engine-touch` buttons instead |
+| `palette` | shared eight | The game's own player colours, by seat; feeds `players()[i].colour`, `ctx.colourFor`, `surface.colour` and the scoreboard swatches |
+| `labels` | engine copy | `{ round(n), over(winnerName \| null), next(matchOver) }`: banner and next-control text; override any subset |
 | `audioMap` | `{}` | `{ snapshotField: "sound" \| { sound, gain, pitch: [lo, hi], field } }`; one voice per entry of an event list, or while a flag is true |
 | `audioAssets`, `assetsUrl` | shared set | Sounds are `blip`, `hit`, `score`, `start`, `win` (`SOUND_NAMES`); an unknown name throws at start |
 | `scoreboard(players, scores)` | one row per player | Rows `{ name, score, colour, alive }` for team games |
@@ -214,6 +220,78 @@ surface.canvas(layer)                                                // the raw 
 The engine clears every layer at a round start. `draw` runs on the host with
 the latest snapshot and on guests with an interpolated one, so derive
 everything from the snapshot and keep only cosmetic state in `client.js`.
+
+## Page slots
+
+The engine owns behaviour. The game owns its page and its stylesheet. A page
+that contains an element with `data-engine="arena"` owns its look: the kit
+builds no chrome, injects no theme or layout rule, and binds behaviour to the
+page's own elements by role. Use each role once; any element type works unless
+the table names one.
+
+| Role | Required | The kit |
+|---|---|---|
+| `arena` | yes | Mounts the canvas layers (or the game's `mount`) and the diagnostics overlay in it; sets its `width` and `aspect-ratio` from the board |
+| `name` | yes | `<input>`: offers the stored player name, stores a change |
+| `create` | yes | Click creates a room; disabled once in a room |
+| `code` | yes | `<input>`: the room code to join; filled with the room once in one |
+| `join` | yes | Click joins the room in `code`; disabled once in a room |
+| `start` | yes | Click starts the match; hidden unless this peer may start |
+| `invite-link` | for the contract | `<a>`: `href` and text become the full `?room=CODE` link. Without it the invite is never shown and conformance fails `create` |
+| `copy` | no | Click copies the invite link; its text confirms for 1.5 s, then returns |
+| `room-code` | no | Text becomes the room code |
+| `status` | no | Text becomes the connection state or `error: <code>` |
+| `mute` | no | Click toggles sound; text becomes `sound on` or `sound off` |
+| `peers` | no | A list: one `<li data-channel="none\|connecting\|open\|…">` per peer with classes `host` and `you`; text is the name, plus `(you)`, `(watching)`, `(away)` |
+| `scores` | no | A list: one `<li>` per row with `<span class="swatch">`, `<span class="name">`, `<strong class="score">`; `li.dead` for a row that is out |
+| `banner` | no | Text becomes the round or winner banner; shown and hidden. Added to the arena when absent |
+| `next` | no | Click starts the next round (host); shown when a round is over, with the `labels.next` text |
+| `hud` | no | Text becomes the `ctx.hud(text)` line |
+| `lobby` | no | Hidden when the match starts |
+| `game` | no | Shown when the match starts |
+| `room-info` | no | Shown once this peer is in a room |
+| `invite` | no | Shown to the host once in a room |
+| `host-controls` | no | Shown to the host once in a room |
+| `wait` | no | Shown to a guest once in a room |
+
+Touch buttons are the page's own elements, one per control:
+
+```html
+<button data-engine-touch="turn=-1" aria-label="Turn left">◀</button>
+```
+
+The value is `<intent field>=<number>`: the field is set to the number while
+the button is held and to 0 on release. A field that is not in `INTENT` throws
+at start, and fails the `slots` row of conformance before that.
+
+Rules the stylesheet can rely on:
+
+- "Shown" and "hidden" mean the `hidden` attribute. Start the elements that are
+  not visible at rest with `hidden` in the markup, and keep
+  `[hidden] { display: none !important; }` so a `display` rule cannot undo it.
+- The kit sets `data-touch="on"` on the container (`#game`, else `<body>`) on a
+  touch device with touch buttons, and `data-overlay="on"` while the
+  diagnostics overlay is open. Reveal touch buttons with
+  `[data-touch="on"] .your-touch-class { display: flex; }`.
+- The canvases are `canvas.engine-layer`, absolutely positioned to fill the
+  arena. Give the arena a background and a border, not a size.
+- The page keeps its own header, title, and link back to the superapp; the kit
+  adds none. Conformance fails `link` without one.
+
+Player colours are the game's too. `startGame({ palette: [...] })` replaces
+the shared eight by seat: `ctx.players()[i].colour`, `ctx.colourFor(i)`,
+`surface.colour(i)` and the `swatch` of each score row all read it.
+`paletteOf(list)` returns the same lookup for code outside `draw`. Without a
+palette, `PLAYER_COLOURS` and `colourFor(i)` apply. `labels` replaces the
+banner and next-control copy.
+
+**Default chrome.** A page without an arena slot gets the kit's own chrome:
+give it `<div id="game"></div>` and the kit builds the header, lobby, invite
+panel, arena, scoreboard and `touchControls` buttons into it, styles them with
+its own light and dark theme, and links back to the superapp. Its controls
+and lists carry the same `data-engine` roles, so a tool finds one either way. This
+is a fallback for a prototype; a game in the catalog owns its page.
+`achtung/public/index.html` and `achtung/public/style.css` are the reference.
 
 ## Everything `engine.js` exports
 
@@ -267,9 +345,11 @@ with no `FAIL`, 1 with a failing row, 2 for a usage error.
 | Row | Full tier | Static tier |
 |---|---|---|
 | `healthz` | `GET /healthz`: JSON `{ ok, rooms, players }`, `access-control-allow-origin: *` | `src/server.js` is the engine call |
-| `create` | Headless browser: `/?create=1` shows the invite link with no input | `client.js` calls `startGame` from the pinned engine, no own lobby code |
+| `create` | Headless browser: `/?create=1` shows the invite link (the `invite-link` slot, visible and filled) with no input | `client.js` calls `startGame` from the pinned engine, no own lobby code; a page with slots has `invite-link` |
 | `join` | Second browser context: `/?room=CODE` lands in the room | Same proof |
-| `link` | The rendered page links to the superapp | The kit carries the link, or `index.html` does |
+| `link` | The rendered page links to the superapp | `index.html` does; a bare-container page may rely on the kit's link |
+| `slots` | A page with an arena slot has every required role, no unknown or repeated role, and touch buttons that name `INTENT` fields, on an engine version that binds slots; otherwise it has a `#game` container | Same |
+| `stylesheet` | Every local stylesheet the page links exists and is not empty; a page with slots brings one | Same |
 | `pinned` | Import map and import specifiers name `/engine/<x.y.z>/` on the superapp origin, or a vendored copy | Same |
 | `published` | That version exists in `public/engine/<version>/` and is served | Exists on disk |
 | `server` | `src/server.js` is exactly `serveGame({ publicDir })` | Same |
@@ -306,7 +386,7 @@ speaks the DevTools protocol over Node's own WebSocket and adds no dependency.
 | Command | Effect |
 |---|---|
 | `node scripts/dev.mjs <game> [port]` | Publish, copy the server half, serve the game with the local `public/` as the superapp |
-| `node scripts/sync-engine.mjs publish` | Copy `engine/*.js` to `public/engine/<ENGINE_VERSION>/`; run after every engine edit |
+| `node scripts/sync-engine.mjs publish` | Copy `engine/*.js` to `public/engine/<ENGINE_VERSION>/`; run after every engine edit. Earlier version directories are frozen and stay untouched |
 | `node scripts/sync-engine.mjs verify` | Fail when the published copy differs from `engine/`; the deploy and a test run it |
 | `node scripts/sync-engine.mjs game <game>` | Copy the Node half (`params`, `rng`, `rooms`, `server`) into `<game>/engine/` |
 | `node scripts/sync-engine.mjs vendor <game>` | Freeze: copy the engine into `<game>/public/engine/`, point the import map at `/engine/`, stop ignoring the copy |
@@ -333,6 +413,12 @@ Without the config file the server reflects the request origin on every path
 and sets only `vary: accept-encoding`, and the index inherits one day. Lifetime
 follows the file extension, and a 404 under `/engine/` inherits the one-year
 lifetime too, so publish a version before any game pins it.
+
+A version directory that has been deployed is frozen: browsers hold its files
+for a year, so an edit would reach some players and not others. Ship an engine
+fix as a new `ENGINE_VERSION` in `engine/params.js`, publish it beside the
+earlier directories, and move each game's import map to it. The earlier
+directories stay in `public/engine/` for the pages that still pin them.
 
 A game deploy uploads the game directory alone. The remote-build packager
 walks it with `.gitignore` honoured, which would leave the git-ignored

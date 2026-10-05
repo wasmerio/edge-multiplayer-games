@@ -9,6 +9,7 @@ export const MAP = { baseW: 900, baseH: 500 };
 export function mapSize(players, scale = 1) {
   return { w: Math.round(900 * Math.sqrt(scale)), h: Math.round((140 + Math.max(2, players) * 100) * Math.sqrt(scale)) };
 }
+export const COLORS = ["#64e8ca", "#ffbd69", "#91adff", "#f78dc9", "#d5e879", "#9be2ff", "#cf9aff", "#ff8b86"];
 export const EVENT = { none: 0, bank: 1, meltdown: 2, closing: 3 };
 
 // The engine hands over intent objects; a bare number is the neutral seat.

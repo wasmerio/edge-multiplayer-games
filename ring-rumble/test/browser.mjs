@@ -38,13 +38,12 @@ try {
 
   const host = await page('Host');
   await host.goto(`${base}/?create=1`);
-  await host.locator('.engine-invite').waitFor({ state: 'visible' });
-  const invite = await host.locator('.engine-invite').getAttribute('href');
+  await host.locator('#invite-link').waitFor({ state: 'visible' });
+  const invite = await host.locator('#invite-link').getAttribute('href');
   assert.match(invite, /\?room=[A-Z2-9]{4}$/);
   assert.ok(await colours(host) > 10, 'the lobby preview renders');
-  await host.getByRole('button', { name: 'Start' }).click();
-  await wait(host, () => /waiting for players: 1 of 2/.test(document.body.innerText));
-  assert.equal(await host.evaluate(() => window.rumble.state.host), null, 'a lone host cannot start');
+  assert.equal(await host.locator('#start').isDisabled(), true, 'a lone host cannot start');
+  assert.equal(await host.locator('#mapinfo').innerText(), '1 / 8 fighters ready');
 
   const guest = await page('Guest');
   await guest.goto(invite);
@@ -52,13 +51,16 @@ try {
   await wait(guest, () => window.rumble.peers().some(p => p.channel === 'open'));
   console.log('PASS ?create=1 shows the invite with no click, ?room=CODE joins, DataChannel open, start needs two fighters');
 
-  await host.getByRole('button', { name: 'Start' }).click();
+  await host.locator('#start').click();
   await wait(guest, () => window.rumble.state.client?.sample()?.f === 0);
+  assert.equal(await guest.locator('#hero-copy').isVisible(), false);
+  assert.equal(await guest.locator('#round-number').innerText(), 'ROUND 01');
+  assert.match(await guest.locator('#scores').innerText(), /Guest\s*YOU/);
   assert.ok(await colours(host) > 10, 'the host scene renders');
   assert.ok(await colours(guest) > 10, 'the guest scene renders');
   assert.equal(await guest.evaluate(() => window.rumble.view.renderer().fighters.length), 2);
   assert.ok(await guest.evaluate(() => window.rumble.state.client.stats().pushed > 30), 'the guest buffers the snapshot stream');
-  assert.match(await guest.locator('.engine-hud').innerText(), /Dash ready/);
+  assert.match(await guest.locator('#dash-status').innerText(), /Dash ready/);
 
   const before = await host.evaluate(() => window.rumble.state.sim.fighters[1].x);
   await guest.keyboard.down('ArrowLeft');
@@ -85,7 +87,7 @@ try {
   await guest.keyboard.down('ArrowRight');
   await wait(host, () => window.rumble.state.sim.roundOver);
   await guest.keyboard.up('ArrowRight');
-  await wait(guest, () => /wins the round/.test(document.querySelector('.engine-banner').textContent));
+  await wait(guest, () => /wins the round!/.test(document.querySelector('#banner').textContent));
   await wait(guest, () => window.rumble.state.client.sample().over === true);
   assert.equal(await host.evaluate(() => window.rumble.state.sim.scores.reduce((a, b) => a + b, 0)), 1);
   await host.keyboard.press('Space');
@@ -95,13 +97,13 @@ try {
 
   const solo = await page('Typist');
   await solo.goto(base);
-  await solo.locator('#engine-name').fill('');
-  await solo.locator('#engine-name').pressSequentially('wasdjk');
-  assert.equal(await solo.locator('#engine-name').inputValue(), 'wasdjk', 'bound keys still type into the name field');
+  await solo.locator('#name').fill('');
+  await solo.locator('#name').pressSequentially('wasdjk');
+  assert.equal(await solo.locator('#name').inputValue(), 'wasdjk', 'bound keys still type into the name field');
   const mobile = await page('Mobile', { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
   await mobile.goto(base);
   assert.equal(await mobile.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
-  assert.equal(await mobile.locator('.engine-touch button').count(), 6);
+  assert.equal(await mobile.locator('[data-engine-touch]').count(), 6);
   console.log('PASS name field accepts bound letters, phone layout has six touch controls and no horizontal overflow');
 
   assert.deepEqual(errors, []);

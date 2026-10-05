@@ -14,7 +14,7 @@ const USAGE = `usage: node scripts/new-game.mjs <slug> --name "<Display name>" [
   --root <dir>           checkout to scaffold into (default: this repository)
   --help
 
-Writes <root>/<slug>/ with src/server.js, public/{index.html,client.js,game.js},
+Writes <root>/<slug>/ with src/server.js, public/{index.html,style.css,client.js,game.js},
 test/{game.test.mjs,reference.mjs,replay.ndjson}, package.json, .gitignore,
 app.yaml, game-entry.json and README.md. Then:
 
@@ -40,15 +40,144 @@ const INDEX = `<!doctype html>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{nameHtml}}</title>
   <meta name="description" content="{{descriptionHtml}}">
+  <link rel="stylesheet" href="/style.css">
   <script type="importmap">
     { "imports": { "@engine/": "{{origin}}/engine/{{version}}/" } }
   </script>
 </head>
 <body>
-  <div id="game"></div>
+  <header class="top">
+    <h1>{{nameHtml}}</h1>
+    <span class="status" data-engine="status">connecting</span>
+    <button class="quiet" data-engine="mute">sound on</button>
+    <a class="home" href="{{origin}}">all games</a>
+  </header>
+
+  <main>
+    <section class="lobby" data-engine="lobby">
+      <p class="pitch">{{descriptionHtml}}</p>
+      <label class="field">Your name
+        <input data-engine="name" maxlength="16" placeholder="your name" autocomplete="nickname">
+      </label>
+      <div class="row">
+        <button class="primary" data-engine="create">Create room</button>
+        <span class="or">or</span>
+        <input class="code" data-engine="code" maxlength="8" placeholder="CODE" aria-label="Room code">
+        <button data-engine="join">Join</button>
+      </div>
+      <div class="room" data-engine="room-info" hidden>
+        <p>Room <strong data-engine="room-code"></strong></p>
+        <div class="invite" data-engine="invite" hidden>
+          <span>Send this link to your friends</span>
+          <a data-engine="invite-link" href="#"></a>
+          <button class="quiet" data-engine="copy">copy</button>
+        </div>
+        <ul class="peers" data-engine="peers"></ul>
+        <div class="row" data-engine="host-controls" hidden>
+          <button class="primary" data-engine="start">Start game</button>
+        </div>
+        <p class="wait" data-engine="wait" hidden>Waiting for the host to start.</p>
+      </div>
+    </section>
+
+    <section class="game" data-engine="game" hidden>
+      <div class="arena" data-engine="arena">
+        <div class="banner" data-engine="banner" hidden></div>
+        <div class="touch">
+          <button data-engine-touch="turn=-1" aria-label="Turn left">◀</button>
+          <button data-engine-touch="turn=1" aria-label="Turn right">▶</button>
+        </div>
+      </div>
+      <aside class="side">
+        <ol class="scores" data-engine="scores"></ol>
+        <p class="help">Arrow keys steer. The host starts the next round with Space.</p>
+        <button data-engine="next" hidden>Next round</button>
+        <p class="hud" data-engine="hud"></p>
+      </aside>
+    </section>
+  </main>
+
   <script type="module" src="/client.js"></script>
 </body>
 </html>
+`;
+
+// The default theme. A game restyles it: the look belongs to the game, not the engine.
+const STYLE = `/* {{name}}: this stylesheet is the game's own. Change it freely.
+   The engine binds behaviour to the data-engine roles in index.html and
+   shows or hides elements with the hidden attribute; it brings no theme. */
+
+/* 1. Theme: restyle from here first. */
+:root {
+  color-scheme: dark;
+  --bg: #12141a;
+  --panel: #1c2029;
+  --line: #2e3442;
+  --ink: #eceef3;
+  --muted: #8d93a3;
+  --accent: #ffb347;
+  --on-accent: #1a1304;
+  --arena: #05060a;
+  --radius: 10px;
+  --font: system-ui, sans-serif;
+}
+
+/* 2. Base. */
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); font: 16px/1.5 var(--font); }
+input, button {
+  font: inherit; color: var(--ink); background: var(--panel);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 0.55rem 0.9rem; min-height: 44px; max-width: 100%;
+}
+button { cursor: pointer; }
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { opacity: 0.5; cursor: default; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 650; }
+button.quiet { min-height: 32px; padding: 0.15rem 0.6rem; font-size: 0.85rem; }
+
+/* 3. Header. */
+.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem 1rem; padding: 0.75rem 1rem; border-bottom: 1px solid var(--line); }
+.top h1 { margin: 0; font-size: 1.25rem; color: var(--accent); }
+.status, .help, .hud, .wait, .or { color: var(--muted); font-size: 0.9rem; }
+.home { margin-left: auto; color: var(--muted); text-decoration: none; font-size: 0.9rem; }
+.home:hover { color: var(--accent); }
+
+/* 4. Lobby. */
+main { padding: 1rem; }
+.lobby { max-width: 34rem; margin: 0 auto; display: grid; gap: 0.75rem; }
+.pitch { margin: 0; color: var(--muted); }
+.field { display: grid; gap: 0.25rem; font-size: 0.9rem; color: var(--muted); }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.code { width: 7rem; text-transform: uppercase; letter-spacing: 0.15em; }
+.room { display: grid; gap: 0.5rem; padding: 0.75rem; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.room p { margin: 0; }
+.invite { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.invite a { color: var(--accent); word-break: break-all; }
+.peers { margin: 0; padding-left: 1.2rem; }
+
+/* 5. Game: the arena sizes itself from the board the engine announces. */
+.game { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: center; gap: 1rem; }
+.arena { position: relative; max-width: 100%; background: var(--arena); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.banner {
+  position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; pointer-events: none;
+  font-size: clamp(1.2rem, 5vw, 2rem); font-weight: 700; text-shadow: 0 2px 12px var(--arena);
+}
+.touch { position: absolute; inset: auto 0 0 0; z-index: 1; display: none; justify-content: space-between; padding: 0.75rem; }
+[data-touch="on"] .touch { display: flex; }
+.touch button { min-width: 4.5rem; min-height: 4.5rem; font-size: 1.4rem; opacity: 0.75; }
+.side { min-width: 12rem; display: grid; gap: 0.5rem; }
+.side p { margin: 0; }
+.scores { margin: 0; padding-left: 1.4rem; }
+.scores li.dead { opacity: 0.45; }
+.scores .swatch { display: inline-block; width: 0.8em; height: 0.8em; border-radius: 50%; margin-right: 0.4em; vertical-align: middle; }
+
+/* 6. Phone width. */
+@media (max-width: 720px) {
+  main { padding: 0.75rem; }
+  .side { width: 100%; }
+}
 `;
 
 const CLIENT = `import { defineSnapshot, startGame } from "@engine/engine.js";
@@ -60,10 +189,6 @@ startGame({
   schema: defineSnapshot(SNAPSHOT),
   intent: INTENT,
   bindings: { turn: { keys: { ArrowLeft: -1, ArrowRight: 1 }, axis: 0 } },
-  touchControls: [
-    { field: "turn", value: -1, label: "◀" },
-    { field: "turn", value: 1, label: "▶" },
-  ],
   draw(surface, snap, ctx) {
     surface.clear("actors");
     surface.disc("actors", { x: snap.px, y: snap.py, r: 8, colour: "#ffd54a" });
@@ -288,14 +413,16 @@ const README = `# {{name}}
 
 {{description}}
 
-Built on the repository's browser game engine (\`engine/README.md\`). The page is
-a container and a pinned engine import; the engine owns the lobby, the
-networking, the loop, the invite panel and \`/healthz\`.
+Built on the repository's browser game engine (\`engine/README.md\`). The engine
+owns behaviour: the lobby logic, the networking, the loop, the invite link and
+\`/healthz\`. The game owns its page and its stylesheet.
 
 | Path | Role |
 |---|---|
 | \`public/game.js\` | The simulation, \`SNAPSHOT\` and \`INTENT\`. Headless. |
 | \`public/client.js\` | One \`startGame\` call: bindings and \`draw\`. |
+| \`public/index.html\` | The page: markup and copy, with \`data-engine\` roles the engine binds to. |
+| \`public/style.css\` | The look. Theme properties are at the top. |
 | \`src/server.js\` | One \`serveGame\` call. |
 | \`test/\` | Scenario tests, the reference match and its replay fixture. |
 
@@ -366,6 +493,7 @@ export async function scaffold({ slug, name, description, root = REPO }) {
   const files = {
     'src/server.js': SERVER,
     'public/index.html': fill(INDEX, values),
+    'public/style.css': fill(STYLE, values),
     'public/client.js': fill(CLIENT, values),
     'public/game.js': fill(GAME, values),
     'test/reference.mjs': fill(REFERENCE, values),

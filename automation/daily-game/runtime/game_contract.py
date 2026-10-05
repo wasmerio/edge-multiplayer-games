@@ -11,11 +11,18 @@ CONFORMANCE = "scripts/conformance.mjs"
 SYNC = "scripts/sync-engine.mjs"
 ENGINE_PARAMS = "engine/params.js"
 SUPERAPP = "https://edge-multiplayer-games.wasmer.app"
-PLACEHOLDER = "Daily game"
-PLACEHOLDER_DESCRIPTION = "A daily multiplayer game on the Wasmer Edge game engine."
+PLACEHOLDER = "Weekly game"
+PLACEHOLDER_DESCRIPTION = "A weekly multiplayer game on the Wasmer Edge game engine."
 # The model authors these and anything under test/; every other scaffold file is the coordinator's.
-AUTHORED = ("README.md", "public/game.js", "public/client.js", "public/index.html", "game-entry.json")
+AUTHORED = ("README.md", "public/game.js", "public/client.js", "public/index.html", "public/style.css",
+            "game-entry.json")
 MUST_CHANGE = ("public/game.js", "public/client.js")
+PAGE = "public/index.html"
+STYLE = "public/style.css"
+# The roles the engine binds in a page that owns its chrome; the invite link carries the sub-app contract.
+REQUIRED_ROLES = ("arena", "name", "create", "code", "join", "start", "invite-link")
+MODULE_SCRIPT = '<script type="module" src="/client.js"></script>'
+STYLE_LINK = '<link rel="stylesheet" href="/style.css">'
 FIXTURE = "test/replay.ndjson"
 SIZE_LIMIT = 500000
 PENDING = ("\n\n## Automated check status\n\n"
@@ -49,6 +56,27 @@ def import_map(html):
     return found[0] if found else None
 
 
+def verify_page(page, scaffold_page, version):
+    """The page is the model's; the engine pin, the entry script, the roles and the way home are not."""
+    pinned = import_map(page)
+    require(pinned is not None and pinned == import_map(scaffold_page), "Engine import map differs from the scaffold")
+    require(f'"{engine_pin(version)}"' in pinned,
+            f"Engine pin is not {engine_pin(version)}; the generator ran against engine {version}")
+    markup = re.sub(r"<!--.*?-->", "", page, flags=re.S)
+    require(PLACEHOLDER not in markup and PLACEHOLDER_DESCRIPTION not in markup,
+            "Page still carries the scaffold's placeholder copy")
+    require(markup.count(MODULE_SCRIPT) == 1, "Page does not load /client.js as its one module script")
+    require(len(re.findall(r"<script\b", markup)) == 2, "Page has a script besides the import map and /client.js")
+    require(markup.count(STYLE_LINK) == 1, "Page does not link /style.css")
+    require(re.search(r'<a\b[^>]*\bhref="' + re.escape(SUPERAPP) + r'/?"', markup) is not None,
+            "Page has no link back to " + SUPERAPP)
+    roles = re.findall(r'\bdata-engine="([^"]*)"', markup)
+    missing = [role for role in REQUIRED_ROLES if role not in roles]
+    require(not missing, "Page is missing data-engine role: " + ", ".join(missing))
+    repeated = sorted({role for role in roles if roles.count(role) > 1})
+    require(not repeated, "Page repeats data-engine role: " + ", ".join(repeated))
+
+
 def finish_readme(readme):
     return readme if readme.endswith(PENDING) else readme + PENDING
 
@@ -67,14 +95,13 @@ def verify(candidate, scaffold, context):
             require(content == scaffold[path], "Coordinator-owned file differs from the scaffold: " + path)
     require(FIXTURE in candidate, "Fixture is missing: " + FIXTURE)
 
-    page = candidate["public/index.html"].decode()
-    pinned = import_map(page)
-    require(pinned is not None and pinned == import_map(scaffold["public/index.html"].decode()),
-            "Engine import map differs from the scaffold")
-    require(f'"{engine_pin(version)}"' in pinned,
-            f"Engine pin is not {engine_pin(version)}; the generator ran against engine {version}")
+    verify_page(candidate[PAGE].decode(), scaffold[PAGE].decode(), version)
     for path in MUST_CHANGE:
         require(candidate[path] != scaffold[path], "Scaffold placeholder was not replaced: " + path)
+    require(STYLE in candidate and candidate[STYLE].strip(), "Stylesheet is missing or empty: " + STYLE)
+    require(candidate[STYLE] != scaffold.get(STYLE),
+            "Stylesheet is the scaffold's default theme: " + STYLE + "; the game needs its own visual identity")
+    require(candidate[PAGE] != scaffold[PAGE], "Scaffold placeholder was not replaced: " + PAGE)
 
     authored = json.loads(candidate["game-entry.json"])
     require(isinstance(authored, dict), "Invalid game-entry.json")

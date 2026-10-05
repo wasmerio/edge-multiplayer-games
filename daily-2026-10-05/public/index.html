@@ -1,16 +1,75 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Relay Orbit</title>
-  <meta name="description" content="Steer a momentum-driven antenna into shared broadcast windows, brake for precise transmissions, and race friends to 60 points.">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Relay Orbit · Multiplayer antenna race</title>
+  <meta name="description" content="Steer a momentum-driven antenna into shared broadcast windows, brake for precise transmissions, and race friends to 60 points." />
+  <link rel="stylesheet" href="/style.css" />
   <script type="importmap">
-    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.0/" } }
+    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.1/" } }
   </script>
 </head>
 <body>
-  <div id="game"></div>
+  <header>
+    <h1>Relay Orbit <small>deep-space broadcast club</small></h1>
+    <span id="status" data-engine="status" class="muted">connecting…</span>
+    <a id="all-games" class="muted" href="https://edge-multiplayer-games.wasmer.app">← all games</a>
+  </header>
+
+  <section id="lobby" data-engine="lobby">
+    <p class="eyebrow">PRECISION / MOMENTUM / FRIENDLY RIVALRY</p>
+    <h2>Catch the window.<br>Make the transmission.</h2>
+    <p>Turn your antenna into the gold arc before the relay fires. Release to brake: your antenna has momentum. Everyone shares the same ten targets.</p>
+    <div class="rules"><strong>Center +3</strong> · outer arc +1 · miss +0<br>One broadcast every 2.5 seconds. Dashed arc = next target.<br>Reach 60 points and lead at round end to win.</div>
+    <label>Name <input id="name" data-engine="name" maxlength="16" placeholder="your name" /></label>
+    <div class="row">
+      <button id="create" data-engine="create">Create room</button>
+      <span class="muted">or</span>
+      <input id="code" data-engine="code" maxlength="4" placeholder="CODE" />
+      <button id="join" data-engine="join">Join</button>
+    </div>
+    <div id="room-info" data-engine="room-info" hidden>
+      <p>Room <strong id="room-code" data-engine="room-code"></strong></p>
+      <div id="invite" data-engine="invite" class="invite" hidden>
+        <span class="muted">Send this to your friends:</span>
+        <a id="invite-link" data-engine="invite-link" href="#"></a>
+        <button id="copy-link" data-engine="copy" class="small">copy</button>
+      </div>
+      <ul id="peers" data-engine="peers"></ul>
+      <div id="host-controls" data-engine="host-controls" hidden>
+        <button id="start" data-engine="start">Launch relay</button>
+        <p class="muted">2–8 pilots; solo practice works too. Wait for friends to connect before launching. New arrivals play in the next match.</p>
+      </div>
+      <p id="wait" data-engine="wait" class="muted" hidden>waiting for host to start…</p>
+    </div>
+  </section>
+
+  <section id="game" data-engine="game" hidden>
+    <div class="flight-deck">
+    <p id="telemetry" role="status">Preparing relay…</p>
+    <div class="pulse-track" aria-hidden="true"><div id="pulse-fill"></div></div>
+    <div id="arena" data-engine="arena">
+      <div id="banner" data-engine="banner" role="status" hidden></div>
+    </div>
+    <div class="touch-controls" aria-label="Antenna controls">
+      <button id="turn-left" data-engine-touch="turn=-1" aria-label="Turn counterclockwise">↶ Hold left</button>
+      <span class="muted">Release to brake</span>
+      <button id="turn-right" data-engine-touch="turn=1" aria-label="Turn clockwise">Hold right ↷</button>
+    </div>
+    </div>
+    <aside>
+      <h2>Signal standings</h2>
+      <ol id="scores" data-engine="scores"></ol>
+      <p id="target" class="muted">Goal 60 · unique leader at round end</p>
+      <p>← → rotate · release to brake</p>
+      <p class="muted">Gold center: +3<br>Outer window: +1<br>Dashed arc: next target</p>
+      <p class="muted">Host: Space advances the round or starts a new match. Keep the host tab visible.</p>
+      <button id="next" data-engine="next" hidden>Next round · Space</button>
+      <p id="rtc" data-engine="hud" class="muted"></p>
+    </aside>
+  </section>
+
   <script type="module" src="/client.js"></script>
 </body>
 </html>

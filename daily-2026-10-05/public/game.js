@@ -1,3 +1,4 @@
+export const COLORS = ["#6ef5cf", "#ff8ca8", "#85baff", "#ffdc79", "#cc9cff", "#ffae70", "#7ce3ff", "#e6ee96"];
 export const TICK_HZ = 30;
 export const ARENA = { w: 960, h: 720 };
 export const TARGET = 60;

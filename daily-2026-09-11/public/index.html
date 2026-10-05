@@ -1,16 +1,70 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Prism Post · Multiplayer parcel arcade</title>
-  <meta name="description" content="Slide your cart to catch mint parcels and dodge costly glitches in identical delivery bays, racing friends to 20 points across thirty-second shifts.">
+  <meta name="description" content="Slide your cart to catch mint parcels and dodge costly glitches in identical delivery bays, racing friends to 20 points across thirty-second shifts." />
+  <link rel="stylesheet" href="/style.css" />
   <script type="importmap">
-    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.0/" } }
+    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.1/" } }
   </script>
 </head>
 <body>
-  <div id="game"></div>
+  <header>
+    <h1>Prism Post <small>PARCEL ARCADE</small></h1>
+    <span id="status" data-engine="status" class="muted">connecting…</span>
+    <a id="all-games" class="muted" href="https://edge-multiplayer-games.wasmer.app">← all games</a>
+  </header>
+
+  <section id="lobby" data-engine="lobby">
+    <p class="eyebrow">SAME DELIVERIES. SHARPER REFLEXES.</p>
+    <h2>Run the brightest bay in the depot.</h2>
+    <p>Slide your cart to catch <strong class="mint">mint + parcels</strong>. Dodge <strong class="coral">coral × glitches</strong>: they cost two points. Everyone gets the same deliveries in their own bay.</p>
+    <p class="muted">30-second shifts · first to 20 points at shift end · 2–8 players or solo practice</p>
+    <label>Name <input id="name" data-engine="name" maxlength="16" placeholder="your name" /></label>
+    <div class="row">
+      <button id="create" data-engine="create">Create room</button>
+      <span class="muted">or</span>
+      <input id="code" data-engine="code" maxlength="4" placeholder="CODE" />
+      <button id="join" data-engine="join">Join</button>
+    </div>
+    <div id="room-info" data-engine="room-info" hidden>
+      <p>Room <strong id="room-code" data-engine="room-code"></strong></p>
+      <div id="invite" data-engine="invite" class="invite" hidden>
+        <span class="muted">Send this to your friends:</span>
+        <a id="invite-link" data-engine="invite-link" href="#"></a>
+        <button id="copy-link" data-engine="copy" class="small">copy</button>
+      </div>
+      <ul id="peers" data-engine="peers"></ul>
+      <div id="host-controls" data-engine="host-controls" hidden>
+        <button id="start" data-engine="start">Start game</button>
+      </div>
+      <p id="wait" data-engine="wait" class="muted" hidden>waiting for host to start…</p>
+    </div>
+  </section>
+
+  <section id="game" data-engine="game" hidden>
+    <div id="arena" data-engine="arena">
+      <div id="banner" data-engine="banner" hidden></div>
+    </div>
+    <aside>
+      <p class="eyebrow">LIVE DEPOT</p>
+      <h2 id="clock" aria-live="off">Get ready</h2>
+      <ol id="scores" data-engine="scores"></ol>
+      <p id="target" class="muted">first to 20</p>
+      <div class="touch-controls" aria-label="Cart controls">
+        <button id="left" data-engine-touch="move=-1" aria-label="Move cart left">←</button>
+        <button id="right" data-engine-touch="move=1" aria-label="Move cart right">→</button>
+      </div>
+      <p>← → slide · release to stop</p>
+      <p class="muted"><span class="mint">+ catch: +1</span> · <span class="coral">× glitch: −2</span><br>Missed parcels cost nothing. Ties continue another shift.</p>
+      <button id="next" data-engine="next" hidden>Next round (Space)</button>
+      <p class="muted">Host: Space advances shifts. Join before Start; late arrivals wait for a new match.</p>
+      <p id="rtc" data-engine="hud" class="muted"></p>
+    </aside>
+  </section>
+
   <script type="module" src="/client.js"></script>
 </body>
 </html>
