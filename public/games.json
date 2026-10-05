@@ -45,7 +45,7 @@
     "description": "Race skiffs through ordered buoy rings, steer around reefs and shifting currents, and win a two-lap regatta against your friends.",
     "players": "2 to 8",
     "source": "daily-2026-10-04/",
-    "url": null
+    "url": "https://daily-2026-10-04.wasmer.app"
   },
   {
     "slug": "daily-2026-10-05",
@@ -53,6 +53,6 @@
     "description": "Steer a momentum-driven antenna into shared broadcast windows, brake for precise transmissions, and race friends to 60 points across ten-pulse rounds.",
     "players": "2 to 8",
     "source": "daily-2026-10-05/",
-    "url": null
+    "url": "https://daily-2026-10-05.wasmer.app"
   }
 ]
