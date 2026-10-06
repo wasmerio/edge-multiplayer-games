@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Velvet Bid — a small auction of large ambitions</title>
+  <meta name="description" content="Six curios, one small purse: outguess your friends in a highest-unique-bid auction for 2–8 players.">
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">
+    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.2/" } }
+  </script>
+</head>
+<body>
+  <header class="masthead">
+    <h1>Velvet Bid</h1>
+    <button class="mini" data-engine="mute">Audio</button>
+    <a class="mini" href="https://edge-multiplayer-games.wasmer.app">Arcade ↗</a>
+    <span class="connection" data-engine="status">Preparing the salon…</span>
+  </header>
+  <main>
+    <section class="salon" data-engine="lobby">
+      <article class="catalogue">
+        <p class="eyebrow">An auction for 2–8 friends</p>
+        <div class="cover-jewel" aria-hidden="true"><i></i></div>
+        <h2>A small purse.<br>A little nerve.<br><em>Exquisite timing.</em></h2>
+        <p class="pitch">Win six curios with the highest <strong>unique</strong> sealed bid. Matching offers cancel each other.</p>
+        <p class="controls"><kbd>←</kbd> <kbd>→</kbd> adjust your offer. <kbd>Space</kbd> seals it.<br>On a phone, use the three bidding buttons.</p>
+        <dl class="terms">
+          <div><dt>24</dt><dd>coins per catalogue</dd></div>
+          <div><dt>5s</dt><dd>to seal each offer</dd></div>
+          <div><dt>35</dt><dd>points to win outright</dd></div>
+        </dl>
+        <p class="fine">Only the winner pays. Zero passes. An unsealed offer does not count. Behind on points? Your next purse gets up to six extra coins.</p>
+      </article>
+      <div class="reservation">
+        <p class="eyebrow">Your place at the table</p>
+        <label class="field">Bidder’s name
+          <input data-engine="name" maxlength="16" placeholder="A name for the ledger" autocomplete="nickname">
+        </label>
+        <button class="brass" data-engine="create">Host a private auction</button>
+        <div class="divider">Already invited?</div>
+        <div class="join-line">
+          <input data-engine="code" maxlength="8" placeholder="SALON CODE" aria-label="Auction room code" class="code">
+          <button data-engine="join">Take a seat</button>
+        </div>
+        <section class="room" data-engine="room-info" hidden>
+          <p class="room-number">Salon <strong data-engine="room-code"></strong></p>
+          <div class="invitation" data-engine="invite" hidden>
+            <span>Send your guests this invitation.</span>
+            <a data-engine="invite-link" href="#"></a>
+            <button class="mini" data-engine="copy">Copy invitation</button>
+          </div>
+          <ul class="guest-list" data-engine="peers"></ul>
+          <div data-engine="host-controls" hidden>
+            <button class="brass" data-engine="start">Raise the curtain</button>
+          </div>
+          <p class="fine" data-engine="wait" hidden>Your host will ring the opening bell.</p>
+        </section>
+        <p class="fine">The best offer is not always the biggest. If two guests seal 9 and you seal 4, the lot is yours for 4.</p>
+      </div>
+    </section>
+    <section class="auction" data-engine="game" hidden>
+      <div class="stage">
+        <div class="arena" data-engine="arena">
+          <div class="banner" data-engine="banner" hidden></div>
+        </div>
+        <p class="hud" data-engine="hud" aria-live="polite"></p>
+        <div class="touch" aria-label="Bidding controls">
+          <button data-engine-touch="adjust=-1" aria-label="Decrease offer"><span>−</span><small>LESS</small></button>
+          <button data-engine-touch="adjust=1" aria-label="Increase offer"><span>+</span><small>MORE</small></button>
+          <button class="seal-button" data-engine-touch="seal=1" aria-label="Seal your offer"><span>◆</span><small>SEAL</small></button>
+        </div>
+      </div>
+      <aside class="ledger">
+        <h2>The ledger</h2>
+        <p class="eyebrow">Points collected · coins remaining</p>
+        <ol class="scores" data-engine="scores"></ol>
+        <button class="brass" data-engine="next" hidden>Open next catalogue</button>
+        <p class="key-help"><kbd>←</kbd> / <kbd>→</kbd> or A / D to adjust.<br><kbd>Space</kbd> seals. No second thoughts.<br>Host: <kbd>Enter</kbd> opens the next catalogue.</p>
+        <p class="fine">Your placard has a double ivory frame. A dot means sealed; crossed offers cancelled. A check marks the winning bid. First to 35 with a clear lead.</p>
+      </aside>
+    </section>
+  </main>
+  <script type="module" src="/client.js"></script>
+</body>
+</html>

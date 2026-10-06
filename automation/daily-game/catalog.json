@@ -26,5 +26,12 @@
     "description": "Steer a momentum-driven antenna into shared broadcast windows, brake for precise transmissions, and race friends to 60 points across ten-pulse rounds.",
     "players": "2 to 8",
     "source": "daily-2026-10-05/"
+  },
+  {
+    "slug": "weekly-2026-10-06",
+    "name": "Velvet Bid",
+    "description": "Spend a small purse across six curios in a simultaneous auction where matching offers cancel and the highest unique sealed bid wins.",
+    "players": "2 to 8",
+    "source": "weekly-2026-10-06/"
   }
 ]
