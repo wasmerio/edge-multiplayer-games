@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-07",
+  "slug": "weekly-2026-10-07",
+  "base_sha": "28da521ae59170531fcdfd5082288b2c19a98482",
+  "entry": {
+    "slug": "weekly-2026-10-07",
+    "name": "Velvet Auction",
+    "description": "Seal all-pay bids for rare blooms, cancel matching rivals, and win petals with the highest unique offer in an eight-lot flower auction.",
+    "players": "2 to 8",
+    "source": "weekly-2026-10-07/"
+  },
+  "checks": {
+    "ok": true,
+    "engine": "1.0.2",
+    "simulation": "Game",
+    "schema": "6516f5cc",
+    "snapshot": {
+      "bytesPerPlayer": 32,
+      "budget": 100
+    },
+    "fixture": {
+      "events": 3783,
+      "players": 4,
+      "final": {
+        "round": 3,
+        "tick": 1260,
+        "roundOver": true,
+        "scores": [
+          28,
+          51,
+          26,
+          21
+        ]
+      }
+    },
+    "tests": [
+      "test/game.test.mjs"
+    ],
+    "scenarios": 18,
+    "conformance": {
+      "tier": "static",
+      "rows": [
+        "healthz",
+        "create",
+        "join",
+        "link",
+        "slots",
+        "stylesheet",
+        "origin",
+        "pinned",
+        "published",
+        "server",
+        "accumulator",
+        "netcode",
+        "simulation",
+        "schema",
+        "fixture",
+        "budget",
+        "readme",
+        "ledger"
+      ]
+    }
+  },
+  "browser_checks": "pending",
+  "deployment": "pending",
+  "root_catalog": "public/games.json",
+  "upload_filter": ".wasmerignore"
+}

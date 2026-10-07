@@ -1,0 +1,7 @@
+kind: wasmer.io/App.v0
+name: weekly-2026-10-07
+owner: wasmer-playground
+package: .
+locality:
+  regions:
+  - fr-roub1

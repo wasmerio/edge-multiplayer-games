@@ -1,0 +1,17 @@
+{
+  "name": "weekly-2026-10-07",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A weekly multiplayer game on the Wasmer Edge game engine.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.20.1"
+  }
+}
