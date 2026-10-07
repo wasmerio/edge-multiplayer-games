@@ -5,3 +5,21 @@ package: .
 locality:
   regions:
   - fr-roub1
+app_id: da_KgYIZt9U9809
+annotations:
+  anybuild.run/config:
+    commands:
+      start: node src/server.js
+    edgejs_enable: true
+    edgejs_precompile: true
+    name: out
+    node_install_inputs:
+    - package.json
+    node_package_manager: npm
+    node_package_name: weekly-2026-10-07
+    node_remove_native_binaries: true
+    node_server: node
+    npm_version: '11'
+  anybuild.run/provider: node
+  anybuild.run/version: 0.33.0
+  wasmer.io/version: 7.5.0
