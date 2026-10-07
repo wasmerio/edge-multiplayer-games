@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Velvet Auction — rare blooms, clever bids</title>
+  <meta name="description" content="A flower auction for 2–8 friends: seal your bid, cancel your rivals, and collect the rarest blooms.">
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">
+    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.2/" } }
+  </script>
+</head>
+<body>
+  <header class="masthead">
+    <h1>Velvet <em>Auction</em></h1>
+    <button class="small" data-engine="mute">Audio on</button>
+    <a class="back" href="https://edge-multiplayer-games.wasmer.app">Arcade ↗</a>
+    <p class="connection" data-engine="status" aria-live="polite">Preparing the auction house…</p>
+  </header>
+
+  <main>
+    <section class="catalogue" data-engine="lobby">
+      <article class="invitation">
+        <p class="eyebrow">The evening collection · 2–8 bidders</p>
+        <h2>An eye for flowers.<br>A nerve for <em>numbers.</em></h2>
+        <p class="goal">Win rare blooms with the highest <strong>unique</strong> bid. Collect 24 petals to take the collection.</p>
+        <div class="specimen" aria-hidden="true"><span>V</span><i></i><i></i><i></i><i></i></div>
+        <p class="caption">Eight blooms. One very competitive bouquet.</p>
+        <p class="instructions">← / → or A / D changes your bid. <strong>Space seals it.</strong> On a phone, use the three buttons below the bloom.</p>
+      </article>
+
+      <section class="ticket" aria-label="Bidder registration">
+        <p class="eyebrow">Bidder registration</p>
+        <h2>Take a paddle.</h2>
+        <label class="field">Name for the ledger
+          <input data-engine="name" maxlength="16" placeholder="Your bidding name" autocomplete="nickname">
+        </label>
+        <button class="primary" data-engine="create">Host an auction</button>
+        <div class="separator">Already invited?</div>
+        <div class="joinline">
+          <input data-engine="code" class="code" maxlength="8" placeholder="ROOM CODE" aria-label="Auction room code">
+          <button data-engine="join">Take a seat</button>
+        </div>
+        <div class="room" data-engine="room-info" hidden>
+          <p class="roomline">Auction no. <strong data-engine="room-code"></strong></p>
+          <div class="invite" data-engine="invite" hidden>
+            <span>A private invitation for your friends</span>
+            <a data-engine="invite-link" href="#"></a>
+            <button class="small" data-engine="copy">Copy invitation</button>
+          </div>
+          <ul class="guests" data-engine="peers"></ul>
+          <div data-engine="host-controls" hidden>
+            <button class="primary begin" data-engine="start">Present the first bloom</button>
+          </div>
+          <p data-engine="wait" class="waiting" hidden>Your paddle is reserved. The host will open the catalogue.</p>
+        </div>
+        <p class="fineprint">Play-money coins only. No purchases, no stakes, just bragging rights.</p>
+      </section>
+
+      <section class="house-rules" aria-label="Auction rules">
+        <article><span class="rule-number">01</span><h3>Make it count.</h3><p>Choose 0–9 coins, then seal before the four-second line runs out. Zero passes. Unsealed bids do not count.</p></article>
+        <article><span class="rule-number">02</span><h3>A tie is a trap.</h3><p>Matching bids cancel. With bids of <b>7, 7, 4</b>, the <b>4</b> wins. Every sealed bid is spent—even a losing one.</p></article>
+        <article><span class="rule-number">03</span><h3>Save for a favourite.</h3><p>Start with 8 coins; get 3 each new lot. Eight lots make a catalogue. Behind the leader? Start the next with 2 extra coins.</p></article>
+      </section>
+    </section>
+
+    <section class="auction" data-engine="game" hidden>
+      <div class="stage">
+        <div class="arena" data-engine="arena">
+          <div class="banner" data-engine="banner" hidden></div>
+        </div>
+        <p class="direction" data-engine="hud" aria-live="polite"></p>
+        <div class="touch" role="group" aria-label="Your bid controls">
+          <button data-engine-touch="bid=-1" aria-label="Lower bid"><b>−</b><span>Lower</span></button>
+          <button class="seal" data-engine-touch="seal=1" aria-label="Seal this bid"><b>◇</b><span>Seal bid</span></button>
+          <button data-engine-touch="bid=1" aria-label="Raise bid"><b>+</b><span>Raise</span></button>
+        </div>
+      </div>
+      <aside class="ledger">
+        <div class="ledger-heading"><h2>The ledger</h2><span>Petals / 24</span></div>
+        <ol class="scores" data-engine="scores"></ol>
+        <button class="primary" data-engine="next" hidden>Present the next catalogue</button>
+        <p class="keys">← / → changes your bid · Space seals<br>Host: Enter opens the next catalogue.</p>
+        <p class="reminder">Highest unique bid wins.<br>Every sealed bid is spent.<br>Your envelope carries a diamond ◇.</p>
+      </aside>
+    </section>
+  </main>
+
+  <script type="module" src="/client.js"></script>
+</body>
+</html>
