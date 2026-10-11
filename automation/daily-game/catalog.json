@@ -33,5 +33,12 @@
     "description": "Seal all-pay bids for rare blooms, cancel matching rivals, and win petals with the highest unique offer in an eight-lot flower auction.",
     "players": "2 to 8",
     "source": "weekly-2026-10-07/"
+  },
+  {
+    "slug": "weekly-2026-10-11",
+    "name": "Echo Loom",
+    "description": "Watch a stitch pattern, weave it from memory with three shape keys, and out-recall your friends across five increasingly intricate patterns.",
+    "players": "2 to 8",
+    "source": "weekly-2026-10-11/"
   }
 ]
