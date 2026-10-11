@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-11",
+  "slug": "weekly-2026-10-11",
+  "base_sha": "90251b7909ce7e063fad46fddc0a6733c8c3719e",
+  "entry": {
+    "slug": "weekly-2026-10-11",
+    "name": "Echo Loom",
+    "description": "Watch a stitch pattern, weave it from memory with three shape keys, and out-recall your friends across five increasingly intricate patterns.",
+    "players": "2 to 8",
+    "source": "weekly-2026-10-11/"
+  },
+  "checks": {
+    "ok": true,
+    "engine": "1.0.2",
+    "simulation": "Game",
+    "schema": "d457dfdd",
+    "snapshot": {
+      "bytesPerPlayer": 44,
+      "budget": 100
+    },
+    "fixture": {
+      "events": 5268,
+      "players": 4,
+      "final": {
+        "round": 3,
+        "tick": 1755,
+        "roundOver": true,
+        "scores": [
+          123,
+          117,
+          105,
+          105
+        ]
+      }
+    },
+    "tests": [
+      "test/game.test.mjs"
+    ],
+    "scenarios": 19,
+    "conformance": {
+      "tier": "static",
+      "rows": [
+        "healthz",
+        "create",
+        "join",
+        "link",
+        "slots",
+        "stylesheet",
+        "origin",
+        "pinned",
+        "published",
+        "server",
+        "accumulator",
+        "netcode",
+        "simulation",
+        "schema",
+        "fixture",
+        "budget",
+        "readme",
+        "ledger"
+      ]
+    }
+  },
+  "browser_checks": "pending",
+  "deployment": "pending",
+  "root_catalog": "public/games.json",
+  "upload_filter": ".wasmerignore"
+}
