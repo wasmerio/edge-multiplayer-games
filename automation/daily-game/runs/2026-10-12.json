@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-12",
+  "slug": "weekly-2026-10-12",
+  "base_sha": "90251b7909ce7e063fad46fddc0a6733c8c3719e",
+  "entry": {
+    "slug": "weekly-2026-10-12",
+    "name": "Echo Loom",
+    "description": "Memorise disappearing stitch patterns and weave them back with three keys, racing friends for first-finish bonuses and double-point finales.",
+    "players": "2 to 8",
+    "source": "weekly-2026-10-12/"
+  },
+  "checks": {
+    "ok": true,
+    "engine": "1.0.2",
+    "simulation": "Game",
+    "schema": "9887346d",
+    "snapshot": {
+      "bytesPerPlayer": 33,
+      "budget": 100
+    },
+    "fixture": {
+      "events": 4539,
+      "players": 4,
+      "final": {
+        "round": 3,
+        "tick": 1512,
+        "roundOver": true,
+        "scores": [
+          90,
+          54,
+          54,
+          18
+        ]
+      }
+    },
+    "tests": [
+      "test/game.test.mjs"
+    ],
+    "scenarios": 17,
+    "conformance": {
+      "tier": "static",
+      "rows": [
+        "healthz",
+        "create",
+        "join",
+        "link",
+        "slots",
+        "stylesheet",
+        "origin",
+        "pinned",
+        "published",
+        "server",
+        "accumulator",
+        "netcode",
+        "simulation",
+        "schema",
+        "fixture",
+        "budget",
+        "readme",
+        "ledger"
+      ]
+    }
+  },
+  "browser_checks": "pending",
+  "deployment": "pending",
+  "root_catalog": "public/games.json",
+  "upload_filter": ".wasmerignore"
+}
