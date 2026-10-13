@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Echo Loom — a memory weaving race</title>
+  <meta name="description" content="Watch a stitch pattern disappear, then weave it back from memory before your friends. A three-key memory race for 2–8 players.">
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">
+    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.2/" } }
+  </script>
+</head>
+<body>
+  <header class="masthead">
+    <h1>Echo Loom<span aria-hidden="true"> / / /</span></h1>
+    <button class="small" data-engine="mute">sound on</button>
+    <a class="small" href="https://edge-multiplayer-games.wasmer.app">All games</a>
+    <p class="connection" data-engine="status">Threading the connection…</p>
+  </header>
+
+  <main>
+    <section class="workshop" data-engine="lobby">
+      <div class="sampler">
+        <p class="eyebrow">The memory workshop / 2–8 weavers</p>
+        <h2>A fleeting pattern.<br>A race to <em>remember.</em></h2>
+        <p class="pitch">Watch a stitch pattern disappear, then weave it back from memory before your friends.</p>
+        <div class="swatchbook" aria-hidden="true">
+          <span class="sample loop"><i></i></span>
+          <span class="sample peak"><i></i></span>
+          <span class="sample cross"><i></i></span>
+        </div>
+        <p class="control-copy"><kbd>A</kbd> Loop · <kbd>S</kbd> Peak · <kbd>D</kbd> Cross<br>Tap one key at a time. On a phone, use the three stitch buttons.</p>
+        <ol class="recipe">
+          <li><b>Watch.</b> Memorise 3–6 stitches, one at a time.</li>
+          <li><b>Weave.</b> Repeat the order. A wrong stitch unravels your work; you can retry.</li>
+          <li><b>Outweave.</b> Finish for 3 points, first for 5. The last two patterns pay double.</li>
+        </ol>
+        <p class="footnote">Four patterns per round. First to 50 with a clear lead wins. No one sits out.</p>
+      </div>
+
+      <div class="registration">
+        <div class="card-heading"><span>01 / Join the workshop</span><span aria-hidden="true">✕</span></div>
+        <label class="field">Name on your bobbin
+          <input data-engine="name" maxlength="16" placeholder="Your weaving name" autocomplete="nickname">
+        </label>
+        <button class="primary" data-engine="create">Open a loom</button>
+        <p class="divider">or bring a room code</p>
+        <div class="join-line">
+          <input class="code" data-engine="code" maxlength="8" placeholder="ROOM" aria-label="Workshop room code" autocomplete="off">
+          <button data-engine="join">Take a seat</button>
+        </div>
+        <div class="room" data-engine="room-info" hidden>
+          <p class="room-title">Loom <strong data-engine="room-code"></strong></p>
+          <div class="invite" data-engine="invite" hidden>
+            <p>A shared thread. Send this to your friends:</p>
+            <a data-engine="invite-link" href="#"></a>
+            <button class="small" data-engine="copy">Copy invitation</button>
+          </div>
+          <ul class="weavers" data-engine="peers"></ul>
+          <div data-engine="host-controls" hidden>
+            <button class="primary" data-engine="start">Begin the first pattern</button>
+          </div>
+          <p class="footnote" data-engine="wait" hidden>Your seat is ready. The host will begin the weave.</p>
+        </div>
+        <p class="footnote">Best with friends and a good memory.<br>Sound is helpful, never required.</p>
+      </div>
+    </section>
+
+    <section class="playing" data-engine="game" hidden>
+      <div class="stage">
+        <div class="arena" data-engine="arena">
+          <div class="banner" data-engine="banner" hidden></div>
+        </div>
+        <p class="instruction" data-engine="hud"></p>
+        <div class="touch" role="group" aria-label="Weave a stitch">
+          <button class="stitch-key key-loop" data-engine-touch="stitch=1" aria-label="Loop stitch"><span aria-hidden="true">○</span>Loop</button>
+          <button class="stitch-key key-peak" data-engine-touch="stitch=2" aria-label="Peak stitch"><span aria-hidden="true">Λ</span>Peak</button>
+          <button class="stitch-key key-cross" data-engine-touch="stitch=3" aria-label="Cross stitch"><span aria-hidden="true">×</span>Cross</button>
+        </div>
+      </div>
+      <aside class="ledger">
+        <h2>The thread count</h2>
+        <p class="ledger-caption">Match points / first to 50</p>
+        <ol class="scores" data-engine="scores"></ol>
+        <button class="primary" data-engine="next" hidden>Weave another round</button>
+        <p class="keys"><kbd>A</kbd> Loop &nbsp; <kbd>S</kbd> Peak &nbsp; <kbd>D</kbd> Cross<br>Release between repeated stitches.<br>Host: <kbd>Enter</kbd> for the next round.</p>
+      </aside>
+    </section>
+  </main>
+
+  <script type="module" src="/client.js"></script>
+</body>
+</html>
