@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stackworks — a friendly height competition</title>
+  <meta name="description" content="Drop sliding slabs, trim the overhang and build your best tower in a thirty-second contest for 2–8 friends.">
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">
+    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.2/" } }
+  </script>
+</head>
+<body>
+  <header class="masthead">
+    <h1>Stackworks<span aria-hidden="true">↗</span></h1>
+    <button class="chip" data-engine="mute">audio on</button>
+    <a class="chip" href="https://edge-multiplayer-games.wasmer.app">Games ↗</a>
+    <p class="connection" data-engine="status">Opening the studio…</p>
+  </header>
+  <main>
+    <section class="brief" data-engine="lobby">
+      <div class="cover">
+        <p class="eyebrow">Open studio / 2–8 builders</p>
+        <h2>A little precision.<br>A lot of <em>height.</em></h2>
+        <p class="goal">Stack sliding slabs to build the tallest personal best in thirty seconds.</p>
+        <p class="controls">Tap <kbd>Space</kbd> or <kbd>↓</kbd> to drop. On a phone, use <strong>Drop slab</strong>. Release between drops.</p>
+        <div class="model" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><span>01 / ELEVATION STUDY</span></div>
+        <ol class="specs">
+          <li><strong>Keep the overlap.</strong> Anything hanging over the edge is cut away.</li>
+          <li><strong>Find the centre.</strong> A perfect joint restores a little width.</li>
+          <li><strong>Build again.</strong> A collapse clears your tower, not your personal best.</li>
+        </ol>
+      </div>
+      <div class="registration">
+        <p class="eyebrow">Builder registration</p>
+        <label class="field">Name on the plan<input data-engine="name" maxlength="16" placeholder="Your studio name" autocomplete="nickname"></label>
+        <button class="primary" data-engine="create">Open a studio ↗</button>
+        <div class="join-line">
+          <label class="field">Have a studio code?<input data-engine="code" maxlength="8" placeholder="CODE" autocomplete="off" aria-label="Studio room code"></label>
+          <button data-engine="join">Enter</button>
+        </div>
+        <div class="room" data-engine="room-info" hidden>
+          <p class="room-title">Studio <strong data-engine="room-code"></strong></p>
+          <div class="invitation" data-engine="invite" hidden>
+            <span>Send your friends this studio pass.</span>
+            <a data-engine="invite-link" href="#"></a>
+            <button data-engine="copy">Copy pass</button>
+          </div>
+          <ul class="builders" data-engine="peers"></ul>
+          <div data-engine="host-controls" hidden><button class="primary" data-engine="start">Begin the build</button></div>
+          <p class="small" data-engine="wait" hidden>Your host will open the build window.</p>
+        </div>
+        <p class="small">Best height becomes points. The tallest earns 3 extra. First to 45 with a clear lead wins the commission.</p>
+        <p class="stamp">No architects required.</p>
+      </div>
+    </section>
+
+    <section class="workspace" data-engine="game" hidden>
+      <div class="drawing-desk">
+        <div class="arena" data-engine="arena"><div class="banner" data-engine="banner" hidden></div></div>
+        <p class="instruction" data-engine="hud"></p>
+        <div class="touch"><button data-engine-touch="drop=1" aria-label="Drop one slab; release before the next">Drop slab <span aria-hidden="true">↓</span></button></div>
+      </div>
+      <aside class="schedule">
+        <h2>Height schedule <span>/ 45 pts</span></h2>
+        <ol class="scores" data-engine="scores"></ol>
+        <button class="primary" data-engine="next" hidden>Open next build</button>
+        <p class="keys small"><kbd>Space</kbd> / <kbd>↓</kbd> drops a slab.<br>Release before the next drop.<br>The host presses <kbd>Enter</kbd> to advance.</p>
+        <p class="small">Your numbered outline marks your plot. The skyline shows every builder’s best.</p>
+      </aside>
+    </section>
+  </main>
+  <script type="module" src="/client.js"></script>
+</body>
+</html>

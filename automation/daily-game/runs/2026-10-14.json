@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-14",
+  "slug": "weekly-2026-10-14",
+  "base_sha": "2b8d74106e002f25af7e784473b12cb31ab99fd6",
+  "entry": {
+    "slug": "weekly-2026-10-14",
+    "name": "Stackworks",
+    "description": "Drop sliding slabs, trim overhangs and recover from collapses to build the tallest personal best in a thirty-second tower contest.",
+    "players": "2 to 8",
+    "source": "weekly-2026-10-14/"
+  },
+  "checks": {
+    "ok": true,
+    "engine": "1.0.2",
+    "simulation": "Game",
+    "schema": "ccf858eb",
+    "snapshot": {
+      "bytesPerPlayer": 66,
+      "budget": 100
+    },
+    "fixture": {
+      "events": 2883,
+      "players": 4,
+      "final": {
+        "round": 3,
+        "tick": 960,
+        "roundOver": true,
+        "scores": [
+          87,
+          35,
+          19,
+          14
+        ]
+      }
+    },
+    "tests": [
+      "test/game.test.mjs"
+    ],
+    "scenarios": 20,
+    "conformance": {
+      "tier": "static",
+      "rows": [
+        "healthz",
+        "create",
+        "join",
+        "link",
+        "slots",
+        "stylesheet",
+        "origin",
+        "pinned",
+        "published",
+        "server",
+        "accumulator",
+        "netcode",
+        "simulation",
+        "schema",
+        "fixture",
+        "budget",
+        "readme",
+        "ledger"
+      ]
+    }
+  },
+  "browser_checks": "pending",
+  "deployment": "pending",
+  "root_catalog": "public/games.json",
+  "upload_filter": ".wasmerignore"
+}
