@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stack Bureau — a precision building race</title>
+  <meta name="description" content="Drop moving slabs, trim the overhang, and outbuild your friends in a 36-second construction sprint for 2–8 players.">
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">
+    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.2/" } }
+  </script>
+</head>
+<body>
+  <header class="masthead">
+    <h1>Stack Bureau<span aria-hidden="true">.</span></h1>
+    <button class="utility" data-engine="mute">Audio on</button>
+    <a class="utility" href="https://edge-multiplayer-games.wasmer.app">Game index ↗</a>
+    <p class="connection" data-engine="status">Opening the dispatch line…</p>
+  </header>
+
+  <main>
+    <section class="lobby" data-engine="lobby">
+      <div class="brief">
+        <p class="eyebrow">Job no. 016 / 2–8 builders / 36 seconds</p>
+        <h2>Less overhang.<br>More <em>up.</em></h2>
+        <p class="goal">Stack moving slabs and score more points than your friends before the clock closes the site.</p>
+        <p class="controls"><kbd>Space</kbd> or <kbd>↓</kbd> drops a slab. On a phone, tap <b>DROP</b>. Release between drops.</p>
+        <div class="elevation" aria-hidden="true">
+          <span class="drawing-number">01</span>
+          <i></i><i></i><i></i><i></i>
+          <span class="drawing-note">ALIGN / DROP / REPEAT</span>
+        </div>
+        <ol class="specification">
+          <li><b>01 / Trim</b><span>Only the overlap stays. A crooked stack gets narrower.</span></li>
+          <li><b>02 / Centre</b><span>A perfect hit earns +2 and restores width. Other hits earn +1.</span></li>
+          <li><b>03 / Rebuild</b><span>Miss? Start a fresh tower. Keep every point already earned.</span></li>
+        </ol>
+      </div>
+
+      <div class="dispatch">
+        <div class="form-title"><span>Site assignment</span><span aria-hidden="true">↗</span></div>
+        <label class="field">Builder's name
+          <input data-engine="name" maxlength="16" placeholder="Name on the plans" autocomplete="nickname">
+        </label>
+        <button class="primary" data-engine="create">Open a building site</button>
+        <div class="join-line">
+          <label class="field">Existing site code
+            <input class="code" data-engine="code" maxlength="8" placeholder="SITE CODE" autocomplete="off">
+          </label>
+          <button data-engine="join">Report in</button>
+        </div>
+        <div class="room" data-engine="room-info" hidden>
+          <p class="site-code">Permit <strong data-engine="room-code"></strong></p>
+          <div class="invite" data-engine="invite" hidden>
+            <span>Send this permit to your crew.</span>
+            <a data-engine="invite-link" href="#"></a>
+            <button class="utility" data-engine="copy">Copy permit</button>
+          </div>
+          <ul class="crew" data-engine="peers"></ul>
+          <div data-engine="host-controls" hidden>
+            <button class="primary" data-engine="start">Begin the commission</button>
+          </div>
+          <p class="wait" data-engine="wait" hidden>The foreman will open the site shortly.</p>
+        </div>
+        <p class="fine-print">First to 60 points with a clear lead at sprint end wins. Trailing builders get a wider foundation next sprint.</p>
+      </div>
+    </section>
+
+    <section class="game" data-engine="game" hidden>
+      <div class="stage">
+        <div class="arena" data-engine="arena">
+          <div class="banner" data-engine="banner" hidden></div>
+        </div>
+        <p class="hud" data-engine="hud" aria-live="polite"></p>
+        <div class="touch">
+          <button class="drop" data-engine-touch="drop=1" aria-label="Drop slab"><span>↓ DROP</span><small>release · align · tap again</small></button>
+        </div>
+      </div>
+      <aside class="schedule">
+        <h2>Point schedule <span>Σ</span></h2>
+        <ol class="scores" data-engine="scores"></ol>
+        <button class="primary" data-engine="next" hidden>Next building sprint</button>
+        <p class="key-guide"><kbd>Space</kbd> / <kbd>↓</kbd> drop.<br><kbd>Enter</kbd> opens the host's next sprint.</p>
+        <p class="legend">Large elevation: your site.<br>Lime centre strip: perfect alignment.<br>Rival register: points this sprint.</p>
+      </aside>
+    </section>
+  </main>
+  <footer>STACK BUREAU <span>Precision is a team sport. Winning isn't.</span></footer>
+  <script type="module" src="/client.js"></script>
+</body>
+</html>
