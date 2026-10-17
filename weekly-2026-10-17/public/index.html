@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Canal Works — connect the crew</title>
+  <meta name="description" content="A multiplayer pipe-routing race. Turn your pipes, connect the water, and beat the crew to the outlet.">
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">
+    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.2/" } }
+  </script>
+</head>
+<body>
+  <header class="mast">
+    <h1>Canal Works<span aria-hidden="true">®</span></h1>
+    <button class="chip" data-engine="mute">sound on</button>
+    <a class="chip" href="https://edge-multiplayer-games.wasmer.app">Game index</a>
+    <span class="status" data-engine="status">Opening the service line…</span>
+  </header>
+  <main>
+    <section class="lobby" data-engine="lobby">
+      <div class="brief">
+        <p class="eyebrow">Department of friendly competition / 2–8 crew</p>
+        <h2>Good connections.<br><em>Fast hands.</em></h2>
+        <p class="pitch">Rotate your pipes to connect <b>IN to OUT</b> before your friends.</p>
+        <div class="pipe-mark" aria-hidden="true"><i></i><b>IN → OUT</b></div>
+        <p class="instructions"><kbd>←</kbd> <kbd>→</kbd> select a tile. <kbd>Space</kbd> turns it clockwise. On a phone, use the three keys below the plan.</p>
+        <ul class="specs">
+          <li><b>01 / Trace the water.</b> Blue pipes are connected to the inlet. Match the openings at each joint.</li>
+          <li><b>02 / Find your route.</b> Decoy pipes can stay dry. First to connect gets 5; later connections get 3.</li>
+          <li><b>03 / Finish strong.</b> Three 15-second orders. The last pays double. First to 30 with a clear lead wins.</li>
+        </ul>
+      </div>
+      <div class="desk">
+        <p class="eyebrow">Crew registration</p>
+        <label class="field">Name on your overalls
+          <input data-engine="name" maxlength="16" placeholder="Pipe specialist" autocomplete="nickname">
+        </label>
+        <button class="primary" data-engine="create">Assemble a crew</button>
+        <div class="join-line">
+          <label class="field">Have a work code?
+            <input data-engine="code" maxlength="8" placeholder="CODE" autocomplete="off">
+          </label>
+          <button data-engine="join">Clock in</button>
+        </div>
+        <div class="room" data-engine="room-info" hidden>
+          <p class="work-code">Work code <strong data-engine="room-code"></strong></p>
+          <div class="invite" data-engine="invite" hidden>
+            <span>Send the crew their work slip:</span>
+            <a data-engine="invite-link" href="#"></a>
+            <button class="chip" data-engine="copy">Copy work slip</button>
+          </div>
+          <ul class="peers" data-engine="peers"></ul>
+          <div data-engine="host-controls" hidden><button class="primary" data-engine="start">Open the waterworks</button></div>
+          <p data-engine="wait" hidden>You’re on the roster. The foreman opens the works.</p>
+        </div>
+        <p class="desk-note">Same plan. Separate pipes. No one can turn your valves but you.</p>
+      </div>
+    </section>
+    <section class="game" data-engine="game" hidden>
+      <div class="stage">
+        <div class="arena" data-engine="arena"><div class="banner" data-engine="banner" hidden></div></div>
+        <p class="hud" data-engine="hud"></p>
+        <div class="touch" role="group" aria-label="Pipe controls">
+          <button data-engine-touch="select=-1" aria-label="Select previous tile"><b>←</b><span>PREVIOUS</span></button>
+          <button class="turn" data-engine-touch="rotate=1" aria-label="Turn selected pipe clockwise"><b>↻</b><span>TURN</span></button>
+          <button data-engine-touch="select=1" aria-label="Select next tile"><b>→</b><span>NEXT</span></button>
+        </div>
+      </div>
+      <aside class="ledger">
+        <h2>Crew ledger</h2>
+        <p class="ledger-note">Match points / live connections</p>
+        <ol class="scores" data-engine="scores"></ol>
+        <button class="primary" data-engine="next" hidden>Open next shift</button>
+        <p class="keys">← → or A / D selects. Space or R turns. Hold an arrow to scan. Enter opens the next shift for the host.</p>
+        <p class="legend">The bracketed tile is yours to turn. Blue with white dots means water; copper alone is dry.</p>
+      </aside>
+    </section>
+  </main>
+  <script type="module" src="/client.js"></script>
+</body>
+</html>
