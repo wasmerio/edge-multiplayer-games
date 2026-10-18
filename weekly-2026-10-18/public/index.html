@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cloud Mason — a skyline worth sharing</title>
+  <meta name="description" content="A one-button tower-stacking race for 2–8 friends. Keep the overlap, repair with perfects, and claim the skyline.">
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">
+    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.2/" } }
+  </script>
+</head>
+<body>
+  <header class="masthead">
+    <h1>Cloud Mason<span aria-hidden="true">↗</span></h1>
+    <button class="small" data-engine="mute">sound on</button>
+    <a class="small" href="https://edge-multiplayer-games.wasmer.app">Arcade ↗</a>
+    <p class="connection" data-engine="status">Opening the site…</p>
+  </header>
+  <main>
+    <section class="lobby" data-engine="lobby">
+      <div class="elevation">
+        <p class="eyebrow">The one-button building club / 2–8 friends</p>
+        <h2>Room for<br>one more<br><em>floor.</em></h2>
+        <p class="pitch">Stack sliding bricks before the whistle. Keep the overlap; the tallest tower takes a bonus.</p>
+        <p class="instruction"><strong>Tap Space or PLACE BRICK</strong> when the edges line up. Release between bricks.</p>
+        <div class="drawing" aria-hidden="true">
+          <span class="dimension">↑ BUILD A LITTLE HIGHER</span>
+          <i class="sketch-brick one"></i><i class="sketch-brick two"></i><i class="sketch-brick three"></i><i class="sketch-brick four"></i>
+          <span class="drawing-label">ELEVATION / 01</span>
+        </div>
+      </div>
+      <div class="permit">
+        <div class="permit-heading"><span>Building permit</span><span aria-hidden="true">№ 018</span></div>
+        <label class="field">Mason's name
+          <input data-engine="name" maxlength="16" placeholder="Your site nickname" autocomplete="nickname">
+        </label>
+        <button class="primary" data-engine="create">Open a building site ↗</button>
+        <div class="join-block">
+          <label class="field" for="site-code">Have a site code?</label>
+          <div class="join-row">
+            <input id="site-code" data-engine="code" maxlength="8" placeholder="SITE CODE" autocomplete="off">
+            <button data-engine="join">Join crew</button>
+          </div>
+        </div>
+        <div class="room" data-engine="room-info" hidden>
+          <p class="site-number">Site <strong data-engine="room-code"></strong></p>
+          <div class="invitation" data-engine="invite" hidden>
+            <p>Send your crew this invitation:</p>
+            <a data-engine="invite-link" href="#"></a>
+            <button class="small" data-engine="copy">Copy invitation</button>
+          </div>
+          <ul class="crew" data-engine="peers"></ul>
+          <div data-engine="host-controls" hidden>
+            <button class="primary" data-engine="start">Raise the first brick</button>
+          </div>
+          <p class="waiting" data-engine="wait" hidden>Your permit is ready. The site host opens the build.</p>
+        </div>
+        <ol class="specs">
+          <li><b>02</b><span>points for a solid overlap. The overhang is cut away.</span></li>
+          <li><b>03</b><span>for a perfect. A wider brick is your reward.</span></li>
+          <li><b>+5</b><span>for the tallest skyline after 36 seconds. First to 70 wins.</span></li>
+        </ol>
+        <p class="footnote">Miss? Rebuild wide and lose up to 2 points from this build. Nobody leaves the crew.</p>
+      </div>
+    </section>
+    <section class="build" data-engine="game" hidden>
+      <div class="worksite">
+        <div class="arena" data-engine="arena">
+          <div class="banner" data-engine="banner" hidden></div>
+        </div>
+        <p class="hud" data-engine="hud"></p>
+        <div class="touch">
+          <button class="place" data-engine-touch="place=1" aria-label="Place brick; release between placements"><span>↓</span> PLACE BRICK <small>tap · release · repeat</small></button>
+        </div>
+      </div>
+      <aside class="ledger">
+        <h2>Crew ledger <span>total points</span></h2>
+        <ol class="scores" data-engine="scores"></ol>
+        <button class="primary" data-engine="next" hidden>Open next build</button>
+        <p class="keys"><kbd>Space</kbd> / <kbd>↓</kbd> place a brick.<br>Host: <kbd>Enter</kbd> opens the next build.</p>
+        <p class="ledger-note">Your big tower is yours alone.<br>The little skyline shows the whole crew.</p>
+      </aside>
+    </section>
+  </main>
+  <script type="module" src="/client.js"></script>
+</body>
+</html>

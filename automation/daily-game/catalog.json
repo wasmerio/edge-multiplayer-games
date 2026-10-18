@@ -40,5 +40,12 @@
     "description": "Memorise disappearing stitch patterns and weave them back with three keys, racing friends for first-finish bonuses and double-point finales.",
     "players": "2 to 8",
     "source": "weekly-2026-10-12/"
+  },
+  {
+    "slug": "weekly-2026-10-18",
+    "name": "Cloud Mason",
+    "description": "Tap to stack sliding bricks, trim the overhang, and repair with perfect placements in a 36-second race for the tallest skyline.",
+    "players": "2 to 8",
+    "source": "weekly-2026-10-18/"
   }
 ]
