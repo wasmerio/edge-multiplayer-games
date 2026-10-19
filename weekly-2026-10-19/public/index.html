@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Skysplice — a skyline in eight taps</title>
+  <meta name="description" content="Drop sliding floors, trim the overhang and outbuild your friends in a one-button skyline contest for 2–8 builders.">
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">
+    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.2/" } }
+  </script>
+</head>
+<body>
+  <header class="masthead">
+    <h1>Skysplice<span aria-hidden="true">↗</span></h1>
+    <button class="chip" data-engine="mute">sound on</button>
+    <a class="chip" href="https://edge-multiplayer-games.wasmer.app">Arcade ↗</a>
+    <span class="status" data-engine="status">Opening the studio…</span>
+  </header>
+
+  <main>
+    <section class="lobby" data-engine="lobby">
+      <div class="project">
+        <p class="eyebrow">Project 08 / 2–8 builders / one button</p>
+        <h2>A skyline.<br>Eight good taps.</h2>
+        <p class="pitch">Drop sliding floors onto your tower, trim the overhang, and outbuild your friends.</p>
+        <p class="instruction"><strong>Space or ↓ to drop.</strong> On a phone, tap DROP FLOOR when the edges line up.</p>
+        <div class="elevation" aria-hidden="true">
+          <span class="dimension">KEEP THE OVERLAP</span>
+          <i class="floor one"></i><i class="floor two"></i><i class="floor three"></i>
+          <i class="offcut"></i><span class="drawing-number">FIG. 01</span>
+        </div>
+        <div class="specs">
+          <p><b>01 / Align</b>Keep more of the slab to earn 1–3 points. A 95% fit snaps flush.</p>
+          <p><b>02 / Outbuild</b>The uniquely cleanest fit takes +1. The final two lifts pay double.</p>
+          <p><b>03 / Recover</b>Missed? Try the next lift. First to 60 with a clear lead wins.</p>
+        </div>
+      </div>
+
+      <div class="registration">
+        <p class="eyebrow">Builder registration</p>
+        <label class="field">Name on the blueprint
+          <input data-engine="name" maxlength="16" placeholder="Your builder name" autocomplete="nickname">
+        </label>
+        <button class="primary" data-engine="create">Open a studio ↗</button>
+        <div class="join-row">
+          <label class="field">Have a studio code?
+            <input class="code" data-engine="code" maxlength="8" placeholder="STUDIO" aria-label="Studio code">
+          </label>
+          <button data-engine="join">Step inside</button>
+        </div>
+        <div class="room" data-engine="room-info" hidden>
+          <p class="room-heading">Studio <strong data-engine="room-code"></strong></p>
+          <div class="invite" data-engine="invite" hidden>
+            <p>Send the blueprint to your crew.</p>
+            <a data-engine="invite-link" href="#"></a>
+            <button class="chip" data-engine="copy">Copy invitation</button>
+          </div>
+          <ul class="peers" data-engine="peers"></ul>
+          <div data-engine="host-controls" hidden>
+            <button class="primary" data-engine="start">Raise the first floor</button>
+          </div>
+          <p class="wait" data-engine="wait" hidden>Your host will open the project when the crew is ready.</p>
+        </div>
+        <p class="footnote">No downloads. No hard hats.<br>Just a little architectural ambition.</p>
+      </div>
+    </section>
+
+    <section class="game" data-engine="game" hidden>
+      <div class="stage">
+        <div class="arena" data-engine="arena">
+          <div class="banner" data-engine="banner" hidden></div>
+        </div>
+        <p class="hud" data-engine="hud" aria-live="polite"></p>
+        <div class="touch">
+          <button class="drop" data-engine-touch="drop=1" aria-label="Drop the moving floor">DROP FLOOR <span aria-hidden="true">↓</span></button>
+        </div>
+      </div>
+      <aside class="schedule">
+        <h2>Building schedule</h2>
+        <p class="eyebrow">Match points / first to 60</p>
+        <ol class="scores" data-engine="scores"></ol>
+        <button class="primary" data-engine="next" hidden>Next project</button>
+        <p class="keys">Space or ↓ drops once. Release between lifts. The host uses Enter to open the next project.</p>
+        <p class="footnote">1–3 for fit. +1 for the unique best.<br>Lifts 7 &amp; 8: double points.</p>
+      </aside>
+    </section>
+  </main>
+
+  <script type="module" src="/client.js"></script>
+</body>
+</html>

@@ -40,5 +40,12 @@
     "description": "Memorise disappearing stitch patterns and weave them back with three keys, racing friends for first-finish bonuses and double-point finales.",
     "players": "2 to 8",
     "source": "weekly-2026-10-12/"
+  },
+  {
+    "slug": "weekly-2026-10-19",
+    "name": "Skysplice",
+    "description": "Drop sliding floors, trim the overhang and compete for cleanest-fit bonuses in an eight-lift multiplayer skyline contest.",
+    "players": "2 to 8",
+    "source": "weekly-2026-10-19/"
   }
 ]
