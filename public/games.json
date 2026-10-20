@@ -86,5 +86,13 @@
     "players": "2 to 8",
     "source": "weekly-2026-10-12/",
     "url": null
+  },
+  {
+    "slug": "weekly-2026-10-20",
+    "name": "Pocket Curl",
+    "description": "Aim, charge and release curling stones onto shared ice, knocking rivals off the button before the final stone settles and the end is scored.",
+    "players": "2 to 8",
+    "source": "weekly-2026-10-20/",
+    "url": null
   }
 ]

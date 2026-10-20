@@ -40,5 +40,12 @@
     "description": "Memorise disappearing stitch patterns and weave them back with three keys, racing friends for first-finish bonuses and double-point finales.",
     "players": "2 to 8",
     "source": "weekly-2026-10-12/"
+  },
+  {
+    "slug": "weekly-2026-10-20",
+    "name": "Pocket Curl",
+    "description": "Aim, charge and release curling stones onto shared ice, knocking rivals off the button before the final stone settles and the end is scored.",
+    "players": "2 to 8",
+    "source": "weekly-2026-10-20/"
   }
 ]

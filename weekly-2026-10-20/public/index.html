@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pocket Curl · A little ice, a lot of nerve</title>
+  <meta name="description" content="Aim, hold and release a curling stone. Knock your friends off the button in a quick tabletop ice match for 2–8 players.">
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">
+    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.2/" } }
+  </script>
+</head>
+<body>
+  <header class="masthead">
+    <h1>Pocket Curl<span aria-hidden="true">●</span></h1>
+    <button class="chip" data-engine="mute">Audio</button>
+    <a class="chip" href="https://edge-multiplayer-games.wasmer.app">Games ↗</a>
+    <span class="connection" data-engine="status">Opening the rink…</span>
+  </header>
+
+  <main>
+    <section class="club" data-engine="lobby">
+      <div class="poster">
+        <p class="eyebrow">The pocket-sized ice club / 2–8 players</p>
+        <h2>A little ice.<br>A lot of <em>nerve.</em></h2>
+        <p class="goal">Slide closest to the button. Knock your friends away before the end is scored.</p>
+        <div class="club-mark" aria-hidden="true"><i></i><b>PC</b><span>DRAW / BUMP / WIN</span></div>
+        <p class="instruction"><strong>Left / right to aim. Hold Space for weight; release to deliver.</strong> On a phone, use the three rink keys.</p>
+        <div class="rules-strip">
+          <p><b>01</b><span>One stone each.<br>3½ seconds to aim.</span></p>
+          <p><b>02</b><span>Rings pay 1, 2 or 3.<br>Nearest gets +2.</span></p>
+          <p><b>03</b><span>Leaders throw first.<br>First to 12 wins.</span></p>
+        </div>
+      </div>
+
+      <div class="membership">
+        <div class="ticket-title"><span>Rink pass</span><span>No skates needed</span></div>
+        <label class="field">Name on the scorecard
+          <input data-engine="name" maxlength="16" placeholder="Your rink name" autocomplete="nickname">
+        </label>
+        <button class="primary" data-engine="create">Open a private rink ↗</button>
+        <div class="divider">Already have a pass?</div>
+        <div class="join-line">
+          <input data-engine="code" maxlength="8" placeholder="RINK CODE" aria-label="Rink room code" autocomplete="off">
+          <button data-engine="join">Step in</button>
+        </div>
+        <div class="room" data-engine="room-info" hidden>
+          <p class="rink-number">Your rink <strong data-engine="room-code"></strong></p>
+          <div class="invitation" data-engine="invite" hidden>
+            <span>Send a friend their rink pass:</span>
+            <a data-engine="invite-link" href="#"></a>
+            <button class="small" data-engine="copy">Copy pass</button>
+          </div>
+          <ul class="members" data-engine="peers"></ul>
+          <div data-engine="host-controls" hidden>
+            <button class="primary" data-engine="start">Put the stones on ice</button>
+          </div>
+          <p class="waiting" data-engine="wait" hidden>The rink host will open the first end.</p>
+        </div>
+        <p class="fine-print">No downloads. No teams. Just a shared sheet of ice and one very important last shot.</p>
+      </div>
+    </section>
+
+    <section class="match" data-engine="game" hidden>
+      <div class="sheet">
+        <div class="rink-label"><span>Club ice / one stone each</span><span>Nearest +2</span></div>
+        <div class="arena" data-engine="arena">
+          <div class="result" data-engine="banner" hidden></div>
+        </div>
+        <p class="coach" data-engine="hud"></p>
+        <div class="touch" role="group" aria-label="Curling controls">
+          <button data-engine-touch="aim=-1" aria-label="Aim upward"><b>↶</b><span>AIM LEFT</span></button>
+          <button class="deliver" data-engine-touch="slide=1" aria-label="Hold to charge, release to slide"><b>HOLD</b><span>RELEASE TO SLIDE</span></button>
+          <button data-engine-touch="aim=1" aria-label="Aim downward"><b>↷</b><span>AIM RIGHT</span></button>
+        </div>
+      </div>
+      <aside class="scorecard">
+        <h2>The scorecard <span>12 to win</span></h2>
+        <ol class="scores" data-engine="scores"></ol>
+        <button class="primary" data-engine="next" hidden>Open next end</button>
+        <p class="legend">A double ring marks your stone. Numbers match this card. Points stay provisional until everyone has delivered.</p>
+        <p class="keyboard"><kbd>←</kbd> <kbd>→</kbd> aim · hold <kbd>Space</kbd>, release to slide. Host: <kbd>Enter</kbd> opens the next end.</p>
+      </aside>
+    </section>
+  </main>
+  <footer>POCKET CURL ICE CLUB <span>Good weight. Better company.</span></footer>
+  <script type="module" src="/client.js"></script>
+</body>
+</html>
