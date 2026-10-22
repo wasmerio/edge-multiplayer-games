@@ -40,5 +40,12 @@
     "description": "Memorise disappearing stitch patterns and weave them back with three keys, racing friends for first-finish bonuses and double-point finales.",
     "players": "2 to 8",
     "source": "weekly-2026-10-12/"
+  },
+  {
+    "slug": "weekly-2026-10-22",
+    "name": "Plumb Club",
+    "description": "Drop sliding slabs onto narrowing rooftops, complete six-storey towers for bonuses, and outbuild your friends in thirty-second precision rounds.",
+    "players": "2 to 8",
+    "source": "weekly-2026-10-22/"
   }
 ]

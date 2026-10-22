@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-22",
+  "slug": "weekly-2026-10-22",
+  "base_sha": "2b8d74106e002f25af7e784473b12cb31ab99fd6",
+  "entry": {
+    "slug": "weekly-2026-10-22",
+    "name": "Plumb Club",
+    "description": "Drop sliding slabs onto narrowing rooftops, complete six-storey towers for bonuses, and outbuild your friends in thirty-second precision rounds.",
+    "players": "2 to 8",
+    "source": "weekly-2026-10-22/"
+  },
+  "checks": {
+    "ok": true,
+    "engine": "1.0.2",
+    "simulation": "Game",
+    "schema": "bb0db69c",
+    "snapshot": {
+      "bytesPerPlayer": 58,
+      "budget": 100
+    },
+    "fixture": {
+      "events": 2883,
+      "players": 4,
+      "final": {
+        "round": 3,
+        "tick": 960,
+        "roundOver": true,
+        "scores": [
+          126,
+          65,
+          56,
+          53
+        ]
+      }
+    },
+    "tests": [
+      "test/game.test.mjs"
+    ],
+    "scenarios": 16,
+    "conformance": {
+      "tier": "static",
+      "rows": [
+        "healthz",
+        "create",
+        "join",
+        "link",
+        "slots",
+        "stylesheet",
+        "origin",
+        "pinned",
+        "published",
+        "server",
+        "accumulator",
+        "netcode",
+        "simulation",
+        "schema",
+        "fixture",
+        "budget",
+        "readme",
+        "ledger"
+      ]
+    }
+  },
+  "browser_checks": "pending",
+  "deployment": "pending",
+  "root_catalog": "public/games.json",
+  "upload_filter": ".wasmerignore"
+}

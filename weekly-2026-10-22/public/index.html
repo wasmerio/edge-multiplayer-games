@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Plumb Club — a precision building contest</title>
+  <meta name="description" content="Stack sliding slabs into six-storey towers. Trim the overhang, nail the alignment, and outbuild your friends in thirty-second rounds.">
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">
+    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.2/" } }
+  </script>
+</head>
+<body>
+  <header class="masthead">
+    <h1>Plumb Club<span aria-hidden="true">↧</span></h1>
+    <button class="small" data-engine="mute">audio on</button>
+    <a class="small home" href="https://edge-multiplayer-games.wasmer.app">Arcade ↗</a>
+    <span class="connection" data-engine="status">Opening the line…</span>
+  </header>
+  <main>
+    <section class="lobby" data-engine="lobby">
+      <div class="prospectus">
+        <p class="eyebrow">Drawing no. 01 / 2–8 builders</p>
+        <h2>Good timing.<br>Great <em>heights.</em></h2>
+        <p class="pitch">Stack sliding slabs into six-storey towers and outscore your friends.</p>
+        <p class="instruction">Tap <kbd>Space</kbd> or <kbd>↓</kbd> when the slab lines up with the roof. On a phone, tap <strong>DROP</strong>.</p>
+        <div class="study" aria-hidden="true"><span class="plumb"></span><i></i><i></i><i></i><i></i><i></i><i></i><b>06</b></div>
+        <dl class="specifications">
+          <div><dt>01 / Trim</dt><dd>Only the overlap survives. A landing earns 1 point; flush earns 2.</dd></div>
+          <div><dt>02 / Build</dt><dd>Six floors earn a +4 bonus and a fresh, wide foundation.</dd></div>
+          <div><dt>03 / Repeat</dt><dd>A miss costs 2, not your seat. Build for 30 seconds. First to 60 with a clear lead wins.</dd></div>
+        </dl>
+      </div>
+      <div class="registration">
+        <div class="form-title"><span class="seal" aria-hidden="true">PC</span><div><p class="eyebrow">Membership desk</p><h3>Claim a building site.</h3></div></div>
+        <label class="field">Builder's name
+          <input data-engine="name" maxlength="16" placeholder="Your signature" autocomplete="nickname">
+        </label>
+        <button class="primary" data-engine="create">Open a competition ↗</button>
+        <div class="join-form">
+          <label class="field">Have a site code?
+            <input class="code" data-engine="code" maxlength="8" placeholder="SITE CODE" autocomplete="off">
+          </label>
+          <button data-engine="join">Enter site</button>
+        </div>
+        <div class="room" data-engine="room-info" hidden>
+          <p class="room-number">Competition <strong data-engine="room-code"></strong></p>
+          <div class="invite" data-engine="invite" hidden>
+            <p>Invite your favourite overachievers.</p>
+            <a data-engine="invite-link" href="#"></a>
+            <button class="small" data-engine="copy">Copy invitation</button>
+          </div>
+          <ul class="members" data-engine="peers"></ul>
+          <div data-engine="host-controls" hidden><button class="primary" data-engine="start">Raise the first slab</button></div>
+          <p class="wait" data-engine="wait" hidden>Your host will open the drawing board shortly.</p>
+        </div>
+        <p class="footnote">One screen per builder. One button. No architectural qualifications required.</p>
+      </div>
+    </section>
+    <section class="game" data-engine="game" hidden>
+      <div class="drawing-board">
+        <div class="arena" data-engine="arena">
+          <div class="banner" data-engine="banner" hidden></div>
+        </div>
+        <p class="hud" data-engine="hud" aria-live="polite"></p>
+        <div class="touch">
+          <button data-engine-touch="drop=1" aria-label="Drop one slab"><span>DROP ↓</span><small>tap · release · line up again</small></button>
+        </div>
+      </div>
+      <aside class="schedule">
+        <div class="schedule-title"><h2>Point schedule</h2><span>Target 60</span></div>
+        <ol class="scores" data-engine="scores"></ol>
+        <button class="primary" data-engine="next" hidden>Open the next site</button>
+        <p class="key-guide">Space or ↓ drops one slab. Release between drops. The host presses Enter to continue.</p>
+        <p class="legend">Solid = built. Outline = moving.<br>The large drawing is your site; the strip below is everyone's skyline.</p>
+      </aside>
+    </section>
+  </main>
+  <footer>Plumb Club / precision over ambition.</footer>
+  <script type="module" src="/client.js"></script>
+</body>
+</html>
