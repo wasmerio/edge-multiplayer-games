@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-23",
+  "slug": "weekly-2026-10-23",
+  "base_sha": "2b8d74106e002f25af7e784473b12cb31ab99fd6",
+  "entry": {
+    "slug": "weekly-2026-10-23",
+    "name": "Plumb Club",
+    "description": "Drop sliding floors onto a shrinking tower, repair perfect alignments, and outbuild your friends before the bell in a one-button skyline contest.",
+    "players": "2 to 8",
+    "source": "weekly-2026-10-23/"
+  },
+  "checks": {
+    "ok": true,
+    "engine": "1.0.2",
+    "simulation": "Game",
+    "schema": "0434ae35",
+    "snapshot": {
+      "bytesPerPlayer": 37,
+      "budget": 100
+    },
+    "fixture": {
+      "events": 3423,
+      "players": 4,
+      "final": {
+        "round": 3,
+        "tick": 1140,
+        "roundOver": true,
+        "scores": [
+          9,
+          7,
+          3,
+          3
+        ]
+      }
+    },
+    "tests": [
+      "test/game.test.mjs"
+    ],
+    "scenarios": 19,
+    "conformance": {
+      "tier": "static",
+      "rows": [
+        "healthz",
+        "create",
+        "join",
+        "link",
+        "slots",
+        "stylesheet",
+        "origin",
+        "pinned",
+        "published",
+        "server",
+        "accumulator",
+        "netcode",
+        "simulation",
+        "schema",
+        "fixture",
+        "budget",
+        "readme",
+        "ledger"
+      ]
+    }
+  },
+  "browser_checks": "pending",
+  "deployment": "pending",
+  "root_catalog": "public/games.json",
+  "upload_filter": ".wasmerignore"
+}

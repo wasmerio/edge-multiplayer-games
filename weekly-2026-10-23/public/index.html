@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Plumb Club — build tall, keep it plumb</title>
+  <meta name="description" content="A one-button tower-stacking contest for 2–8 builders. Cut the overhang, keep your width, and own the tallest skyline at the bell.">
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">
+    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.2/" } }
+  </script>
+</head>
+<body>
+  <header class="masthead">
+    <h1>PLUMB CLUB<span aria-hidden="true">↧</span></h1>
+    <button class="utility" data-engine="mute">audio on</button>
+    <a class="utility" href="https://edge-multiplayer-games.wasmer.app">Games ↗</a>
+    <p class="connection" data-engine="status">Opening the studio…</p>
+  </header>
+
+  <main>
+    <section class="studio" data-engine="lobby">
+      <div class="brief">
+        <p class="eyebrow">A friendly height competition / 2–8 builders</p>
+        <h2>Build tall.<br>Keep it <em>plumb.</em></h2>
+        <p class="goal">Stack the tallest tower before the bell. Every overhang gets cut away.</p>
+        <p class="instruction"><strong>Tap Space or ↓ to drop a floor.</strong> On a phone, tap DROP FLOOR. Release between placements.</p>
+        <div class="elevation" aria-hidden="true">
+          <span class="dimension">01 / ALIGN THE EDGES</span>
+          <i class="floor moving"></i>
+          <i class="floor upper"></i>
+          <i class="floor middle"></i>
+          <i class="floor lower"></i>
+          <span class="plumbline"></span>
+          <span class="level">± 0.00</span>
+        </div>
+        <dl class="specification">
+          <div><dt>Perfect fit</dt><dd>Repairs a little width.</dd></div>
+          <div><dt>Miss the tower</dt><dd>It falls. Rebuild on a fresh base.</dd></div>
+          <div><dt>At the bell</dt><dd>Tallest earns 3. First to 9 with a clear lead wins.</dd></div>
+        </dl>
+      </div>
+
+      <div class="registration">
+        <p class="sheet-label">SITE REGISTRATION <span>PC / 01</span></p>
+        <h3>Bring your builders.</h3>
+        <label class="field">Builder name
+          <input data-engine="name" maxlength="16" placeholder="e.g. Ada" autocomplete="nickname">
+        </label>
+        <button class="primary" data-engine="create">Open a building site ↗</button>
+        <div class="join-row">
+          <label class="field">Have a site code?
+            <input class="code" data-engine="code" maxlength="8" placeholder="SITE CODE" autocomplete="off">
+          </label>
+          <button data-engine="join">Enter site</button>
+        </div>
+        <div class="site-info" data-engine="room-info" hidden>
+          <p class="site-number">Site <strong data-engine="room-code"></strong></p>
+          <div class="invitation" data-engine="invite" hidden>
+            <p>Send this drawing to your crew:</p>
+            <a data-engine="invite-link" href="#"></a>
+            <button data-engine="copy">Copy invitation</button>
+          </div>
+          <ul class="crew" data-engine="peers"></ul>
+          <div data-engine="host-controls" hidden>
+            <button class="primary" data-engine="start">Raise the skyline</button>
+          </div>
+          <p class="wait" data-engine="wait" hidden>The site host will ring the opening bell.</p>
+        </div>
+        <p class="fineprint">36 seconds to build. Nobody sits out.<br>Four floors also earn 1 point if you do not win.</p>
+      </div>
+    </section>
+
+    <section class="worksite" data-engine="game" hidden>
+      <div class="drawing">
+        <div class="arena" data-engine="arena">
+          <div class="survey" data-engine="banner" hidden></div>
+        </div>
+        <p class="direction" data-engine="hud"></p>
+        <div class="touch">
+          <button data-engine-touch="drop=1" aria-label="Drop a floor; release before placing another"><strong>DROP FLOOR ↓</strong><span>tap · release · line up again</span></button>
+        </div>
+      </div>
+      <aside class="schedule">
+        <h2>Height schedule <span>POINTS</span></h2>
+        <ol class="scores" data-engine="scores"></ol>
+        <button class="next" data-engine="next" hidden>Next building session</button>
+        <p class="keys">Space / ↓ places a floor.<br>Release to place again.<br>Host: Enter opens the next session.</p>
+        <p class="scoring">Tallest: +3 · Four floors: +1<br>Match: 9 points, clear lead.<br>Match leader starts narrower.</p>
+      </aside>
+    </section>
+  </main>
+  <footer>PLUMB CLUB / NO PERMIT REQUIRED / ALL HEIGHTS APPROXIMATE</footer>
+  <script type="module" src="/client.js"></script>
+</body>
+</html>
