@@ -86,5 +86,13 @@
     "players": "2 to 8",
     "source": "weekly-2026-10-12/",
     "url": null
+  },
+  {
+    "slug": "weekly-2026-10-25",
+    "name": "Copper Circuit",
+    "description": "Rotate copper tracks to light the lamp, racing friends through four shared wiring puzzles with first-repair bonuses and double-value finales.",
+    "players": "2 to 8",
+    "source": "weekly-2026-10-25/",
+    "url": null
   }
 ]

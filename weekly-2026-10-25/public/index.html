@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Copper Circuit — the repair race</title>
+  <meta name="description" content="Rotate copper tracks, light the lamp, and race friends through four tangled circuits.">
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">
+    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.2/" } }
+  </script>
+</head>
+<body>
+  <header class="masthead">
+    <h1>Copper Circuit</h1>
+    <button class="utility" data-engine="mute">Audio on</button>
+    <a class="utility" href="https://edge-multiplayer-games.wasmer.app">Games ↗</a>
+    <p class="connection" data-engine="status">Checking the line…</p>
+  </header>
+  <main>
+    <section class="work-order" data-engine="lobby">
+      <div class="manual">
+        <p class="eyebrow">Service manual / 02–08 technicians</p>
+        <h2>A little twist.<br>A bright idea.</h2>
+        <p class="pitch">Rotate the tracks to connect power to the lamp. Repair four circuits faster than your friends.</p>
+        <div class="schematic" aria-hidden="true">
+          <span class="inlet">▶</span><i class="trace one"></i><i class="trace two"></i><span class="lamp">✦</span>
+          <span class="caption">IN → CONNECT → LIGHT</span>
+        </div>
+        <ol class="instructions">
+          <li><b>Select.</b> Left / Right moves through the nine tiles, wrapping at the ends.</li>
+          <li><b>Rotate.</b> Tap Space to turn the selected track clockwise. Mint tracks carry power.</li>
+          <li><b>Repair.</b> Join the triangle at top left to the square lamp at bottom right. Spare tracks can stay loose.</li>
+        </ol>
+        <p class="fineprint">45 seconds · 5 points per repair · +2 for first · last two circuits pay 10 · first to 60 with a clear lead wins.</p>
+      </div>
+      <div class="registration">
+        <div class="form-title"><span>WORK ORDER</span><b>No. 025</b></div>
+        <label class="field">Technician name
+          <input data-engine="name" maxlength="16" placeholder="Your bench name" autocomplete="nickname">
+        </label>
+        <button class="primary" data-engine="create">Open a workshop</button>
+        <div class="join-line">
+          <label class="field">Existing order
+            <input data-engine="code" maxlength="8" placeholder="CODE" autocomplete="off" aria-label="Workshop room code">
+          </label>
+          <button data-engine="join">Clock in</button>
+        </div>
+        <div class="room" data-engine="room-info" hidden>
+          <p class="order-number">Workshop <strong data-engine="room-code"></strong></p>
+          <div class="invite" data-engine="invite" hidden>
+            <p>Send this work order to your crew.</p>
+            <a data-engine="invite-link" href="#"></a>
+            <button class="utility" data-engine="copy">Copy work order</button>
+          </div>
+          <ul class="crew" data-engine="peers"></ul>
+          <div data-engine="host-controls" hidden>
+            <button class="primary" data-engine="start">Power up the benches</button>
+          </div>
+          <p class="fineprint" data-engine="wait" hidden>The supervisor will switch on the power shortly.</p>
+        </div>
+        <p class="form-footer">Identical circuits. Separate benches.<br>No one gets an easier job.</p>
+      </div>
+    </section>
+    <section class="workshop" data-engine="game" hidden>
+      <div class="bench">
+        <div class="arena" data-engine="arena">
+          <div class="banner" data-engine="banner" hidden></div>
+        </div>
+        <p class="hud" data-engine="hud"></p>
+        <div class="touch" aria-label="Circuit tools">
+          <button data-engine-touch="select=-1" aria-label="Select previous tile"><span>←</span>PREV</button>
+          <button class="rotate" data-engine-touch="rotate=1" aria-label="Rotate selected tile clockwise"><span>↻</span>ROTATE</button>
+          <button data-engine-touch="select=1" aria-label="Select next tile"><span>→</span>NEXT</button>
+        </div>
+      </div>
+      <aside class="ledger">
+        <h2>Test results <span>/ 60</span></h2>
+        <ol class="scores" data-engine="scores"></ol>
+        <button class="primary" data-engine="next" hidden>Issue next work order</button>
+        <p class="keys">← → or A / D selects.<br>Space or R rotates.<br>Enter: supervisor starts next shift.</p>
+        <p class="legend"><b>▶</b> Inlet at top left<br><b>□</b> Lamp at bottom right<br><b>⌜ ⌟</b> Your selected tile</p>
+      </aside>
+    </section>
+  </main>
+  <script type="module" src="/client.js"></script>
+</body>
+</html>

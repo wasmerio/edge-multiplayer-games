@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-25",
+  "slug": "weekly-2026-10-25",
+  "base_sha": "2b8d74106e002f25af7e784473b12cb31ab99fd6",
+  "entry": {
+    "slug": "weekly-2026-10-25",
+    "name": "Copper Circuit",
+    "description": "Rotate copper tracks to light the lamp, racing friends through four shared wiring puzzles with first-repair bonuses and double-value finales.",
+    "players": "2 to 8",
+    "source": "weekly-2026-10-25/"
+  },
+  "checks": {
+    "ok": true,
+    "engine": "1.0.2",
+    "simulation": "Game",
+    "schema": "4013b429",
+    "snapshot": {
+      "bytesPerPlayer": 42,
+      "budget": 100
+    },
+    "fixture": {
+      "events": 2130,
+      "players": 4,
+      "final": {
+        "round": 3,
+        "tick": 749,
+        "roundOver": true,
+        "scores": [
+          114,
+          90,
+          90,
+          90
+        ]
+      }
+    },
+    "tests": [
+      "test/game.test.mjs"
+    ],
+    "scenarios": 19,
+    "conformance": {
+      "tier": "static",
+      "rows": [
+        "healthz",
+        "create",
+        "join",
+        "link",
+        "slots",
+        "stylesheet",
+        "origin",
+        "pinned",
+        "published",
+        "server",
+        "accumulator",
+        "netcode",
+        "simulation",
+        "schema",
+        "fixture",
+        "budget",
+        "readme",
+        "ledger"
+      ]
+    }
+  },
+  "browser_checks": "pending",
+  "deployment": "pending",
+  "root_catalog": "public/games.json",
+  "upload_filter": ".wasmerignore"
+}
