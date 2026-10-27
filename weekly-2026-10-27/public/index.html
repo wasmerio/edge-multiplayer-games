@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pipewright — the repair race</title>
+  <meta name="description" content="Rotate copper pipes, connect the water, and race your friends through a queue of repairs. A puzzle race for 2–8.">
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">
+    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.2/" } }
+  </script>
+</head>
+<body>
+  <header class="masthead">
+    <h1>Pipewright<span aria-hidden="true">↗</span></h1>
+    <button class="chip" data-engine="mute">Audio on</button>
+    <a class="chip" href="https://edge-multiplayer-games.wasmer.app">Games ↗</a>
+    <p class="connection" data-engine="status">Contacting the waterworks…</p>
+  </header>
+
+  <main>
+    <section class="service-sheet" data-engine="lobby">
+      <div class="brief">
+        <p class="eyebrow">Waterworks / competitive maintenance</p>
+        <div class="pipe-mark" aria-hidden="true"><i></i><b>↗</b></div>
+        <h2>Good connections.<br>Fast hands.</h2>
+        <p class="pitch">Connect the inlet to the outlet before your friends finish their repairs.</p>
+        <p class="instructions"><strong>Left / Right</strong> select a tile in reading order. <strong>Space</strong> turns it clockwise. On a phone, use the three buttons.</p>
+        <ol class="procedure">
+          <li><b>01</b><span>Follow the blue water. Turn the copper pipes to keep it flowing.</span></li>
+          <li><b>02</b><span>A connected outlet earns <strong>4 points</strong>. Unused pipes can stay loose.</span></li>
+          <li><b>03</b><span>Eight repairs. A 35-second clock. First to <strong>30 with a clear lead</strong> wins.</span></li>
+        </ol>
+        <p class="smallprint">Six points behind? Your next shift pays an extra point per repair. Nobody gets left out.</p>
+      </div>
+
+      <div class="registration">
+        <div class="form-heading"><span>CREW REGISTRATION</span><span>2—8</span></div>
+        <label class="field">Name on your badge
+          <input data-engine="name" maxlength="16" placeholder="Pipewright name" autocomplete="nickname">
+        </label>
+        <button class="primary" data-engine="create">Open a repair shop</button>
+        <p class="divider">Already on a crew?</p>
+        <div class="join-row">
+          <input data-engine="code" maxlength="8" placeholder="SHOP CODE" aria-label="Shop room code" autocomplete="off">
+          <button data-engine="join">Clock in</button>
+        </div>
+        <div class="room-slip" data-engine="room-info" hidden>
+          <p class="shop-id">SHOP <strong data-engine="room-code"></strong></p>
+          <div class="invitation" data-engine="invite" hidden>
+            <span>Send a work order to your friends</span>
+            <a data-engine="invite-link" href="#"></a>
+            <button class="chip" data-engine="copy">Copy work order</button>
+          </div>
+          <ul class="crew" data-engine="peers"></ul>
+          <div data-engine="host-controls" hidden>
+            <button class="primary" data-engine="start">Put the crew to work</button>
+          </div>
+          <p class="smallprint" data-engine="wait" hidden>The foreperson will open the shift shortly.</p>
+        </div>
+        <p class="smallprint">Same pipes. Same queue. Your own station.<br>No downloads, no spare parts required.</p>
+      </div>
+    </section>
+
+    <section class="workshop" data-engine="game" hidden>
+      <div class="workbench">
+        <div class="arena" data-engine="arena">
+          <div class="banner" data-engine="banner" hidden></div>
+        </div>
+        <p class="task" data-engine="hud"></p>
+        <div class="touch-controls" aria-label="Pipe controls">
+          <button data-engine-touch="select=-1" aria-label="Select previous tile"><b>←</b><span>PREVIOUS</span></button>
+          <button class="turn" data-engine-touch="turn=1" aria-label="Rotate selected pipe clockwise"><b>↻</b><span>TURN</span></button>
+          <button data-engine-touch="select=1" aria-label="Select next tile"><b>→</b><span>NEXT</span></button>
+        </div>
+      </div>
+      <aside class="ledger">
+        <h2>Crew ledger <span>PT</span></h2>
+        <ol class="scores" data-engine="scores"></ol>
+        <button class="primary" data-engine="next" hidden>Open next shift</button>
+        <p class="keys">← → / A D select<br>Space / R rotates clockwise<br>Hold an arrow to scan tiles<br>Host: Enter opens the next shift</p>
+        <p class="legend"><span class="water-key"></span> Blue carries water<br><span class="copper-key"></span> Copper needs a connection</p>
+      </aside>
+    </section>
+  </main>
+
+  <script type="module" src="/client.js"></script>
+</body>
+</html>

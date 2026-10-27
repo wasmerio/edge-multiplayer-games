@@ -40,5 +40,12 @@
     "description": "Memorise disappearing stitch patterns and weave them back with three keys, racing friends for first-finish bonuses and double-point finales.",
     "players": "2 to 8",
     "source": "weekly-2026-10-12/"
+  },
+  {
+    "slug": "weekly-2026-10-27",
+    "name": "Pipewright",
+    "description": "Rotate copper pipes to connect the water, racing friends through a shared repair queue with catch-up pay for trailing pipewrights.",
+    "players": "2 to 8",
+    "source": "weekly-2026-10-27/"
   }
 ]
