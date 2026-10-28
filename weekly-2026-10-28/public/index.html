@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Margin Press — make every layer count</title>
+  <meta name="description" content="Stack sliding ink blocks with one well-timed press. Overhang gets cut away; perfect prints earn extra ink. For 2–8 friends.">
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">
+    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.2/" } }
+  </script>
+</head>
+<body>
+  <header class="masthead">
+    <h1>Margin Press<span aria-hidden="true">®</span></h1>
+    <button class="chip" data-engine="mute">sound on</button>
+    <a class="chip" href="https://edge-multiplayer-games.wasmer.app">games ↗</a>
+    <p class="connection" data-engine="status">Warming up the press…</p>
+  </header>
+  <main>
+    <section class="lobby" data-engine="lobby">
+      <div class="specimen">
+        <p class="eyebrow">Multiplayer print works / 2–8 operators</p>
+        <h2>Mind the<br><em>overhang.</em></h2>
+        <p class="pitch">Stack sliding blocks to earn ink. Perfect alignment pays more; overhang gets cut away.</p>
+        <p class="controls"><strong>Tap Space or ↓ to press.</strong> On a phone, tap the PRESS pad. Release between blocks.</p>
+        <div class="sample" aria-hidden="true">
+          <span class="sample-label">01 / ALIGN</span>
+          <i class="stock"></i><i class="moving"></i><i class="cut"></i>
+          <span class="sample-foot">KEEP THE OVERLAP. LOSE THE REST.</span>
+        </div>
+        <div class="facts"><p><b>08</b> passes per run</p><p><b>34s</b> no eliminations</p><p><b>×2</b> final two passes</p></div>
+      </div>
+      <div class="job-ticket">
+        <div class="ticket-heading"><span>JOB TICKET</span><span>No. 028</span></div>
+        <label class="field">Operator name
+          <input data-engine="name" maxlength="16" placeholder="Your print credit" autocomplete="nickname">
+        </label>
+        <button class="primary" data-engine="create">Open a print room ↗</button>
+        <div class="join-line">
+          <label class="field">Room code
+            <input class="code" data-engine="code" maxlength="8" placeholder="8-LETTER" autocomplete="off">
+          </label>
+          <button data-engine="join">Clock in</button>
+        </div>
+        <div class="room" data-engine="room-info" hidden>
+          <p class="room-title">Press room <strong data-engine="room-code"></strong></p>
+          <div class="invite" data-engine="invite" hidden>
+            <span>Send this job to your friends:</span>
+            <a data-engine="invite-link" href="#"></a>
+            <button class="copy" data-engine="copy">Copy invitation</button>
+          </div>
+          <ul class="peers" data-engine="peers"></ul>
+          <div data-engine="host-controls" hidden><button class="primary" data-engine="start">Roll the first edition</button></div>
+          <p class="wait" data-engine="wait" hidden>The print chief will start the run.</p>
+        </div>
+        <div class="instructions">
+          <h3>Production notes</h3>
+          <ol>
+            <li>Each pass gives you <strong>one press</strong>. Match the solid block to its outlined support.</li>
+            <li>A clean print earns <strong>3 ink</strong>; a trimmed print earns 1. A miss gives wider stock next time.</li>
+            <li>Last two passes pay double. Reach <strong>45 ink with a clear lead</strong> to take the edition.</li>
+          </ol>
+        </div>
+        <p class="ticket-footer">No perfect hands required. Just good timing.</p>
+      </div>
+    </section>
+
+    <section class="game" data-engine="game" hidden>
+      <div class="stage">
+        <div class="arena" data-engine="arena">
+          <div class="banner" data-engine="banner" hidden></div>
+        </div>
+        <p class="hud" data-engine="hud"></p>
+        <div class="touch">
+          <button data-engine-touch="press=1" aria-label="Press to drop this block"><span>PRESS ↓</span><small>tap once · release · align again</small></button>
+        </div>
+      </div>
+      <aside class="ledger">
+        <h2>Ink account <span>/ 45</span></h2>
+        <ol class="scores" data-engine="scores"></ol>
+        <button class="primary" data-engine="next" hidden>Next print run</button>
+        <p class="keys">Space / ↓ presses.<br>Release between blocks.<br>Chief: Enter runs the next job.</p>
+        <p class="legend">◎ perfect &nbsp; ✓ trimmed &nbsp; × missed<br>Double brackets mark your bed.</p>
+      </aside>
+    </section>
+  </main>
+  <footer class="colophon">MARGIN PRESS <span>Registration is everything.</span></footer>
+  <script type="module" src="/client.js"></script>
+</body>
+</html>

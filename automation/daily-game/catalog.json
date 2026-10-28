@@ -40,5 +40,12 @@
     "description": "Memorise disappearing stitch patterns and weave them back with three keys, racing friends for first-finish bonuses and double-point finales.",
     "players": "2 to 8",
     "source": "weekly-2026-10-12/"
+  },
+  {
+    "slug": "weekly-2026-10-28",
+    "name": "Margin Press",
+    "description": "Time one-button drops to stack sliding ink blocks, trim away overhang, and outprint friends across eight-pass runs with double-point finales.",
+    "players": "2 to 8",
+    "source": "weekly-2026-10-28/"
   }
 ]
