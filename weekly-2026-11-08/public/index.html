@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Copper Nine — a little circuit rivalry</title>
+  <meta name="description" content="Rotate nine copper circuits to light every lamp before your friends. A multiplayer wiring puzzle for two to eight.">
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">
+    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.2/" } }
+  </script>
+</head>
+<body>
+  <header class="masthead">
+    <h1>Copper <b>Nine</b><span class="brand-lamp" aria-hidden="true"></span></h1>
+    <button class="chip" data-engine="mute">sound on</button>
+    <a class="chip" href="https://edge-multiplayer-games.wasmer.app">all games</a>
+    <p class="status" data-engine="status">Opening the workshop…</p>
+  </header>
+  <main>
+    <section class="welcome" data-engine="lobby">
+      <div class="placard">
+        <p class="eyebrow">A little circuit rivalry / 2–8 friends</p>
+        <h2>Good connections.<br><em>Brighter friends.</em></h2>
+        <p class="goal">Rotate nine copper circuits to light every lamp before your friends.</p>
+        <div class="sample" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <p class="controls"><strong>Arrows / WASD select. Space turns.</strong><br>On a phone, use the stick and TURN pad.</p>
+        <ol class="instructions">
+          <li><b>Follow the power.</b> It enters the top-left tile. Touching pipe ends light the next lamp.</li>
+          <li><b>Finish the circuit.</b> All nine lit earns 5 points. First finish earns 2 extra. You have 30 seconds.</li>
+          <li><b>Keep the lights on.</b> Unfinished? Three lit earns 1; six earns 2. First to 20 with a clear lead wins.</li>
+        </ol>
+      </div>
+      <div class="registration">
+        <div class="panel-heading"><span>WORKSHOP ADMISSION</span><span aria-hidden="true">№ 09</span></div>
+        <label class="field">Name on your bench
+          <input data-engine="name" maxlength="16" placeholder="Lampwright" autocomplete="nickname">
+        </label>
+        <button class="primary" data-engine="create">Open a workshop</button>
+        <p class="separator">Already have a bench?</p>
+        <div class="join-row">
+          <input class="code" data-engine="code" maxlength="8" placeholder="CODE" aria-label="Workshop code">
+          <button data-engine="join">Step inside</button>
+        </div>
+        <div class="room" data-engine="room-info" hidden>
+          <p>Workshop <strong data-engine="room-code"></strong></p>
+          <div class="invite" data-engine="invite" hidden>
+            <span>Invite a few bright minds:</span>
+            <a data-engine="invite-link" href="#"></a>
+            <button class="chip" data-engine="copy">copy invitation</button>
+          </div>
+          <ul class="peers" data-engine="peers"></ul>
+          <div data-engine="host-controls" hidden>
+            <button class="primary" data-engine="start">Power up the benches</button>
+          </div>
+          <p class="wait" data-engine="wait" hidden>The host will switch on the power shortly.</p>
+        </div>
+        <p class="smallprint">Same wiring. Different bright ideas.<br>Trailing players get a correctly turned centre tile.</p>
+      </div>
+    </section>
+    <section class="workshop" data-engine="game" hidden>
+      <div class="stage">
+        <div class="arena" data-engine="arena">
+          <div class="banner" data-engine="banner" hidden></div>
+        </div>
+        <p class="hud" data-engine="hud"></p>
+        <div class="touch">
+          <div class="stick" data-engine-stick="mx,my" role="group" aria-label="Select a tile: drag left, right, up or down"><i></i><span>SELECT</span></div>
+          <button class="turn" data-engine-touch="turn=1" aria-label="Turn selected tile clockwise"><span aria-hidden="true">↻</span>TURN</button>
+        </div>
+      </div>
+      <aside class="ledger">
+        <h2>Bright minds <span>/ 20 points</span></h2>
+        <ol class="scores" data-engine="scores"></ol>
+        <button class="primary" data-engine="next" hidden>New circuit</button>
+        <p class="keys">Arrows / WASD select.<br>Space turns clockwise.<br>Host: Enter opens the next circuit.</p>
+        <p class="legend">White corners select a tile. Glowing pipes carry power. Rivets mark a starter tile.</p>
+      </aside>
+    </section>
+  </main>
+  <footer>Built for a tableful of bright ideas. No electrician required.</footer>
+  <script type="module" src="/client.js"></script>
+</body>
+</html>

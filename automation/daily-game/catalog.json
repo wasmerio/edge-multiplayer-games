@@ -47,5 +47,12 @@
     "description": "Time one-button drops to stack sliding ink blocks, trim away overhang, and outprint friends across eight-pass runs with double-point finales.",
     "players": "2 to 8",
     "source": "weekly-2026-10-28/"
+  },
+  {
+    "slug": "weekly-2026-11-08",
+    "name": "Copper Nine",
+    "description": "Rotate nine copper circuits to light every lamp before your friends in a thirty-second wiring puzzle with first-finish bonuses and starter tiles for trailing players.",
+    "players": "2 to 8",
+    "source": "weekly-2026-11-08/"
   }
 ]

@@ -1,0 +1,68 @@
+{
+  "date": "2026-11-08",
+  "slug": "weekly-2026-11-08",
+  "base_sha": "21ed7e368d293ba23469164ae7a2bacd0d86d8d0",
+  "entry": {
+    "slug": "weekly-2026-11-08",
+    "name": "Copper Nine",
+    "description": "Rotate nine copper circuits to light every lamp before your friends in a thirty-second wiring puzzle with first-finish bonuses and starter tiles for trailing players.",
+    "players": "2 to 8",
+    "source": "weekly-2026-11-08/"
+  },
+  "checks": {
+    "ok": true,
+    "engine": "1.0.2",
+    "simulation": "Game",
+    "schema": "15e3a0e8",
+    "snapshot": {
+      "bytesPerPlayer": 39,
+      "budget": 100
+    },
+    "fixture": {
+      "events": 2883,
+      "players": 4,
+      "final": {
+        "round": 3,
+        "tick": 960,
+        "roundOver": true,
+        "scores": [
+          21,
+          15,
+          15,
+          5
+        ]
+      }
+    },
+    "tests": [
+      "test/game.test.mjs"
+    ],
+    "scenarios": 17,
+    "conformance": {
+      "tier": "static",
+      "rows": [
+        "healthz",
+        "create",
+        "join",
+        "link",
+        "slots",
+        "stylesheet",
+        "origin",
+        "pinned",
+        "published",
+        "server",
+        "accumulator",
+        "netcode",
+        "simulation",
+        "schema",
+        "fixture",
+        "budget",
+        "readme",
+        "ledger"
+      ]
+    }
+  },
+  "browser_checks": "pending",
+  "deployment": "pending",
+  "root_catalog": "public/games.json",
+  "upload_filter": ".wasmerignore"
+}
