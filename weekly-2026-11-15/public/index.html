@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Copper Current — the repair race</title>
+  <meta name="description" content="Turn nine pipe fittings into one flowing route. A forty-second puzzle race for two to eight friends.">
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">
+    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.2/" } }
+  </script>
+</head>
+<body>
+  <header class="mast">
+    <h1>Copper Current</h1>
+    <button class="chip" data-engine="mute">sound on</button>
+    <a class="chip" href="https://edge-multiplayer-games.wasmer.app">all games</a>
+    <span class="status" data-engine="status">opening the workshop</span>
+  </header>
+  <main>
+    <section class="lobby" data-engine="lobby">
+      <div class="poster">
+        <p class="eyebrow">Waterworks / repair crew / 2–8 friends</p>
+        <h2>One route.<br>Nine fittings.<br><em>Keep it flowing.</em></h2>
+        <p class="goal">Connect water through all nine tiles and out the other side. Repair more panels than your friends in forty seconds.</p>
+        <div class="pipe-diagram" aria-hidden="true"><i>↳</i><i>↴</i><i>↳</i><b>→</b></div>
+        <p class="controls"><strong>Arrows or WASD</strong> select a fitting. <strong>Space</strong> turns it clockwise. On a phone, use the stick and TURN.</p>
+        <ul class="rules">
+          <li><b>3 points</b> for a flowing panel. All nine tiles must connect.</li>
+          <li><b>+1</b> for the first repair of each panel. Same puzzle for everyone.</li>
+          <li><b>Behind by 6?</b> Each repair pays an extra point. Nobody is out.</li>
+        </ul>
+      </div>
+      <div class="ticket">
+        <div class="ticket-top"><span>CREW REGISTRATION</span><span>№ 09</span></div>
+        <label class="field">Name on your station
+          <input data-engine="name" maxlength="16" placeholder="Pipe specialist" autocomplete="nickname">
+        </label>
+        <button class="primary" data-engine="create">Open a workshop</button>
+        <div class="join-line">
+          <label class="field">Workshop code<input data-engine="code" maxlength="8" placeholder="CODE" autocomplete="off"></label>
+          <button data-engine="join">Clock in</button>
+        </div>
+        <div class="room" data-engine="room-info" hidden>
+          <p class="room-number">Workshop <strong data-engine="room-code"></strong></p>
+          <div class="invite" data-engine="invite" hidden>
+            <span>Send the crew their work order:</span>
+            <a data-engine="invite-link" href="#"></a>
+            <button class="chip" data-engine="copy">Copy work order</button>
+          </div>
+          <ul class="peers" data-engine="peers"></ul>
+          <div data-engine="host-controls" hidden><button class="primary" data-engine="start">Start the repair race</button></div>
+          <p class="wait" data-engine="wait" hidden>The foreperson will start your shift.</p>
+        </div>
+        <p class="fine">First to 32 with a clear lead wins. No broken friendships covered by warranty.</p>
+      </div>
+    </section>
+    <section class="game" data-engine="game" hidden>
+      <div class="stage">
+        <div class="arena" data-engine="arena">
+          <div class="banner" data-engine="banner" hidden></div>
+        </div>
+        <p class="hud" data-engine="hud"></p>
+        <div class="touch">
+          <div class="stick" data-engine-stick="mx,my" role="group" aria-label="Select a fitting: drag left, right, up or down"><i></i></div>
+          <button class="turn" data-engine-touch="turn=1" aria-label="Turn selected fitting clockwise"><span aria-hidden="true">↻</span>TURN</button>
+        </div>
+      </div>
+      <aside class="ledger">
+        <h2>Pressure report</h2>
+        <ol class="scores" data-engine="scores"></ol>
+        <button class="primary" data-engine="next" hidden>Next repair shift</button>
+        <p class="keys">Arrows / WASD: select<br>Space / X: turn clockwise<br>Host: Enter for the next shift</p>
+        <p class="legend"><b>●</b> Water shows your route.<br><span>×</span> A loose end needs fixing.<br>Use every tile before the outlet.</p>
+      </aside>
+    </section>
+  </main>
+  <script type="module" src="/client.js"></script>
+</body>
+</html>

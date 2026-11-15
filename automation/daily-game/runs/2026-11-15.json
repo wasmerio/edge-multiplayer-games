@@ -1,0 +1,68 @@
+{
+  "date": "2026-11-15",
+  "slug": "weekly-2026-11-15",
+  "base_sha": "21ed7e368d293ba23469164ae7a2bacd0d86d8d0",
+  "entry": {
+    "slug": "weekly-2026-11-15",
+    "name": "Copper Current",
+    "description": "Rotate pipe fittings into flowing nine-tile routes, racing friends for first-clear bonuses and catch-up points in forty-second repair sprints.",
+    "players": "2 to 8",
+    "source": "weekly-2026-11-15/"
+  },
+  "checks": {
+    "ok": true,
+    "engine": "1.0.2",
+    "simulation": "Game",
+    "schema": "651e4573",
+    "snapshot": {
+      "bytesPerPlayer": 40,
+      "budget": 100
+    },
+    "fixture": {
+      "events": 3783,
+      "players": 4,
+      "final": {
+        "round": 3,
+        "tick": 1260,
+        "roundOver": true,
+        "scores": [
+          184,
+          162,
+          115,
+          107
+        ]
+      }
+    },
+    "tests": [
+      "test/game.test.mjs"
+    ],
+    "scenarios": 17,
+    "conformance": {
+      "tier": "static",
+      "rows": [
+        "healthz",
+        "create",
+        "join",
+        "link",
+        "slots",
+        "stylesheet",
+        "origin",
+        "pinned",
+        "published",
+        "server",
+        "accumulator",
+        "netcode",
+        "simulation",
+        "schema",
+        "fixture",
+        "budget",
+        "readme",
+        "ledger"
+      ]
+    }
+  },
+  "browser_checks": "pending",
+  "deployment": "pending",
+  "root_catalog": "public/games.json",
+  "upload_filter": ".wasmerignore"
+}
