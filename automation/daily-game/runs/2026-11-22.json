@@ -1,0 +1,68 @@
+{
+  "date": "2026-11-22",
+  "slug": "weekly-2026-11-22",
+  "base_sha": "21ed7e368d293ba23469164ae7a2bacd0d86d8d0",
+  "entry": {
+    "slug": "weekly-2026-11-22",
+    "name": "Tideglass",
+    "description": "Rotate glass pipes to connect inlet to outlet before your friends in a five-puzzle race with first-flow bonuses and double-point finales.",
+    "players": "2 to 8",
+    "source": "weekly-2026-11-22/"
+  },
+  "checks": {
+    "ok": true,
+    "engine": "1.0.2",
+    "simulation": "Game",
+    "schema": "2b91b60d",
+    "snapshot": {
+      "bytesPerPlayer": 40,
+      "budget": 100
+    },
+    "fixture": {
+      "events": 3783,
+      "players": 4,
+      "final": {
+        "round": 3,
+        "tick": 1260,
+        "roundOver": true,
+        "scores": [
+          147,
+          84,
+          84,
+          84
+        ]
+      }
+    },
+    "tests": [
+      "test/game.test.mjs"
+    ],
+    "scenarios": 18,
+    "conformance": {
+      "tier": "static",
+      "rows": [
+        "healthz",
+        "create",
+        "join",
+        "link",
+        "slots",
+        "stylesheet",
+        "origin",
+        "pinned",
+        "published",
+        "server",
+        "accumulator",
+        "netcode",
+        "simulation",
+        "schema",
+        "fixture",
+        "budget",
+        "readme",
+        "ledger"
+      ]
+    }
+  },
+  "browser_checks": "pending",
+  "deployment": "pending",
+  "root_catalog": "public/games.json",
+  "upload_filter": ".wasmerignore"
+}

@@ -94,5 +94,13 @@
     "players": "2 to 8",
     "source": "weekly-2026-10-28/",
     "url": "https://weekly-2026-10-28.wasmer.app"
+  },
+  {
+    "slug": "weekly-2026-11-22",
+    "name": "Tideglass",
+    "description": "Rotate glass pipes to connect inlet to outlet before your friends in a five-puzzle race with first-flow bonuses and double-point finales.",
+    "players": "2 to 8",
+    "source": "weekly-2026-11-22/",
+    "url": null
   }
 ]
