@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tideglass — make a connection</title>
+  <meta name="description" content="Rotate glass pipes, connect the flow, and race your friends through five shared puzzles.">
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">
+    { "imports": { "@engine/": "https://edge-multiplayer-games.wasmer.app/engine/1.0.2/" } }
+  </script>
+</head>
+<body>
+  <header class="masthead">
+    <h1>Tideglass<span class="brand-dot" aria-hidden="true">◌</span></h1>
+    <button class="chip" data-engine="mute">sound on</button>
+    <a class="chip" href="https://edge-multiplayer-games.wasmer.app">all games</a>
+    <span class="connection" data-engine="status">opening the taps</span>
+  </header>
+  <main>
+    <section class="lobby" data-engine="lobby">
+      <div class="invitation">
+        <p class="eyebrow">The little connection club · 2–8 friends</p>
+        <h2>Go with<br><em>your own flow.</em></h2>
+        <p class="pitch">Connect the inlet to the outlet before your friends by rotating glass pipes.</p>
+        <p class="instructions">Arrows or WASD select a pipe. Tap Space to turn it clockwise. On a phone, use the stick and TURN.</p>
+        <div class="sample" aria-hidden="true">
+          <span class="sample-in">IN →</span><i class="sample-pipe elbow"></i><i class="sample-pipe elbow other"></i><span class="sample-out">→ OUT</span>
+        </div>
+        <ul class="fine-print">
+          <li><b>Same pipes. Different plans.</b> Everyone gets the same five puzzles, on their own board.</li>
+          <li><b>First flow: 7. Every finish: 4.</b> The last two boards pay double. First to 70 with a clear lead wins.</li>
+          <li><b>No one gets washed out.</b> Seven seconds per puzzle, then a fresh connection.</li>
+        </ul>
+      </div>
+      <div class="admission">
+        <p class="eyebrow">Make a connection</p>
+        <label class="field">Name on your tile
+          <input data-engine="name" maxlength="16" placeholder="River" autocomplete="nickname">
+        </label>
+        <button class="primary" data-engine="create">Open the club</button>
+        <div class="join-line">
+          <label class="field">Have a club code?
+            <input class="code" data-engine="code" maxlength="8" placeholder="CODE" aria-label="Club room code">
+          </label>
+          <button data-engine="join">Come in</button>
+        </div>
+        <div class="room" data-engine="room-info" hidden>
+          <p class="room-title">Your club <strong data-engine="room-code"></strong></p>
+          <div class="invite" data-engine="invite" hidden>
+            <span>A little invitation for your friends</span>
+            <a data-engine="invite-link" href="#"></a>
+            <button class="chip" data-engine="copy">Copy invitation</button>
+          </div>
+          <ul class="peers" data-engine="peers"></ul>
+          <div data-engine="host-controls" hidden>
+            <button class="primary" data-engine="start">Let it flow</button>
+          </div>
+          <p class="wait" data-engine="wait" hidden>Your host will open the first five pipes.</p>
+        </div>
+        <p class="small">A short round. A fresh start.<br>Bring a friend, or a whole bathhouse.</p>
+      </div>
+    </section>
+    <section class="game" data-engine="game" hidden>
+      <div class="stage">
+        <div class="arena" data-engine="arena">
+          <div class="banner" data-engine="banner" hidden></div>
+        </div>
+        <p class="hud" data-engine="hud"></p>
+        <div class="touch">
+          <div class="stick" data-engine-stick="mx,my" role="group" aria-label="Select a pipe: drag up, down, left or right"><i></i><span aria-hidden="true">SELECT</span></div>
+          <button class="turn" data-engine-touch="turn=1" aria-label="Rotate the selected pipe clockwise"><span aria-hidden="true">↻</span>TURN</button>
+        </div>
+      </div>
+      <aside class="ledger">
+        <div class="ledger-title"><h2>Flow ledger</h2><span>first to 70</span></div>
+        <ol class="scores" data-engine="scores"></ol>
+        <button class="primary" data-engine="next" hidden>Fresh pipes</button>
+        <p class="keys">Arrows / WASD select.<br>Space / E turns clockwise.<br>Host: Enter opens the next round.</p>
+        <p class="legend">Your cursor has double brackets. The little numbers count wet pipes, not points. A cross marks where the water stops.</p>
+      </aside>
+    </section>
+  </main>
+  <script type="module" src="/client.js"></script>
+</body>
+</html>
